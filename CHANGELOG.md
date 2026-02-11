@@ -8,7 +8,10 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Time-axis zoom-aware formatter baseline (`R-005`) with `UtcAdaptive` policy selection by visible span.
+- In-engine time-axis label cache with hit/miss stats for redraw optimization.
+- New tests for adaptive formatter behavior and cache-hit verification.
+- New benchmark coverage for hot-path cached time-axis labeling.
 
 ## [0.0.16-alpha.0] - 2026-02-11
 

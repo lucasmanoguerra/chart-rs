@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
@@ -75,7 +77,7 @@ impl ChartEngineConfig {
 }
 
 /// Locale preset used by axis label formatters.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum AxisLabelLocale {
     #[default]
     EnUs,
@@ -89,6 +91,8 @@ pub enum TimeAxisLabelPolicy {
     LogicalDecimal { precision: u8 },
     /// Interpret logical values as unix timestamps and format in UTC.
     UtcDateTime { show_seconds: bool },
+    /// Select UTC format detail based on current visible span (zoom level).
+    UtcAdaptive,
 }
 
 impl Default for TimeAxisLabelPolicy {
@@ -134,6 +138,80 @@ impl Default for RenderStyle {
 
 pub type TimeLabelFormatterFn = Arc<dyn Fn(f64) -> String + Send + Sync + 'static>;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct TimeLabelCacheStats {
+    pub hits: u64,
+    pub misses: u64,
+    pub size: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum TimeLabelPattern {
+    Date,
+    DateMinute,
+    DateSecond,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum TimeLabelCacheProfile {
+    LogicalDecimal {
+        precision: u8,
+        locale: AxisLabelLocale,
+    },
+    Utc {
+        locale: AxisLabelLocale,
+        pattern: TimeLabelPattern,
+    },
+    Custom {
+        formatter_generation: u64,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct TimeLabelCacheKey {
+    profile: TimeLabelCacheProfile,
+    logical_time_millis: i64,
+}
+
+#[derive(Debug, Default)]
+struct TimeLabelCache {
+    entries: HashMap<TimeLabelCacheKey, String>,
+    hits: u64,
+    misses: u64,
+}
+
+impl TimeLabelCache {
+    const MAX_ENTRIES: usize = 8192;
+
+    fn get(&mut self, key: TimeLabelCacheKey) -> Option<String> {
+        let value = self.entries.get(&key).cloned();
+        if value.is_some() {
+            self.hits = self.hits.saturating_add(1);
+        }
+        value
+    }
+
+    fn insert(&mut self, key: TimeLabelCacheKey, value: String) {
+        self.misses = self.misses.saturating_add(1);
+        if self.entries.len() >= Self::MAX_ENTRIES {
+            self.entries.clear();
+        }
+        self.entries.insert(key, value);
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+    }
+
+    fn stats(&self) -> TimeLabelCacheStats {
+        TimeLabelCacheStats {
+            hits: self.hits,
+            misses: self.misses,
+            size: self.entries.len(),
+        }
+    }
+}
+
 /// Serializable deterministic state snapshot used by regression tests and
 /// debugging tooling.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -164,6 +242,8 @@ pub struct ChartEngine<R: Renderer> {
     plugins: Vec<Box<dyn ChartPlugin>>,
     time_axis_label_config: TimeAxisLabelConfig,
     time_label_formatter: Option<TimeLabelFormatterFn>,
+    time_label_formatter_generation: u64,
+    time_label_cache: RefCell<TimeLabelCache>,
     render_style: RenderStyle,
 }
 
@@ -192,6 +272,8 @@ impl<R: Renderer> ChartEngine<R> {
             plugins: Vec::new(),
             time_axis_label_config: TimeAxisLabelConfig::default(),
             time_label_formatter: None,
+            time_label_formatter_generation: 0,
+            time_label_cache: RefCell::new(TimeLabelCache::default()),
             render_style: RenderStyle::default(),
         })
     }
@@ -319,15 +401,31 @@ impl<R: Renderer> ChartEngine<R> {
     pub fn set_time_axis_label_config(&mut self, config: TimeAxisLabelConfig) -> ChartResult<()> {
         validate_time_axis_label_config(config)?;
         self.time_axis_label_config = config;
+        self.time_label_cache.borrow_mut().clear();
         Ok(())
     }
 
     pub fn set_time_label_formatter(&mut self, formatter: TimeLabelFormatterFn) {
         self.time_label_formatter = Some(formatter);
+        self.time_label_formatter_generation =
+            self.time_label_formatter_generation.saturating_add(1);
+        self.time_label_cache.borrow_mut().clear();
     }
 
     pub fn clear_time_label_formatter(&mut self) {
         self.time_label_formatter = None;
+        self.time_label_formatter_generation =
+            self.time_label_formatter_generation.saturating_add(1);
+        self.time_label_cache.borrow_mut().clear();
+    }
+
+    #[must_use]
+    pub fn time_label_cache_stats(&self) -> TimeLabelCacheStats {
+        self.time_label_cache.borrow().stats()
+    }
+
+    pub fn clear_time_label_cache(&self) {
+        self.time_label_cache.borrow_mut().clear();
     }
 
     #[must_use]
@@ -341,11 +439,47 @@ impl<R: Renderer> ChartEngine<R> {
         Ok(())
     }
 
-    fn format_time_axis_label(&self, logical_time: f64) -> String {
-        if let Some(formatter) = &self.time_label_formatter {
-            return formatter(logical_time);
+    fn format_time_axis_label(&self, logical_time: f64, visible_span_abs: f64) -> String {
+        let profile = self.resolve_time_label_cache_profile(visible_span_abs);
+        let key = TimeLabelCacheKey {
+            profile,
+            logical_time_millis: quantize_logical_time_millis(logical_time),
+        };
+
+        if let Some(cached) = self.time_label_cache.borrow_mut().get(key) {
+            return cached;
         }
-        format_time_axis_label(logical_time, self.time_axis_label_config)
+
+        let value = if let Some(formatter) = &self.time_label_formatter {
+            formatter(logical_time)
+        } else {
+            format_time_axis_label(logical_time, self.time_axis_label_config, visible_span_abs)
+        };
+        self.time_label_cache
+            .borrow_mut()
+            .insert(key, value.clone());
+        value
+    }
+
+    fn resolve_time_label_cache_profile(&self, visible_span_abs: f64) -> TimeLabelCacheProfile {
+        if self.time_label_formatter.is_some() {
+            return TimeLabelCacheProfile::Custom {
+                formatter_generation: self.time_label_formatter_generation,
+            };
+        }
+
+        match resolve_time_label_pattern(self.time_axis_label_config.policy, visible_span_abs) {
+            ResolvedTimeLabelPattern::LogicalDecimal { precision } => {
+                TimeLabelCacheProfile::LogicalDecimal {
+                    precision,
+                    locale: self.time_axis_label_config.locale,
+                }
+            }
+            ResolvedTimeLabelPattern::Utc { pattern } => TimeLabelCacheProfile::Utc {
+                locale: self.time_axis_label_config.locale,
+                pattern,
+            },
+        }
     }
 
     #[must_use]
@@ -1052,8 +1186,9 @@ impl<R: Renderer> ChartEngine<R> {
             time_ticks.push((time, clamped_px));
         }
 
+        let visible_span_abs = (visible_end - visible_start).abs();
         for (time, px) in select_ticks_with_min_spacing(time_ticks, AXIS_TIME_MIN_SPACING_PX) {
-            let text = self.format_time_axis_label(time);
+            let text = self.format_time_axis_label(time, visible_span_abs);
             frame = frame.with_text(TextPrimitive::new(
                 text,
                 px,
@@ -1283,7 +1418,7 @@ fn validate_time_axis_label_config(
                 ));
             }
         }
-        TimeAxisLabelPolicy::UtcDateTime { .. } => {}
+        TimeAxisLabelPolicy::UtcDateTime { .. } | TimeAxisLabelPolicy::UtcAdaptive => {}
     }
     Ok(config)
 }
@@ -1309,26 +1444,81 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     Ok(style)
 }
 
-fn format_time_axis_label(logical_time: f64, config: TimeAxisLabelConfig) -> String {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ResolvedTimeLabelPattern {
+    LogicalDecimal { precision: u8 },
+    Utc { pattern: TimeLabelPattern },
+}
+
+fn resolve_time_label_pattern(
+    policy: TimeAxisLabelPolicy,
+    visible_span_abs: f64,
+) -> ResolvedTimeLabelPattern {
+    match policy {
+        TimeAxisLabelPolicy::LogicalDecimal { precision } => {
+            ResolvedTimeLabelPattern::LogicalDecimal { precision }
+        }
+        TimeAxisLabelPolicy::UtcDateTime { show_seconds } => {
+            let pattern = if show_seconds {
+                TimeLabelPattern::DateSecond
+            } else {
+                TimeLabelPattern::DateMinute
+            };
+            ResolvedTimeLabelPattern::Utc { pattern }
+        }
+        TimeAxisLabelPolicy::UtcAdaptive => {
+            let pattern = if visible_span_abs <= 600.0 {
+                TimeLabelPattern::DateSecond
+            } else if visible_span_abs <= 172_800.0 {
+                TimeLabelPattern::DateMinute
+            } else {
+                TimeLabelPattern::Date
+            };
+            ResolvedTimeLabelPattern::Utc { pattern }
+        }
+    }
+}
+
+fn quantize_logical_time_millis(logical_time: f64) -> i64 {
+    if !logical_time.is_finite() {
+        return 0;
+    }
+    let millis = (logical_time * 1_000.0).round();
+    if millis > (i64::MAX as f64) {
+        i64::MAX
+    } else if millis < (i64::MIN as f64) {
+        i64::MIN
+    } else {
+        millis as i64
+    }
+}
+
+fn format_time_axis_label(
+    logical_time: f64,
+    config: TimeAxisLabelConfig,
+    visible_span_abs: f64,
+) -> String {
     if !logical_time.is_finite() {
         return "nan".to_owned();
     }
 
-    match config.policy {
-        TimeAxisLabelPolicy::LogicalDecimal { precision } => {
+    match resolve_time_label_pattern(config.policy, visible_span_abs) {
+        ResolvedTimeLabelPattern::LogicalDecimal { precision } => {
             format_axis_decimal(logical_time, usize::from(precision), config.locale)
         }
-        TimeAxisLabelPolicy::UtcDateTime { show_seconds } => {
+        ResolvedTimeLabelPattern::Utc { pattern } => {
             let seconds = logical_time.round() as i64;
             let Some(dt) = DateTime::<Utc>::from_timestamp(seconds, 0) else {
                 return format_axis_decimal(logical_time, 2, config.locale);
             };
 
-            let pattern = match (config.locale, show_seconds) {
-                (AxisLabelLocale::EnUs, false) => "%Y-%m-%d %H:%M",
-                (AxisLabelLocale::EnUs, true) => "%Y-%m-%d %H:%M:%S",
-                (AxisLabelLocale::EsEs, false) => "%d/%m/%Y %H:%M",
-                (AxisLabelLocale::EsEs, true) => "%d/%m/%Y %H:%M:%S",
+            let pattern = match (config.locale, pattern) {
+                (AxisLabelLocale::EnUs, TimeLabelPattern::Date) => "%Y-%m-%d",
+                (AxisLabelLocale::EnUs, TimeLabelPattern::DateMinute) => "%Y-%m-%d %H:%M",
+                (AxisLabelLocale::EnUs, TimeLabelPattern::DateSecond) => "%Y-%m-%d %H:%M:%S",
+                (AxisLabelLocale::EsEs, TimeLabelPattern::Date) => "%d/%m/%Y",
+                (AxisLabelLocale::EsEs, TimeLabelPattern::DateMinute) => "%d/%m/%Y %H:%M",
+                (AxisLabelLocale::EsEs, TimeLabelPattern::DateSecond) => "%d/%m/%Y %H:%M:%S",
             };
             dt.format(pattern).to_string()
         }

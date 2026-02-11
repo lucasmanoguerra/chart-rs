@@ -96,6 +96,7 @@ Responsibilities:
 - price autoscale from points/candles (default and tuned)
 - crosshair snapping behavior
 - time-axis formatter policy + locale/custom formatter injection
+- zoom-aware adaptive time-axis formatting and label-cache metrics
 - render style contract for grid/axis parity tuning
 
 ### `src/render`
@@ -113,6 +114,7 @@ Render invariants:
 - axis labels use spacing-aware collision filtering
 - label density scales with viewport size within fixed min/max bounds
 - time-axis labels support built-in policy+locale and explicit custom formatter injection
+- repeated redraws reuse deterministic time-label cache entries (`time_label_cache_stats`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow
@@ -208,7 +210,7 @@ Where to add tests:
 - `tests/render_axis_layout_tests.rs`
   - axis label density/collision behavior for narrow vs wide viewports
 - `tests/time_axis_formatter_tests.rs`
-  - time-axis policy/locale formatting and custom formatter injection behavior
+  - time-axis policy/locale formatting, adaptive zoom behavior, and label-cache hit behavior
 - `tests/render_style_tests.rs`
   - render-style validation and grid/axis visual contract behavior
 - `tests/decimal_time_tests.rs`
