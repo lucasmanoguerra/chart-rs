@@ -38,6 +38,7 @@ Use this document to track parity progress.
 | R-004 | Price Scale | Visual parity styling baseline | done | Render output includes deterministic grid/axis styling close to Lightweight Charts conventions | `tests/render_style_tests.rs`, `tests/render_cairo_backend_tests.rs`, `benches/core_math_bench.rs` | Added configurable render style contract (grid, axis borders, label colors, scale panel sizing) and plot/axis panel split in frame generation. |
 | R-005 | Time Axis | Zoom-aware formatter + label cache | done | Time labels adapt formatting by visible-span zoom level and repeated redraws reuse cached formatted labels deterministically | `tests/time_axis_formatter_tests.rs`, `benches/core_math_bench.rs` | Added `UtcAdaptive` formatter policy and in-engine time-label cache with hit/miss stats for redraw optimization. |
 | R-006 | Time Axis | Session boundary/timezone-aware labeling | done | Time labels support trading-session boundaries and configurable timezone alignment | `tests/time_axis_formatter_tests.rs`, `benches/core_math_bench.rs` | Added fixed-offset timezone alignment and optional session envelope that keeps boundary labels explicit while collapsing in-session intraday labels to time-only format. |
+| R-007 | Time Axis | Major tick visual emphasis | done | Session/day boundary ticks render with deterministic major grid/label styling | `tests/render_style_tests.rs`, `benches/core_math_bench.rs` | Added major tick classification (session boundary + local midnight) with configurable major grid color/width and label font size. |
 
 ## Extensions
 

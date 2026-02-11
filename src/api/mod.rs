@@ -183,10 +183,13 @@ pub struct TimeAxisLabelConfig {
 pub struct RenderStyle {
     pub series_line_color: Color,
     pub grid_line_color: Color,
+    pub major_grid_line_color: Color,
     pub axis_border_color: Color,
     pub axis_label_color: Color,
     pub grid_line_width: f64,
+    pub major_grid_line_width: f64,
     pub axis_line_width: f64,
+    pub major_time_label_font_size_px: f64,
     pub price_axis_width_px: f64,
     pub time_axis_height_px: f64,
 }
@@ -196,10 +199,13 @@ impl Default for RenderStyle {
         Self {
             series_line_color: Color::rgb(0.16, 0.38, 1.0),
             grid_line_color: Color::rgb(0.89, 0.92, 0.95),
+            major_grid_line_color: Color::rgb(0.78, 0.83, 0.90),
             axis_border_color: Color::rgb(0.82, 0.84, 0.88),
             axis_label_color: Color::rgb(0.10, 0.12, 0.16),
             grid_line_width: 1.0,
+            major_grid_line_width: 1.25,
             axis_line_width: 1.0,
+            major_time_label_font_size_px: 12.0,
             price_axis_width_px: 72.0,
             time_axis_height_px: 24.0,
         }
@@ -1264,12 +1270,22 @@ impl<R: Renderer> ChartEngine<R> {
 
         let visible_span_abs = (visible_end - visible_start).abs();
         for (time, px) in select_ticks_with_min_spacing(time_ticks, AXIS_TIME_MIN_SPACING_PX) {
+            let is_major_tick = is_major_time_tick(time, self.time_axis_label_config);
+            let (grid_color, grid_line_width, label_font_size_px) = if is_major_tick {
+                (
+                    style.major_grid_line_color,
+                    style.major_grid_line_width,
+                    style.major_time_label_font_size_px,
+                )
+            } else {
+                (style.grid_line_color, style.grid_line_width, 11.0)
+            };
             let text = self.format_time_axis_label(time, visible_span_abs);
             frame = frame.with_text(TextPrimitive::new(
                 text,
                 px,
                 (plot_bottom + 4.0).min((viewport_height - 12.0).max(0.0)),
-                11.0,
+                label_font_size_px,
                 label_color,
                 TextHAlign::Center,
             ));
@@ -1278,8 +1294,8 @@ impl<R: Renderer> ChartEngine<R> {
                 0.0,
                 px,
                 plot_bottom,
-                style.grid_line_width,
-                style.grid_line_color,
+                grid_line_width,
+                grid_color,
             ));
             frame = frame.with_line(LinePrimitive::new(
                 px,
@@ -1539,12 +1555,18 @@ fn validate_time_axis_session_config(
 fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.series_line_color.validate()?;
     style.grid_line_color.validate()?;
+    style.major_grid_line_color.validate()?;
     style.axis_border_color.validate()?;
     style.axis_label_color.validate()?;
 
     for (name, value) in [
         ("grid_line_width", style.grid_line_width),
+        ("major_grid_line_width", style.major_grid_line_width),
         ("axis_line_width", style.axis_line_width),
+        (
+            "major_time_label_font_size_px",
+            style.major_time_label_font_size_px,
+        ),
         ("price_axis_width_px", style.price_axis_width_px),
         ("time_axis_height_px", style.time_axis_height_px),
     ] {
@@ -1668,6 +1690,30 @@ fn resolve_session_time_label_pattern(
         TimeLabelPattern::DateSecond => TimeLabelPattern::TimeSecond,
         other => other,
     }
+}
+
+fn is_major_time_tick(logical_time: f64, config: TimeAxisLabelConfig) -> bool {
+    if !logical_time.is_finite() {
+        return false;
+    }
+    if matches!(config.policy, TimeAxisLabelPolicy::LogicalDecimal { .. }) {
+        return false;
+    }
+
+    let seconds = logical_time.round() as i64;
+    let Some(dt) = DateTime::<Utc>::from_timestamp(seconds, 0) else {
+        return false;
+    };
+    let local_dt = dt.with_timezone(&config.timezone.fixed_offset());
+    let minute_of_day = (local_dt.hour() * 60 + local_dt.minute()) as u16;
+
+    if let Some(session) = config.session {
+        if session.is_boundary(minute_of_day, local_dt.second()) {
+            return true;
+        }
+    }
+
+    local_dt.hour() == 0 && local_dt.minute() == 0 && local_dt.second() == 0
 }
 
 fn format_axis_decimal(value: f64, precision: usize, locale: AxisLabelLocale) -> String {
