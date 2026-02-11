@@ -8,6 +8,11 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Nothing yet.
+
+## [0.0.9-alpha.0] - 2026-02-11
+
+### Added
 - Histogram series projection baseline (`C-010`) with deterministic bar geometry anchored to a configurable baseline.
 - Visible-window and overscan histogram projection helpers for point data.
 - New integration/property tests covering histogram width and bar-axis invariants.
