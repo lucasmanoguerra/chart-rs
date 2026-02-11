@@ -8,7 +8,10 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- Nothing yet.
+- Baseline series projection baseline (`C-009`) with deterministic line + above/below fill geometry.
+- Visible-window and overscan baseline projection helpers for point data.
+- New integration/property tests covering baseline clamp invariants.
+- Criterion benchmark for baseline projection throughput.
 
 ## [0.0.7-alpha.0] - 2026-02-11
 

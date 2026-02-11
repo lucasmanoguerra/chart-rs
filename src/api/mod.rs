@@ -5,9 +5,10 @@ use smallvec::SmallVec;
 use tracing::{debug, trace};
 
 use crate::core::{
-    AreaGeometry, CandleGeometry, DataPoint, LineSegment, OhlcBar, PriceScale, PriceScaleTuning,
-    TimeScale, TimeScaleTuning, Viewport, candles_in_time_window, points_in_time_window,
-    project_area_geometry, project_candles, project_line_segments,
+    AreaGeometry, BaselineGeometry, CandleGeometry, DataPoint, LineSegment, OhlcBar, PriceScale,
+    PriceScaleTuning, TimeScale, TimeScaleTuning, Viewport, candles_in_time_window,
+    points_in_time_window, project_area_geometry, project_baseline_geometry, project_candles,
+    project_line_segments,
 };
 use crate::error::{ChartError, ChartResult};
 use crate::extensions::{
@@ -550,6 +551,50 @@ impl<R: Renderer> ChartEngine<R> {
         let (start, end) = expand_visible_window(self.time_scale.visible_range(), ratio)?;
         let visible = points_in_time_window(&self.points, start, end);
         project_area_geometry(&visible, self.time_scale, self.price_scale, self.viewport)
+    }
+
+    /// Projects point-series data into deterministic baseline geometry.
+    pub fn project_baseline_geometry(&self, baseline_price: f64) -> ChartResult<BaselineGeometry> {
+        project_baseline_geometry(
+            &self.points,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            baseline_price,
+        )
+    }
+
+    /// Projects baseline geometry for points inside the visible time range.
+    pub fn project_visible_baseline_geometry(
+        &self,
+        baseline_price: f64,
+    ) -> ChartResult<BaselineGeometry> {
+        let (start, end) = self.time_scale.visible_range();
+        let visible = points_in_time_window(&self.points, start, end);
+        project_baseline_geometry(
+            &visible,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            baseline_price,
+        )
+    }
+
+    /// Projects visible baseline geometry with symmetric window overscan.
+    pub fn project_visible_baseline_geometry_with_overscan(
+        &self,
+        baseline_price: f64,
+        ratio: f64,
+    ) -> ChartResult<BaselineGeometry> {
+        let (start, end) = expand_visible_window(self.time_scale.visible_range(), ratio)?;
+        let visible = points_in_time_window(&self.points, start, end);
+        project_baseline_geometry(
+            &visible,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            baseline_price,
+        )
     }
 
     /// Builds a deterministic snapshot useful for regression tests.
