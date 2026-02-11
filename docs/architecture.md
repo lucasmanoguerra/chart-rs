@@ -79,6 +79,7 @@ Tuning contracts:
 - last-price marker can optionally resolve deterministic up/down/neutral colors from latest vs previous sample
 - last-price marker source policy can switch between full-series latest sample and newest visible-range sample
 - latest-price axis label can optionally render as a deterministic filled price-box on the axis panel
+- latest-price price-box can apply deterministic border/radius styling and auto-contrast text color policy
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract

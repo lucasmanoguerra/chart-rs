@@ -378,6 +378,9 @@ fn last_price_label_box_draws_axis_rect_and_uses_box_text_color() {
         last_price_label_color: Color::rgb(0.1, 0.4, 1.0),
         show_last_price_label_box: true,
         last_price_label_box_use_marker_color: true,
+        last_price_label_box_border_width_px: 1.25,
+        last_price_label_box_border_color: Color::rgb(0.8, 0.8, 0.8),
+        last_price_label_box_corner_radius_px: 3.0,
         last_price_label_box_text_color: Color::rgb(1.0, 1.0, 1.0),
         ..engine.render_style()
     };
@@ -391,6 +394,9 @@ fn last_price_label_box_draws_axis_rect_and_uses_box_text_color() {
             && (rect.x - plot_right).abs() <= 1e-9
             && rect.width > 0.0
             && rect.height > 0.0
+            && rect.border_width == style.last_price_label_box_border_width_px
+            && rect.border_color == style.last_price_label_box_border_color
+            && rect.corner_radius == style.last_price_label_box_corner_radius_px
     }));
     assert!(frame.texts.iter().any(|text| {
         text.h_align == TextHAlign::Right
@@ -413,6 +419,7 @@ fn last_price_label_box_can_use_custom_fill_color() {
         last_price_label_box_use_marker_color: false,
         last_price_label_box_color: Color::rgb(0.15, 0.15, 0.15),
         last_price_label_box_text_color: Color::rgb(0.95, 0.95, 0.95),
+        last_price_label_box_auto_text_contrast: false,
         ..engine.render_style()
     };
     engine.set_render_style(style).expect("set style");
@@ -428,5 +435,55 @@ fn last_price_label_box_can_use_custom_fill_color() {
         text.h_align == TextHAlign::Right
             && text.text == "20.00"
             && text.color == style.last_price_label_box_text_color
+    }));
+}
+
+#[test]
+fn last_price_label_box_auto_text_contrast_switches_to_dark_text_on_bright_fill() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        show_last_price_label_box: true,
+        last_price_label_box_use_marker_color: false,
+        last_price_label_box_color: Color::rgb(0.95, 0.95, 0.95),
+        last_price_label_box_text_color: Color::rgb(1.0, 0.0, 0.0),
+        last_price_label_box_auto_text_contrast: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.text == "20.00"
+            && text.color == Color::rgb(0.06, 0.08, 0.11)
+    }));
+}
+
+#[test]
+fn last_price_label_box_corner_radius_is_clamped_to_box_size() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(240, 160), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        show_last_price_label_box: true,
+        last_price_label_box_use_marker_color: false,
+        last_price_label_box_color: Color::rgb(0.1, 0.1, 0.1),
+        last_price_label_box_corner_radius_px: 10_000.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.rects.iter().any(|rect| {
+        rect.corner_radius <= (rect.width.min(rect.height)) * 0.5 + 1e-9
+            && rect.corner_radius >= 0.0
     }));
 }

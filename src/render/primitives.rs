@@ -93,6 +93,9 @@ pub struct RectPrimitive {
     pub width: f64,
     pub height: f64,
     pub fill_color: Color,
+    pub border_width: f64,
+    pub border_color: Color,
+    pub corner_radius: f64,
 }
 
 impl RectPrimitive {
@@ -104,7 +107,23 @@ impl RectPrimitive {
             width,
             height,
             fill_color,
+            border_width: 0.0,
+            border_color: Color::rgba(0.0, 0.0, 0.0, 0.0),
+            corner_radius: 0.0,
         }
+    }
+
+    #[must_use]
+    pub fn with_border(mut self, border_width: f64, border_color: Color) -> Self {
+        self.border_width = border_width;
+        self.border_color = border_color;
+        self
+    }
+
+    #[must_use]
+    pub fn with_corner_radius(mut self, corner_radius: f64) -> Self {
+        self.corner_radius = corner_radius;
+        self
     }
 
     pub fn validate(self) -> ChartResult<()> {
@@ -122,7 +141,26 @@ impl RectPrimitive {
                 "rect size must be finite and > 0".to_owned(),
             ));
         }
-        self.fill_color.validate()
+        if !self.border_width.is_finite() || self.border_width < 0.0 {
+            return Err(ChartError::InvalidData(
+                "rect border width must be finite and >= 0".to_owned(),
+            ));
+        }
+        if !self.corner_radius.is_finite() || self.corner_radius < 0.0 {
+            return Err(ChartError::InvalidData(
+                "rect corner radius must be finite and >= 0".to_owned(),
+            ));
+        }
+        if self.corner_radius > self.width * 0.5 || self.corner_radius > self.height * 0.5 {
+            return Err(ChartError::InvalidData(
+                "rect corner radius must be <= half of rect size".to_owned(),
+            ));
+        }
+        self.fill_color.validate()?;
+        if self.border_width > 0.0 {
+            self.border_color.validate()?;
+        }
+        Ok(())
     }
 }
 

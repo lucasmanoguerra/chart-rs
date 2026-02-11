@@ -105,7 +105,7 @@ Responsibilities:
 - latest-price label exclusion radius to avoid overlapping price-axis labels
 - optional trend-aware last-price marker color policy (up/down/neutral)
 - configurable last-price source mode (`LatestData` or `LatestVisible`) for pan/zoom behavior parity
-- optional last-price axis label box (filled price-box) with configurable fill/text colors
+- optional last-price axis label box (filled price-box) with configurable fill/text colors, border/radius, and contrast policy
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -137,6 +137,7 @@ Render invariants:
 - last-price marker can optionally use deterministic trend colors (`last_price_use_trend_color`) with up/down/neutral overrides
 - last-price marker source can target full-series latest sample or newest visible-window sample (`last_price_source_mode`)
 - render frame supports deterministic filled rectangles for axis price-box visuals (`RectPrimitive`)
+- price-box labels support deterministic border width/color, corner radius, and optional auto-contrast text color resolution
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

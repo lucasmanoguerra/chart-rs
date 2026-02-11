@@ -8,7 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Last-price label-box style extension baseline (`R-018`) with deterministic border, corner-radius, and auto-contrast text policy.
+- New render-style knobs: `last_price_label_box_border_width_px`, `last_price_label_box_border_color`, `last_price_label_box_corner_radius_px`, and `last_price_label_box_auto_text_contrast`.
+- New render/frame/style/backend tests and benchmark coverage for rounded/bordered label-box rendering.
 
 ## [0.0.29-alpha.0] - 2026-02-11
 
