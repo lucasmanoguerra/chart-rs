@@ -1,4 +1,6 @@
-use chart_rs::api::{ChartEngine, ChartEngineConfig};
+use chart_rs::api::{
+    AxisLabelLocale, ChartEngine, ChartEngineConfig, TimeAxisLabelConfig, TimeAxisLabelPolicy,
+};
 use chart_rs::core::{
     DataPoint, LinearScale, OhlcBar, PriceScale, TimeScale, Viewport, points_in_time_window,
     project_area_geometry, project_bars, project_baseline_geometry, project_candles,
@@ -477,6 +479,29 @@ fn bench_render_axis_layout_narrow(c: &mut Criterion) {
     });
 }
 
+fn bench_time_axis_datetime_formatter(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(900, 420), 1_700_000_000.0, 1_700_010_000.0)
+            .with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+        })
+        .expect("set formatter policy");
+
+    c.bench_function("time_axis_datetime_formatter", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -495,6 +520,7 @@ criterion_group!(
     bench_kinetic_pan_step,
     bench_render_frame_build_20k,
     bench_render_axis_layout_narrow,
+    bench_time_axis_datetime_formatter,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);

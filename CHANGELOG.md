@@ -8,7 +8,11 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Time-axis formatter baseline (`R-003`) with locale presets and custom formatter injection.
+- Built-in time label policies for logical decimals and UTC datetime formatting.
+- Price-scale visual styling baseline (`R-004`) with configurable grid/axis style contract.
+- Plot/axis panel split and deterministic grid rendering closer to Lightweight Charts conventions.
+- New formatter/style regression tests and narrow-axis benchmark coverage.
 
 ## [0.0.15-alpha.0] - 2026-02-11
 

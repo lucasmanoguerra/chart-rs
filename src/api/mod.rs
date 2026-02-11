@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
@@ -71,6 +74,66 @@ impl ChartEngineConfig {
     }
 }
 
+/// Locale preset used by axis label formatters.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum AxisLabelLocale {
+    #[default]
+    EnUs,
+    EsEs,
+}
+
+/// Built-in policy used for time-axis labels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TimeAxisLabelPolicy {
+    /// Render logical time values as decimals.
+    LogicalDecimal { precision: u8 },
+    /// Interpret logical values as unix timestamps and format in UTC.
+    UtcDateTime { show_seconds: bool },
+}
+
+impl Default for TimeAxisLabelPolicy {
+    fn default() -> Self {
+        Self::LogicalDecimal { precision: 2 }
+    }
+}
+
+/// Runtime formatter configuration for the time axis.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct TimeAxisLabelConfig {
+    pub locale: AxisLabelLocale,
+    pub policy: TimeAxisLabelPolicy,
+}
+
+/// Style contract for the current render frame.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RenderStyle {
+    pub series_line_color: Color,
+    pub grid_line_color: Color,
+    pub axis_border_color: Color,
+    pub axis_label_color: Color,
+    pub grid_line_width: f64,
+    pub axis_line_width: f64,
+    pub price_axis_width_px: f64,
+    pub time_axis_height_px: f64,
+}
+
+impl Default for RenderStyle {
+    fn default() -> Self {
+        Self {
+            series_line_color: Color::rgb(0.16, 0.38, 1.0),
+            grid_line_color: Color::rgb(0.89, 0.92, 0.95),
+            axis_border_color: Color::rgb(0.82, 0.84, 0.88),
+            axis_label_color: Color::rgb(0.10, 0.12, 0.16),
+            grid_line_width: 1.0,
+            axis_line_width: 1.0,
+            price_axis_width_px: 72.0,
+            time_axis_height_px: 24.0,
+        }
+    }
+}
+
+pub type TimeLabelFormatterFn = Arc<dyn Fn(f64) -> String + Send + Sync + 'static>;
+
 /// Serializable deterministic state snapshot used by regression tests and
 /// debugging tooling.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -99,6 +162,9 @@ pub struct ChartEngine<R: Renderer> {
     candles: Vec<OhlcBar>,
     series_metadata: IndexMap<String, String>,
     plugins: Vec<Box<dyn ChartPlugin>>,
+    time_axis_label_config: TimeAxisLabelConfig,
+    time_label_formatter: Option<TimeLabelFormatterFn>,
+    render_style: RenderStyle,
 }
 
 impl<R: Renderer> ChartEngine<R> {
@@ -124,6 +190,9 @@ impl<R: Renderer> ChartEngine<R> {
             candles: Vec::new(),
             series_metadata: IndexMap::new(),
             plugins: Vec::new(),
+            time_axis_label_config: TimeAxisLabelConfig::default(),
+            time_label_formatter: None,
+            render_style: RenderStyle::default(),
         })
     }
 
@@ -240,6 +309,43 @@ impl<R: Renderer> ChartEngine<R> {
         }
         self.viewport = viewport;
         Ok(())
+    }
+
+    #[must_use]
+    pub fn time_axis_label_config(&self) -> TimeAxisLabelConfig {
+        self.time_axis_label_config
+    }
+
+    pub fn set_time_axis_label_config(&mut self, config: TimeAxisLabelConfig) -> ChartResult<()> {
+        validate_time_axis_label_config(config)?;
+        self.time_axis_label_config = config;
+        Ok(())
+    }
+
+    pub fn set_time_label_formatter(&mut self, formatter: TimeLabelFormatterFn) {
+        self.time_label_formatter = Some(formatter);
+    }
+
+    pub fn clear_time_label_formatter(&mut self) {
+        self.time_label_formatter = None;
+    }
+
+    #[must_use]
+    pub fn render_style(&self) -> RenderStyle {
+        self.render_style
+    }
+
+    pub fn set_render_style(&mut self, style: RenderStyle) -> ChartResult<()> {
+        validate_render_style(style)?;
+        self.render_style = style;
+        Ok(())
+    }
+
+    fn format_time_axis_label(&self, logical_time: f64) -> String {
+        if let Some(formatter) = &self.time_label_formatter {
+            return formatter(logical_time);
+        }
+        format_time_axis_label(logical_time, self.time_axis_label_config)
     }
 
     #[must_use]
@@ -896,8 +1002,8 @@ impl<R: Renderer> ChartEngine<R> {
             self.viewport,
         )?;
 
-        // Keep style constants explicit here so all backends stay visually aligned.
-        let series_color = Color::rgb(0.15, 0.48, 0.88);
+        let style = self.render_style;
+        let series_color = style.series_line_color;
         for segment in segments {
             frame = frame.with_line(LinePrimitive::new(
                 segment.x1,
@@ -911,57 +1017,65 @@ impl<R: Renderer> ChartEngine<R> {
 
         let viewport_width = f64::from(self.viewport.width);
         let viewport_height = f64::from(self.viewport.height);
-        let axis_color = Color::rgb(0.72, 0.75, 0.78);
-        let label_color = Color::rgb(0.22, 0.25, 0.28);
+        let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+        let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+        let axis_color = style.axis_border_color;
+        let label_color = style.axis_label_color;
         let time_tick_count =
-            axis_tick_target_count(viewport_width, AXIS_TIME_TARGET_SPACING_PX, 2, 12);
+            axis_tick_target_count(plot_right, AXIS_TIME_TARGET_SPACING_PX, 2, 12);
         let price_tick_count =
-            axis_tick_target_count(viewport_height, AXIS_PRICE_TARGET_SPACING_PX, 2, 16);
+            axis_tick_target_count(plot_bottom, AXIS_PRICE_TARGET_SPACING_PX, 2, 16);
 
-        // Axis baselines are rendered as simple primitives so they can be reused
-        // unchanged by null, cairo, and future GPU backends.
+        // Axis borders remain explicit frame primitives, keeping visual output
+        // deterministic across all renderer backends.
         frame = frame.with_line(LinePrimitive::new(
             0.0,
-            viewport_height - 1.0,
+            plot_bottom,
             viewport_width,
-            viewport_height - 1.0,
-            1.0,
+            plot_bottom,
+            style.axis_line_width,
             axis_color,
         ));
         frame = frame.with_line(LinePrimitive::new(
-            viewport_width - 1.0,
+            plot_right,
             0.0,
-            viewport_width - 1.0,
+            plot_right,
             viewport_height,
-            1.0,
+            style.axis_line_width,
             axis_color,
         ));
 
         let mut time_ticks = Vec::with_capacity(time_tick_count);
         for time in axis_ticks(self.time_scale.visible_range(), time_tick_count) {
             let px = self.time_scale.time_to_pixel(time, self.viewport)?;
-            let clamped_px = px.clamp(0.0, viewport_width);
+            let clamped_px = px.clamp(0.0, plot_right);
             time_ticks.push((time, clamped_px));
         }
 
-        // Resolve label collisions with deterministic spacing to keep axes legible
-        // in narrow viewports while preserving reproducible output.
         for (time, px) in select_ticks_with_min_spacing(time_ticks, AXIS_TIME_MIN_SPACING_PX) {
-            let text = format!("{time:.2}");
+            let text = self.format_time_axis_label(time);
             frame = frame.with_text(TextPrimitive::new(
                 text,
                 px,
-                viewport_height - 16.0,
+                (plot_bottom + 4.0).min((viewport_height - 12.0).max(0.0)),
                 11.0,
                 label_color,
                 TextHAlign::Center,
             ));
             frame = frame.with_line(LinePrimitive::new(
-                px.max(0.0).min(viewport_width),
-                viewport_height - 6.0,
-                px.max(0.0).min(viewport_width),
-                viewport_height,
-                1.0,
+                px,
+                0.0,
+                px,
+                plot_bottom,
+                style.grid_line_width,
+                style.grid_line_color,
+            ));
+            frame = frame.with_line(LinePrimitive::new(
+                px,
+                plot_bottom,
+                px,
+                (plot_bottom + 6.0).min(viewport_height),
+                style.axis_line_width,
                 axis_color,
             ));
         }
@@ -969,26 +1083,34 @@ impl<R: Renderer> ChartEngine<R> {
         let mut price_ticks = Vec::with_capacity(price_tick_count);
         for price in axis_ticks(self.price_scale.domain(), price_tick_count) {
             let py = self.price_scale.price_to_pixel(price, self.viewport)?;
-            let clamped_py = py.clamp(0.0, viewport_height);
+            let clamped_py = py.clamp(0.0, plot_bottom);
             price_ticks.push((price, clamped_py));
         }
 
         for (price, py) in select_ticks_with_min_spacing(price_ticks, AXIS_PRICE_MIN_SPACING_PX) {
-            let text = format!("{price:.2}");
+            let text = format_axis_decimal(price, 2, self.time_axis_label_config.locale);
             frame = frame.with_text(TextPrimitive::new(
                 text,
                 viewport_width - 6.0,
-                py - 8.0,
+                (py - 8.0).max(0.0),
                 11.0,
                 label_color,
                 TextHAlign::Right,
             ));
             frame = frame.with_line(LinePrimitive::new(
-                viewport_width - 6.0,
-                py.max(0.0).min(viewport_height),
-                viewport_width,
-                py.max(0.0).min(viewport_height),
-                1.0,
+                0.0,
+                py,
+                plot_right,
+                py,
+                style.grid_line_width,
+                style.grid_line_color,
+            ));
+            frame = frame.with_line(LinePrimitive::new(
+                plot_right,
+                py,
+                (plot_right + 6.0).min(viewport_width),
+                py,
+                style.axis_line_width,
                 axis_color,
             ));
         }
@@ -1148,6 +1270,77 @@ fn markers_in_time_window(markers: &[SeriesMarker], start: f64, end: f64) -> Vec
         .filter(|marker| marker.time >= min_t && marker.time <= max_t)
         .cloned()
         .collect()
+}
+
+fn validate_time_axis_label_config(
+    config: TimeAxisLabelConfig,
+) -> ChartResult<TimeAxisLabelConfig> {
+    match config.policy {
+        TimeAxisLabelPolicy::LogicalDecimal { precision } => {
+            if precision > 12 {
+                return Err(ChartError::InvalidData(
+                    "time-axis decimal precision must be <= 12".to_owned(),
+                ));
+            }
+        }
+        TimeAxisLabelPolicy::UtcDateTime { .. } => {}
+    }
+    Ok(config)
+}
+
+fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
+    style.series_line_color.validate()?;
+    style.grid_line_color.validate()?;
+    style.axis_border_color.validate()?;
+    style.axis_label_color.validate()?;
+
+    for (name, value) in [
+        ("grid_line_width", style.grid_line_width),
+        ("axis_line_width", style.axis_line_width),
+        ("price_axis_width_px", style.price_axis_width_px),
+        ("time_axis_height_px", style.time_axis_height_px),
+    ] {
+        if !value.is_finite() || value <= 0.0 {
+            return Err(ChartError::InvalidData(format!(
+                "render style `{name}` must be finite and > 0"
+            )));
+        }
+    }
+    Ok(style)
+}
+
+fn format_time_axis_label(logical_time: f64, config: TimeAxisLabelConfig) -> String {
+    if !logical_time.is_finite() {
+        return "nan".to_owned();
+    }
+
+    match config.policy {
+        TimeAxisLabelPolicy::LogicalDecimal { precision } => {
+            format_axis_decimal(logical_time, usize::from(precision), config.locale)
+        }
+        TimeAxisLabelPolicy::UtcDateTime { show_seconds } => {
+            let seconds = logical_time.round() as i64;
+            let Some(dt) = DateTime::<Utc>::from_timestamp(seconds, 0) else {
+                return format_axis_decimal(logical_time, 2, config.locale);
+            };
+
+            let pattern = match (config.locale, show_seconds) {
+                (AxisLabelLocale::EnUs, false) => "%Y-%m-%d %H:%M",
+                (AxisLabelLocale::EnUs, true) => "%Y-%m-%d %H:%M:%S",
+                (AxisLabelLocale::EsEs, false) => "%d/%m/%Y %H:%M",
+                (AxisLabelLocale::EsEs, true) => "%d/%m/%Y %H:%M:%S",
+            };
+            dt.format(pattern).to_string()
+        }
+    }
+}
+
+fn format_axis_decimal(value: f64, precision: usize, locale: AxisLabelLocale) -> String {
+    let text = format!("{value:.precision$}");
+    match locale {
+        AxisLabelLocale::EnUs => text,
+        AxisLabelLocale::EsEs => text.replace('.', ","),
+    }
 }
 
 const AXIS_TIME_TARGET_SPACING_PX: f64 = 72.0;
