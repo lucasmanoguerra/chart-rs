@@ -1,5 +1,6 @@
 use chart_rs::api::{ChartEngine, ChartEngineConfig, EngineSnapshot};
 use chart_rs::core::{DataPoint, OhlcBar, Viewport};
+use chart_rs::interaction::CrosshairMode;
 use chart_rs::render::NullRenderer;
 use proptest::prelude::*;
 
@@ -185,5 +186,39 @@ proptest! {
             prop_assert!(point.x >= visible_start);
             prop_assert!(point.x <= visible_end);
         }
+    }
+
+    #[test]
+    fn normal_crosshair_mode_never_snaps(
+        time_start in -10_000.0f64..10_000.0,
+        gap in 1.0f64..2_000.0,
+        offset_factor in 0.0f64..1.0,
+        y0 in -1_000.0f64..1_000.0,
+        y1 in -1_000.0f64..1_000.0,
+        pointer_y in -10_000.0f64..10_000.0
+    ) {
+        let t0 = time_start;
+        let t1 = time_start + gap;
+        let pointer_time = t0 + gap * offset_factor;
+
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1200, 700), t0 - 1.0, t1 + 1.0)
+            .with_price_domain(-2_000.0, 2_000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+        engine.set_data(vec![DataPoint::new(t0, y0), DataPoint::new(t1, y1)]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+
+        let pointer_x = engine.map_x_to_pixel(pointer_time).expect("map pointer time");
+        engine.pointer_move(pointer_x, pointer_y);
+
+        let crosshair = engine.crosshair_state();
+        prop_assert!(crosshair.visible);
+        prop_assert!((crosshair.x - pointer_x).abs() <= 1e-7);
+        prop_assert!((crosshair.y - pointer_y).abs() <= 1e-7);
+        prop_assert!(crosshair.snapped_x.is_none());
+        prop_assert!(crosshair.snapped_y.is_none());
+        prop_assert!(crosshair.snapped_time.is_none());
+        prop_assert!(crosshair.snapped_price.is_none());
     }
 }

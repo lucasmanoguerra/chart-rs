@@ -8,6 +8,7 @@ use chart_rs::extensions::{
     ChartPlugin, MarkerPlacementConfig, MarkerPosition, PluginContext, PluginEvent, SeriesMarker,
     place_markers_on_candles,
 };
+use chart_rs::interaction::CrosshairMode;
 use chart_rs::render::NullRenderer;
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
@@ -317,6 +318,45 @@ fn bench_plugin_dispatch_pointer_move(c: &mut Criterion) {
     });
 }
 
+fn bench_crosshair_modes_pointer_move(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine_magnet = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine_magnet.set_data(points.clone());
+    engine_magnet.set_crosshair_mode(CrosshairMode::Magnet);
+
+    let mut engine_normal = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine_normal.set_data(points);
+    engine_normal.set_crosshair_mode(CrosshairMode::Normal);
+
+    c.bench_function("crosshair_pointer_move_magnet", |b| {
+        b.iter(|| {
+            engine_magnet.pointer_move(black_box(750.0), black_box(300.0));
+        })
+    });
+
+    c.bench_function("crosshair_pointer_move_normal", |b| {
+        b.iter(|| {
+            engine_normal.pointer_move(black_box(750.0), black_box(300.0));
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -329,6 +369,7 @@ criterion_group!(
     bench_visible_window_points_100k,
     bench_marker_placement_5k,
     bench_plugin_dispatch_pointer_move,
+    bench_crosshair_modes_pointer_move,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);

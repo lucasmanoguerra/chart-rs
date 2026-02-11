@@ -15,7 +15,9 @@ use crate::extensions::{
     ChartPlugin, MarkerPlacementConfig, PlacedMarker, PluginContext, PluginEvent, SeriesMarker,
     place_markers_on_candles,
 };
-use crate::interaction::{CrosshairSnap, CrosshairState, InteractionMode, InteractionState};
+use crate::interaction::{
+    CrosshairMode, CrosshairSnap, CrosshairState, InteractionMode, InteractionState,
+};
 use crate::render::{RenderFrame, Renderer};
 
 /// Public engine bootstrap configuration.
@@ -230,6 +232,15 @@ impl<R: Renderer> ChartEngine<R> {
     }
 
     #[must_use]
+    pub fn crosshair_mode(&self) -> CrosshairMode {
+        self.interaction.crosshair_mode()
+    }
+
+    pub fn set_crosshair_mode(&mut self, mode: CrosshairMode) {
+        self.interaction.set_crosshair_mode(mode);
+    }
+
+    #[must_use]
     pub fn crosshair_state(&self) -> CrosshairState {
         self.interaction.crosshair()
     }
@@ -237,7 +248,10 @@ impl<R: Renderer> ChartEngine<R> {
     /// Handles pointer movement and updates crosshair snapping in one step.
     pub fn pointer_move(&mut self, x: f64, y: f64) {
         self.interaction.on_pointer_move(x, y);
-        self.interaction.set_crosshair_snap(self.snap_at_x(x));
+        match self.interaction.crosshair_mode() {
+            CrosshairMode::Magnet => self.interaction.set_crosshair_snap(self.snap_at_x(x)),
+            CrosshairMode::Normal => self.interaction.set_crosshair_snap(None),
+        }
         self.emit_plugin_event(PluginEvent::PointerMoved { x, y });
     }
 
