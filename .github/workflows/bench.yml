@@ -1,0 +1,32 @@
+name: Benchmarks
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1"
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-4-dev \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libglib2.0-dev
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run criterion bench
+        run: cargo bench --all-features --bench core_math_bench

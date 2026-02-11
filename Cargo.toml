@@ -1,0 +1,38 @@
+[package]
+name = "chart-rs"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "A Rust-native charting library for GTK4/Relm4 inspired by Lightweight Charts v5.1."
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+keywords = ["chart", "gtk4", "finance", "cairo", "desktop"]
+categories = ["graphics", "gui", "visualization"]
+
+[lib]
+name = "chart_rs"
+path = "src/lib.rs"
+
+[features]
+default = []
+# Cairo/Pango renderer backend.
+cairo-backend = ["dep:cairo", "dep:pango", "dep:pangocairo"]
+# GTK4 adapter layer for embedding into desktop apps.
+gtk4-adapter = ["cairo-backend", "dep:gtk4"]
+# Convenience feature for desktop consumers.
+desktop = ["gtk4-adapter"]
+
+[dependencies]
+cairo = { package = "cairo-rs", version = "0.21", optional = true }
+pango = { version = "0.21", optional = true }
+pangocairo = { version = "0.21", optional = true }
+gtk4 = { version = "0.10", optional = true }
+thiserror = "2.0"
+
+[dev-dependencies]
+criterion = { version = "0.5", default-features = false }
+proptest = "1.6"
+
+[[bench]]
+name = "core_math_bench"
+harness = false

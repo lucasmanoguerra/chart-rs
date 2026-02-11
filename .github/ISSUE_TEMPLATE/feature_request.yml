@@ -1,0 +1,21 @@
+name: Feature request
+description: Propose a new feature or parity item
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: parity
+    attributes:
+      label: Lightweight Charts v5.1 reference
+      description: Add links, expected behavior, and acceptance criteria.
