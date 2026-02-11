@@ -1,6 +1,6 @@
 [package]
 name = "chart-rs"
-version = "0.0.3-alpha.0"
+version = "0.0.4-alpha.0"
 edition = "2024"
 rust-version = "1.85"
 description = "A Rust-native charting library for GTK4/Relm4 inspired by Lightweight Charts v5.1."
@@ -28,6 +28,9 @@ pango = { version = "0.21", optional = true }
 pangocairo = { version = "0.21", optional = true }
 gtk4 = { version = "0.10", optional = true }
 thiserror = "2.0"
+chrono = "0.4"
+rust_decimal = "1.36"
+smallvec = "1.13"
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false }

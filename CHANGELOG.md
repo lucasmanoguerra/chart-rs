@@ -10,6 +10,16 @@ and this project adheres to Semantic Versioning.
 ### Added
 - Nothing yet.
 
+## [0.0.4-alpha.0] - 2026-02-11
+
+### Added
+- Crosshair baseline state (`visible`, cursor coordinates, snap coordinates).
+- Nearest-point/candle crosshair snapping in `ChartEngine`.
+- Decimal/time primitives using `rust-decimal` and `chrono` for early type-system integration.
+- `smallvec`-based candidate selection in crosshair snapping hot path.
+- New tests for crosshair behavior and decimal/time constructors.
+- Parity checklist progress update for C-004 crosshair baseline.
+
 ## [0.0.3-alpha.0] - 2026-02-11
 
 ### Added
