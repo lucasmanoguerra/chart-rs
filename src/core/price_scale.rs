@@ -1,4 +1,4 @@
-use crate::core::{DataPoint, LinearScale, Viewport};
+use crate::core::{DataPoint, LinearScale, OhlcBar, Viewport};
 use crate::error::{ChartError, ChartResult};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -30,6 +30,30 @@ impl PriceScale {
             }
             min = min.min(point.y);
             max = max.max(point.y);
+        }
+
+        if min == max {
+            let pad = if min == 0.0 { 1.0 } else { min.abs() * 0.05 };
+            min -= pad;
+            max += pad;
+        }
+
+        Self::new(min, max)
+    }
+
+    pub fn from_ohlc(bars: &[OhlcBar]) -> ChartResult<Self> {
+        if bars.is_empty() {
+            return Err(ChartError::InvalidData(
+                "price scale cannot be built from empty bars".to_owned(),
+            ));
+        }
+
+        let mut min = f64::INFINITY;
+        let mut max = f64::NEG_INFINITY;
+
+        for bar in bars {
+            min = min.min(bar.low);
+            max = max.max(bar.high);
         }
 
         if min == max {

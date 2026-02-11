@@ -1,4 +1,6 @@
-use crate::core::{DataPoint, PriceScale, TimeScale, Viewport};
+use crate::core::{
+    CandleGeometry, DataPoint, OhlcBar, PriceScale, TimeScale, Viewport, project_candles,
+};
 use crate::error::{ChartError, ChartResult};
 use crate::interaction::{InteractionMode, InteractionState};
 use crate::render::{RenderFrame, Renderer};
@@ -39,6 +41,7 @@ pub struct ChartEngine<R: Renderer> {
     price_scale: PriceScale,
     interaction: InteractionState,
     points: Vec<DataPoint>,
+    candles: Vec<OhlcBar>,
 }
 
 impl<R: Renderer> ChartEngine<R> {
@@ -60,6 +63,7 @@ impl<R: Renderer> ChartEngine<R> {
             price_scale,
             interaction: InteractionState::default(),
             points: Vec::new(),
+            candles: Vec::new(),
         })
     }
 
@@ -71,9 +75,22 @@ impl<R: Renderer> ChartEngine<R> {
         self.points.push(point);
     }
 
+    pub fn set_candles(&mut self, candles: Vec<OhlcBar>) {
+        self.candles = candles;
+    }
+
+    pub fn append_candle(&mut self, candle: OhlcBar) {
+        self.candles.push(candle);
+    }
+
     #[must_use]
     pub fn points(&self) -> &[DataPoint] {
         &self.points
+    }
+
+    #[must_use]
+    pub fn candles(&self) -> &[OhlcBar] {
+        &self.candles
     }
 
     #[must_use]
@@ -125,6 +142,24 @@ impl<R: Renderer> ChartEngine<R> {
         }
         self.price_scale = PriceScale::from_data(&self.points)?;
         Ok(())
+    }
+
+    pub fn autoscale_price_from_candles(&mut self) -> ChartResult<()> {
+        if self.candles.is_empty() {
+            return Ok(());
+        }
+        self.price_scale = PriceScale::from_ohlc(&self.candles)?;
+        Ok(())
+    }
+
+    pub fn project_candles(&self, body_width_px: f64) -> ChartResult<Vec<CandleGeometry>> {
+        project_candles(
+            &self.candles,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            body_width_px,
+        )
     }
 
     pub fn render(&mut self) -> ChartResult<()> {
