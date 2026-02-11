@@ -667,6 +667,16 @@ fn bench_price_axis_log_mode_display(c: &mut Criterion) {
     });
 }
 
+fn bench_price_scale_log_ladder_ticks(c: &mut Criterion) {
+    let scale = PriceScale::new_with_mode(1.0, 1_000_000.0, PriceScaleMode::Log).expect("scale");
+
+    c.bench_function("price_scale_log_ladder_ticks_16", |b| {
+        b.iter(|| {
+            let _ = scale.ticks(16).expect("log ladder ticks");
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -692,6 +702,7 @@ criterion_group!(
     bench_price_axis_min_move_formatter,
     bench_price_axis_percentage_display,
     bench_price_axis_log_mode_display,
+    bench_price_scale_log_ladder_ticks,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);

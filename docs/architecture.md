@@ -49,6 +49,7 @@ Each feature requires:
   - supports tuned autoscale from points or candles
   - supports `PriceScaleMode::Linear` and `PriceScaleMode::Log`
   - log mode validates strictly-positive domains and applies tuning in transformed log space
+  - log mode tick selection favors deterministic 1/2/5 decade ladders for axis-label parity
   - always maps higher prices to smaller Y pixel values (inverted axis)
 
 Tuning contracts:

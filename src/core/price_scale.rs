@@ -185,16 +185,27 @@ impl PriceScale {
             return Ok(vec![self.domain_start]);
         }
 
-        let mut ticks = Vec::with_capacity(tick_count);
-        let transformed = self.linear.domain();
-        let span = transformed.1 - transformed.0;
-        let denominator = (tick_count - 1) as f64;
-        for index in 0..tick_count {
-            let ratio = (index as f64) / denominator;
-            let transformed_value = transformed.0 + span * ratio;
-            ticks.push(from_scale_domain(transformed_value, self.mode)?);
+        match self.mode {
+            PriceScaleMode::Linear => {
+                let mut ticks = Vec::with_capacity(tick_count);
+                let transformed = self.linear.domain();
+                let span = transformed.1 - transformed.0;
+                let denominator = (tick_count - 1) as f64;
+                for index in 0..tick_count {
+                    let ratio = (index as f64) / denominator;
+                    let transformed_value = transformed.0 + span * ratio;
+                    ticks.push(from_scale_domain(transformed_value, self.mode)?);
+                }
+                Ok(ticks)
+            }
+            PriceScaleMode::Log => {
+                let mut ticks = log_ladder_ticks(self.domain_start, self.domain_end, tick_count)?;
+                if ticks.len() > tick_count {
+                    ticks = evenly_sample_ticks(ticks, tick_count);
+                }
+                Ok(ticks)
+            }
         }
-        Ok(ticks)
     }
 
     /// Maps a raw price to pixel Y, preserving inverted-axis behavior.
@@ -333,4 +344,114 @@ fn normalize_range(start: f64, end: f64, min_span: f64) -> ChartResult<(f64, f64
     }
 
     Ok((start.min(end), start.max(end)))
+}
+
+fn log_ladder_ticks(start: f64, end: f64, tick_count: usize) -> ChartResult<Vec<f64>> {
+    if start <= 0.0 || end <= 0.0 {
+        return Err(ChartError::InvalidData(
+            "log price scale requires values > 0".to_owned(),
+        ));
+    }
+
+    let ascending = start <= end;
+    let min = start.min(end);
+    let max = start.max(end);
+    let min_exp = min.log10().floor() as i32;
+    let max_exp = max.log10().ceil() as i32;
+
+    let mut ticks = Vec::new();
+    for exp in min_exp..=max_exp {
+        let decade = 10_f64.powi(exp);
+        for multiplier in [1.0, 2.0, 5.0] {
+            let candidate = decade * multiplier;
+            if candidate >= min && candidate <= max {
+                ticks.push(candidate);
+            }
+        }
+    }
+
+    if !ticks.iter().any(|value| approx_equal(*value, min)) {
+        ticks.push(min);
+    }
+    if !ticks.iter().any(|value| approx_equal(*value, max)) {
+        ticks.push(max);
+    }
+
+    ticks.sort_by(|lhs, rhs| lhs.total_cmp(rhs));
+    ticks.dedup_by(|lhs, rhs| approx_equal(*lhs, *rhs));
+
+    let mut sampled = if ticks.len() > tick_count {
+        evenly_sample_ticks(ticks, tick_count)
+    } else {
+        ticks
+    };
+    if !ascending {
+        sampled.reverse();
+    }
+    Ok(sampled)
+}
+
+fn evenly_sample_ticks(ticks: Vec<f64>, target: usize) -> Vec<f64> {
+    if ticks.len() <= target || target == 0 {
+        return ticks;
+    }
+    if target == 1 {
+        return vec![ticks[0]];
+    }
+
+    let last_index = ticks.len() - 1;
+    let mut sampled = Vec::with_capacity(target);
+    for step in 0..target {
+        let ratio = (step as f64) / ((target - 1) as f64);
+        let index = (ratio * (last_index as f64)).round() as usize;
+        let value = ticks[index.min(last_index)];
+        if sampled
+            .last()
+            .map(|prev| approx_equal(*prev, value))
+            .unwrap_or(false)
+        {
+            continue;
+        }
+        sampled.push(value);
+    }
+
+    if sampled
+        .first()
+        .map(|first| !approx_equal(*first, ticks[0]))
+        .unwrap_or(true)
+    {
+        sampled.insert(0, ticks[0]);
+    }
+    if sampled
+        .last()
+        .map(|last| !approx_equal(*last, ticks[last_index]))
+        .unwrap_or(true)
+    {
+        sampled.push(ticks[last_index]);
+    }
+
+    for value in ticks {
+        if sampled.len() >= target {
+            break;
+        }
+        if sampled
+            .iter()
+            .any(|existing| approx_equal(*existing, value))
+        {
+            continue;
+        }
+        sampled.push(value);
+    }
+
+    sampled.sort_by(|lhs, rhs| lhs.total_cmp(rhs));
+    sampled.dedup_by(|lhs, rhs| approx_equal(*lhs, *rhs));
+    if sampled.len() > target {
+        sampled.truncate(target);
+    }
+    sampled
+}
+
+fn approx_equal(lhs: f64, rhs: f64) -> bool {
+    let scale = lhs.abs().max(rhs.abs()).max(1.0);
+    (lhs - rhs).abs() <= scale * 1e-12
 }

@@ -3,6 +3,19 @@ use chart_rs::core::{
     TimeScaleTuning, Viewport,
 };
 
+fn is_log_125_ladder(value: f64) -> bool {
+    if !value.is_finite() || value <= 0.0 {
+        return false;
+    }
+    let exponent = value.log10().floor();
+    let base = 10_f64.powf(exponent);
+    let mantissa = value / base;
+    let scale = value.abs().max(1.0);
+    (mantissa - 1.0).abs() <= scale * 1e-12
+        || (mantissa - 2.0).abs() <= scale * 1e-12
+        || (mantissa - 5.0).abs() <= scale * 1e-12
+}
+
 #[test]
 fn scale_round_trip_within_tolerance() {
     let viewport = Viewport::new(1000, 600);
@@ -136,4 +149,25 @@ fn price_scale_log_mode_rejects_non_positive_prices() {
 
     let scale = PriceScale::new_with_mode(1.0, 100.0, PriceScaleMode::Log).expect("log scale");
     assert!(scale.price_to_pixel(0.0, viewport).is_err());
+}
+
+#[test]
+fn price_scale_log_mode_ticks_follow_125_ladder() {
+    let scale = PriceScale::new_with_mode(1.0, 1_000.0, PriceScaleMode::Log).expect("log scale");
+    let ticks = scale.ticks(10).expect("ticks");
+
+    assert!(!ticks.is_empty());
+    assert!(ticks.len() <= 10);
+    assert!(ticks.windows(2).all(|pair| pair[0] < pair[1]));
+    assert!(ticks.iter().all(|value| is_log_125_ladder(*value)));
+}
+
+#[test]
+fn price_scale_log_mode_ticks_preserve_domain_direction() {
+    let scale = PriceScale::new_with_mode(1_000.0, 1.0, PriceScaleMode::Log).expect("log scale");
+    let ticks = scale.ticks(8).expect("ticks");
+
+    assert!(!ticks.is_empty());
+    assert!(ticks.windows(2).all(|pair| pair[0] > pair[1]));
+    assert!(ticks.iter().all(|value| is_log_125_ladder(*value)));
 }
