@@ -46,6 +46,13 @@ Domain layer with deterministic math and model invariants.
   - `OhlcBar`
   - `CandleGeometry`
   - `project_candles`
+- `line_series.rs`
+  - `LineSegment`
+  - `project_line_segments`
+- `area_series.rs`
+  - `AreaVertex`
+  - `AreaGeometry`
+  - `project_area_geometry`
 - `primitives.rs`
   - `chrono` and `rust-decimal` helpers for strongly-typed construction
 
@@ -140,6 +147,14 @@ Where to add tests:
   - deterministic candle geometry and autoscale behavior
 - `tests/property_candlestick_tests.rs`
   - wick/body ordering and geometry invariants
+- `tests/line_series_tests.rs`
+  - deterministic line segment geometry and visible-window mapping
+- `tests/property_line_series_tests.rs`
+  - line projection count and finite-geometry invariants
+- `tests/area_series_tests.rs`
+  - deterministic area line/fill geometry and overscan behavior
+- `tests/property_area_series_tests.rs`
+  - area geometry count/baseline and finiteness invariants
 - `tests/crosshair_tests.rs`
   - interaction-level crosshair snapping behavior
 - `tests/decimal_time_tests.rs`
