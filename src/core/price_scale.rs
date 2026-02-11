@@ -1,7 +1,9 @@
 use crate::core::{DataPoint, LinearScale, OhlcBar, Viewport};
 use crate::error::{ChartError, ChartResult};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// Tuning controls for price-domain autoscaling.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct PriceScaleTuning {
     pub top_padding_ratio: f64,
     pub bottom_padding_ratio: f64,
@@ -40,12 +42,14 @@ impl PriceScaleTuning {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// Price axis model mapped to an inverted Y pixel axis.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct PriceScale {
     linear: LinearScale,
 }
 
 impl PriceScale {
+    /// Creates a price scale from explicit min/max values.
     pub fn new(price_min: f64, price_max: f64) -> ChartResult<Self> {
         let linear = LinearScale::new(price_min, price_max)?;
         Ok(Self { linear })
@@ -55,6 +59,7 @@ impl PriceScale {
         Self::from_data_tuned(points, PriceScaleTuning::default())
     }
 
+    /// Computes a tuned price domain from XY points.
     pub fn from_data_tuned(points: &[DataPoint], tuning: PriceScaleTuning) -> ChartResult<Self> {
         if points.is_empty() {
             return Err(ChartError::InvalidData(
@@ -82,6 +87,7 @@ impl PriceScale {
         Self::from_ohlc_tuned(bars, PriceScaleTuning::default())
     }
 
+    /// Computes a tuned price domain from OHLC bars (low/high envelope).
     pub fn from_ohlc_tuned(bars: &[OhlcBar], tuning: PriceScaleTuning) -> ChartResult<Self> {
         if bars.is_empty() {
             return Err(ChartError::InvalidData(
@@ -113,6 +119,8 @@ impl PriceScale {
             });
         }
 
+        // Price is mapped on the vertical axis, so we reuse LinearScale with
+        // `height` as the logical width and then invert the direction.
         let axis_viewport = Viewport::new(viewport.height, 1);
         let y_from_bottom = self.linear.domain_to_pixel(price, axis_viewport)?;
         Ok(f64::from(viewport.height) - y_from_bottom)

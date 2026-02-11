@@ -1,10 +1,13 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InteractionMode {
     Idle,
     Panning,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// Public crosshair state exposed to host applications.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct CrosshairState {
     pub visible: bool,
     pub x: f64,

@@ -1,4 +1,8 @@
+use indexmap::IndexMap;
+use ordered_float::OrderedFloat;
+use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
+use tracing::{debug, trace};
 
 use crate::core::{
     CandleGeometry, DataPoint, OhlcBar, PriceScale, PriceScaleTuning, TimeScale, TimeScaleTuning,
@@ -8,7 +12,11 @@ use crate::error::{ChartError, ChartResult};
 use crate::interaction::{CrosshairState, InteractionMode, InteractionState};
 use crate::render::{RenderFrame, Renderer};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// Public engine bootstrap configuration.
+///
+/// This type is serializable so host applications can persist/load chart setup
+/// without inventing their own ad-hoc format.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct ChartEngineConfig {
     pub viewport: Viewport,
     pub time_start: f64,
@@ -18,6 +26,7 @@ pub struct ChartEngineConfig {
 }
 
 impl ChartEngineConfig {
+    /// Creates a minimal config with default price range.
     #[must_use]
     pub fn new(viewport: Viewport, time_start: f64, time_end: f64) -> Self {
         Self {
@@ -29,14 +38,45 @@ impl ChartEngineConfig {
         }
     }
 
+    /// Sets initial price domain.
     #[must_use]
     pub fn with_price_domain(mut self, price_min: f64, price_max: f64) -> Self {
         self.price_min = price_min;
         self.price_max = price_max;
         self
     }
+
+    /// Serializes config to pretty JSON for debug/config files.
+    pub fn to_json_pretty(self) -> ChartResult<String> {
+        serde_json::to_string_pretty(&self)
+            .map_err(|e| ChartError::InvalidData(format!("failed to serialize config: {e}")))
+    }
+
+    /// Deserializes config from JSON.
+    pub fn from_json_str(input: &str) -> ChartResult<Self> {
+        serde_json::from_str(input)
+            .map_err(|e| ChartError::InvalidData(format!("failed to parse config: {e}")))
+    }
 }
 
+/// Serializable deterministic state snapshot used by regression tests and
+/// debugging tooling.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EngineSnapshot {
+    pub viewport: Viewport,
+    pub time_full_range: (f64, f64),
+    pub time_visible_range: (f64, f64),
+    pub price_domain: (f64, f64),
+    pub crosshair: CrosshairState,
+    pub points: Vec<DataPoint>,
+    pub candle_geometry: Vec<CandleGeometry>,
+    pub series_metadata: IndexMap<String, String>,
+}
+
+/// Main orchestration facade consumed by host applications.
+///
+/// `ChartEngine` coordinates time/price scales, interaction state,
+/// data/candle collections, and renderer calls.
 pub struct ChartEngine<R: Renderer> {
     renderer: R,
     viewport: Viewport,
@@ -45,9 +85,11 @@ pub struct ChartEngine<R: Renderer> {
     interaction: InteractionState,
     points: Vec<DataPoint>,
     candles: Vec<OhlcBar>,
+    series_metadata: IndexMap<String, String>,
 }
 
 impl<R: Renderer> ChartEngine<R> {
+    /// Creates a fully initialized engine with explicit domains.
     pub fn new(renderer: R, config: ChartEngineConfig) -> ChartResult<Self> {
         if !config.viewport.is_valid() {
             return Err(ChartError::InvalidViewport {
@@ -67,23 +109,44 @@ impl<R: Renderer> ChartEngine<R> {
             interaction: InteractionState::default(),
             points: Vec::new(),
             candles: Vec::new(),
+            series_metadata: IndexMap::new(),
         })
     }
 
+    /// Replaces line/point data series.
     pub fn set_data(&mut self, points: Vec<DataPoint>) {
+        debug!(count = points.len(), "set data points");
         self.points = points;
     }
 
+    /// Appends a single line/point sample.
     pub fn append_point(&mut self, point: DataPoint) {
         self.points.push(point);
+        trace!(count = self.points.len(), "append data point");
     }
 
+    /// Replaces candlestick series.
     pub fn set_candles(&mut self, candles: Vec<OhlcBar>) {
+        debug!(count = candles.len(), "set candles");
         self.candles = candles;
     }
 
+    /// Appends a single OHLC bar.
     pub fn append_candle(&mut self, candle: OhlcBar) {
         self.candles.push(candle);
+        trace!(count = self.candles.len(), "append candle");
+    }
+
+    /// Sets or updates deterministic series metadata.
+    ///
+    /// `IndexMap` is used to preserve insertion order for stable snapshots.
+    pub fn set_series_metadata(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.series_metadata.insert(key.into(), value.into());
+    }
+
+    #[must_use]
+    pub fn series_metadata(&self) -> &IndexMap<String, String> {
+        &self.series_metadata
     }
 
     #[must_use]
@@ -111,11 +174,13 @@ impl<R: Renderer> ChartEngine<R> {
         self.interaction.crosshair()
     }
 
+    /// Handles pointer movement and updates crosshair snapping in one step.
     pub fn pointer_move(&mut self, x: f64, y: f64) {
         self.interaction.on_pointer_move(x, y);
         self.interaction.set_crosshair_snap(self.snap_at_x(x));
     }
 
+    /// Marks pointer as outside chart bounds.
     pub fn pointer_leave(&mut self) {
         self.interaction.on_pointer_leave();
     }
@@ -146,14 +211,17 @@ impl<R: Renderer> ChartEngine<R> {
         self.time_scale.full_range()
     }
 
+    /// Overrides visible time range (zoom/pan style behavior).
     pub fn set_time_visible_range(&mut self, start: f64, end: f64) -> ChartResult<()> {
         self.time_scale.set_visible_range(start, end)
     }
 
+    /// Resets visible range to fitted full range.
     pub fn reset_time_visible_range(&mut self) {
         self.time_scale.reset_visible_range_to_full();
     }
 
+    /// Fits time scale against available point/candle data.
     pub fn fit_time_to_data(&mut self, tuning: TimeScaleTuning) -> ChartResult<()> {
         if self.points.is_empty() && self.candles.is_empty() {
             return Ok(());
@@ -180,6 +248,7 @@ impl<R: Renderer> ChartEngine<R> {
         self.autoscale_price_from_data_tuned(PriceScaleTuning::default())
     }
 
+    /// Autoscales price domain from points with explicit tuning.
     pub fn autoscale_price_from_data_tuned(&mut self, tuning: PriceScaleTuning) -> ChartResult<()> {
         if self.points.is_empty() {
             return Ok(());
@@ -192,6 +261,7 @@ impl<R: Renderer> ChartEngine<R> {
         self.autoscale_price_from_candles_tuned(PriceScaleTuning::default())
     }
 
+    /// Autoscales price domain from candles with explicit tuning.
     pub fn autoscale_price_from_candles_tuned(
         &mut self,
         tuning: PriceScaleTuning,
@@ -213,6 +283,27 @@ impl<R: Renderer> ChartEngine<R> {
         )
     }
 
+    /// Builds a deterministic snapshot useful for regression tests.
+    pub fn snapshot(&self, body_width_px: f64) -> ChartResult<EngineSnapshot> {
+        Ok(EngineSnapshot {
+            viewport: self.viewport,
+            time_full_range: self.time_scale.full_range(),
+            time_visible_range: self.time_scale.visible_range(),
+            price_domain: self.price_scale.domain(),
+            crosshair: self.interaction.crosshair(),
+            points: self.points.clone(),
+            candle_geometry: self.project_candles(body_width_px)?,
+            series_metadata: self.series_metadata.clone(),
+        })
+    }
+
+    /// Serializes snapshot as pretty JSON for fixture-based regression checks.
+    pub fn snapshot_json_pretty(&self, body_width_px: f64) -> ChartResult<String> {
+        let snapshot = self.snapshot(body_width_px)?;
+        serde_json::to_string_pretty(&snapshot)
+            .map_err(|e| ChartError::InvalidData(format!("failed to serialize snapshot: {e}")))
+    }
+
     pub fn render(&mut self) -> ChartResult<()> {
         let frame = RenderFrame::new(self.viewport, self.points.clone());
         self.renderer.render(&frame)
@@ -224,7 +315,7 @@ impl<R: Renderer> ChartEngine<R> {
     }
 
     fn snap_at_x(&self, pointer_x: f64) -> Option<(f64, f64)> {
-        let mut candidates: SmallVec<[(f64, f64, f64); 2]> = SmallVec::new();
+        let mut candidates: SmallVec<[(OrderedFloat<f64>, f64, f64); 2]> = SmallVec::new();
         if let Some(snap) = self.nearest_data_snap(pointer_x) {
             candidates.push(snap);
         }
@@ -234,12 +325,12 @@ impl<R: Renderer> ChartEngine<R> {
 
         candidates
             .into_iter()
-            .min_by(|a, b| a.0.total_cmp(&b.0))
+            .min_by_key(|item| item.0)
             .map(|(_, sx, sy)| (sx, sy))
     }
 
-    fn nearest_data_snap(&self, pointer_x: f64) -> Option<(f64, f64, f64)> {
-        let mut best: Option<(f64, f64, f64)> = None;
+    fn nearest_data_snap(&self, pointer_x: f64) -> Option<(OrderedFloat<f64>, f64, f64)> {
+        let mut best: Option<(OrderedFloat<f64>, f64, f64)> = None;
         for point in &self.points {
             let x_px = match self.time_scale.time_to_pixel(point.x, self.viewport) {
                 Ok(v) => v,
@@ -249,7 +340,7 @@ impl<R: Renderer> ChartEngine<R> {
                 Ok(v) => v,
                 Err(_) => continue,
             };
-            let dist = (x_px - pointer_x).abs();
+            let dist = OrderedFloat((x_px - pointer_x).abs());
             match best {
                 Some((current, _, _)) if current <= dist => {}
                 _ => best = Some((dist, x_px, y_px)),
@@ -258,8 +349,8 @@ impl<R: Renderer> ChartEngine<R> {
         best
     }
 
-    fn nearest_candle_snap(&self, pointer_x: f64) -> Option<(f64, f64, f64)> {
-        let mut best: Option<(f64, f64, f64)> = None;
+    fn nearest_candle_snap(&self, pointer_x: f64) -> Option<(OrderedFloat<f64>, f64, f64)> {
+        let mut best: Option<(OrderedFloat<f64>, f64, f64)> = None;
         for candle in &self.candles {
             let x_px = match self.time_scale.time_to_pixel(candle.time, self.viewport) {
                 Ok(v) => v,
@@ -269,7 +360,7 @@ impl<R: Renderer> ChartEngine<R> {
                 Ok(v) => v,
                 Err(_) => continue,
             };
-            let dist = (x_px - pointer_x).abs();
+            let dist = OrderedFloat((x_px - pointer_x).abs());
             match best {
                 Some((current, _, _)) if current <= dist => {}
                 _ => best = Some((dist, x_px, y_px)),

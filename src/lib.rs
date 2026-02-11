@@ -9,6 +9,7 @@ pub mod error;
 pub mod extensions;
 pub mod interaction;
 pub mod render;
+pub mod telemetry;
 
 #[cfg(feature = "gtk4-adapter")]
 pub mod platform_gtk;
