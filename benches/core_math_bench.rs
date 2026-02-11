@@ -1,8 +1,8 @@
 use chart_rs::api::{ChartEngine, ChartEngineConfig};
 use chart_rs::core::{
     DataPoint, LinearScale, OhlcBar, PriceScale, TimeScale, Viewport, points_in_time_window,
-    project_area_geometry, project_baseline_geometry, project_candles, project_histogram_bars,
-    project_line_segments,
+    project_area_geometry, project_bars, project_baseline_geometry, project_candles,
+    project_histogram_bars, project_line_segments,
 };
 use chart_rs::extensions::{
     ChartPlugin, MarkerPlacementConfig, MarkerPosition, PluginContext, PluginEvent, SeriesMarker,
@@ -53,6 +53,37 @@ fn bench_candle_projection_10k(c: &mut Criterion) {
                 black_box(7.0),
             )
             .expect("projection should succeed");
+        })
+    });
+}
+
+fn bench_bar_projection_10k(c: &mut Criterion) {
+    let viewport = Viewport::new(1920, 1080);
+    let time_scale = TimeScale::new(0.0, 10_001.0).expect("valid time scale");
+    let price_scale = PriceScale::new(0.0, 2_500.0).expect("valid price scale");
+
+    let bars: Vec<OhlcBar> = (0..10_000)
+        .map(|i| {
+            let t = i as f64;
+            let base = 100.0 + t * 0.05;
+            let open = base;
+            let close = if i % 2 == 0 { base + 1.0 } else { base - 1.0 };
+            let low = open.min(close) - 0.75;
+            let high = open.max(close) + 0.75;
+            OhlcBar::new(t, open, high, low, close).expect("valid generated bar")
+        })
+        .collect();
+
+    c.bench_function("bar_projection_10k", |b| {
+        b.iter(|| {
+            let _ = project_bars(
+                black_box(&bars),
+                black_box(time_scale),
+                black_box(price_scale),
+                black_box(viewport),
+                black_box(7.0),
+            )
+            .expect("bar projection should succeed");
         })
     });
 }
@@ -290,6 +321,7 @@ criterion_group!(
     benches,
     bench_linear_scale_round_trip,
     bench_candle_projection_10k,
+    bench_bar_projection_10k,
     bench_line_projection_20k,
     bench_area_projection_20k,
     bench_baseline_projection_20k,
