@@ -5,10 +5,10 @@ use smallvec::SmallVec;
 use tracing::{debug, trace};
 
 use crate::core::{
-    AreaGeometry, BaselineGeometry, CandleGeometry, DataPoint, LineSegment, OhlcBar, PriceScale,
-    PriceScaleTuning, TimeScale, TimeScaleTuning, Viewport, candles_in_time_window,
+    AreaGeometry, BaselineGeometry, CandleGeometry, DataPoint, HistogramBar, LineSegment, OhlcBar,
+    PriceScale, PriceScaleTuning, TimeScale, TimeScaleTuning, Viewport, candles_in_time_window,
     points_in_time_window, project_area_geometry, project_baseline_geometry, project_candles,
-    project_line_segments,
+    project_histogram_bars, project_line_segments,
 };
 use crate::error::{ChartError, ChartResult};
 use crate::extensions::{
@@ -593,6 +593,59 @@ impl<R: Renderer> ChartEngine<R> {
             self.time_scale,
             self.price_scale,
             self.viewport,
+            baseline_price,
+        )
+    }
+
+    /// Projects point-series data into deterministic histogram bars.
+    pub fn project_histogram_bars(
+        &self,
+        bar_width_px: f64,
+        baseline_price: f64,
+    ) -> ChartResult<Vec<HistogramBar>> {
+        project_histogram_bars(
+            &self.points,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            bar_width_px,
+            baseline_price,
+        )
+    }
+
+    /// Projects histogram bars for points inside the visible time range.
+    pub fn project_visible_histogram_bars(
+        &self,
+        bar_width_px: f64,
+        baseline_price: f64,
+    ) -> ChartResult<Vec<HistogramBar>> {
+        let (start, end) = self.time_scale.visible_range();
+        let visible = points_in_time_window(&self.points, start, end);
+        project_histogram_bars(
+            &visible,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            bar_width_px,
+            baseline_price,
+        )
+    }
+
+    /// Projects visible histogram bars with symmetric window overscan.
+    pub fn project_visible_histogram_bars_with_overscan(
+        &self,
+        bar_width_px: f64,
+        baseline_price: f64,
+        ratio: f64,
+    ) -> ChartResult<Vec<HistogramBar>> {
+        let (start, end) = expand_visible_window(self.time_scale.visible_range(), ratio)?;
+        let visible = points_in_time_window(&self.points, start, end);
+        project_histogram_bars(
+            &visible,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            bar_width_px,
             baseline_price,
         )
     }

@@ -1,6 +1,7 @@
 pub mod area_series;
 pub mod baseline_series;
 pub mod candlestick;
+pub mod histogram_series;
 pub mod line_series;
 pub mod price_scale;
 pub mod primitives;
@@ -12,6 +13,7 @@ pub mod windowing;
 pub use area_series::{AreaGeometry, AreaVertex, project_area_geometry};
 pub use baseline_series::{BaselineGeometry, BaselineVertex, project_baseline_geometry};
 pub use candlestick::{CandleGeometry, OhlcBar, project_candles};
+pub use histogram_series::{HistogramBar, project_histogram_bars};
 pub use line_series::{LineSegment, project_line_segments};
 pub use price_scale::{PriceScale, PriceScaleTuning};
 pub use scale::LinearScale;

@@ -57,6 +57,9 @@ Domain layer with deterministic math and model invariants.
   - `BaselineVertex`
   - `BaselineGeometry`
   - `project_baseline_geometry`
+- `histogram_series.rs`
+  - `HistogramBar`
+  - `project_histogram_bars`
 - `primitives.rs`
   - `chrono` and `rust-decimal` helpers for strongly-typed construction
 
@@ -163,6 +166,10 @@ Where to add tests:
   - deterministic baseline line/split-fill geometry and visible-window behavior
 - `tests/property_baseline_series_tests.rs`
   - baseline clamp invariants and finite-geometry properties
+- `tests/histogram_series_tests.rs`
+  - deterministic histogram geometry, width validation, and visible-window behavior
+- `tests/property_histogram_series_tests.rs`
+  - histogram axis/bar invariants and finite-geometry properties
 - `tests/crosshair_tests.rs`
   - interaction-level crosshair snapping behavior
 - `tests/decimal_time_tests.rs`
