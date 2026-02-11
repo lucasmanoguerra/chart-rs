@@ -110,4 +110,33 @@ proptest! {
         prop_assert_eq!(restored.candle_geometry.len(), candle_count);
         prop_assert_eq!(restored.series_metadata.len(), 2);
     }
+
+    #[test]
+    fn pan_by_pixels_preserves_span(
+        time_start in -10_000.0f64..10_000.0,
+        time_span in 1.0f64..5_000.0,
+        delta_px in -500.0f64..500.0
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(
+            Viewport::new(1000, 700),
+            time_start,
+            time_start + time_span,
+        ).with_price_domain(0.0, 1.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+        let (start_before, end_before) = engine.time_visible_range();
+        let span_before = end_before - start_before;
+
+        engine
+            .pan_time_visible_by_pixels(delta_px)
+            .expect("pan should work");
+        let (start_after, end_after) = engine.time_visible_range();
+        let span_after = end_after - start_after;
+
+        let expected_delta = -(delta_px / 1000.0) * span_before;
+        prop_assert!((span_after - span_before).abs() <= 1e-7);
+        prop_assert!((start_after - (start_before + expected_delta)).abs() <= 1e-7);
+        prop_assert!((end_after - (end_before + expected_delta)).abs() <= 1e-7);
+    }
 }

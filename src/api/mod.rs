@@ -221,6 +221,51 @@ impl<R: Renderer> ChartEngine<R> {
         self.time_scale.reset_visible_range_to_full();
     }
 
+    /// Pans visible range by explicit time delta.
+    pub fn pan_time_visible_by(&mut self, delta_time: f64) -> ChartResult<()> {
+        self.time_scale.pan_visible_by_delta(delta_time)
+    }
+
+    /// Pans visible range using pixel drag delta.
+    ///
+    /// Positive `delta_px` moves the range to earlier times, matching common
+    /// drag-to-scroll chart behavior.
+    pub fn pan_time_visible_by_pixels(&mut self, delta_px: f64) -> ChartResult<()> {
+        if !delta_px.is_finite() {
+            return Err(ChartError::InvalidData(
+                "pan pixel delta must be finite".to_owned(),
+            ));
+        }
+
+        let (start, end) = self.time_scale.visible_range();
+        let span = end - start;
+        let delta_time = -(delta_px / f64::from(self.viewport.width)) * span;
+        self.time_scale.pan_visible_by_delta(delta_time)
+    }
+
+    /// Zooms visible range around a logical time anchor.
+    pub fn zoom_time_visible_around_time(
+        &mut self,
+        factor: f64,
+        anchor_time: f64,
+        min_span_absolute: f64,
+    ) -> ChartResult<()> {
+        self.time_scale
+            .zoom_visible_by_factor(factor, anchor_time, min_span_absolute)
+    }
+
+    /// Zooms visible range around a pixel anchor.
+    pub fn zoom_time_visible_around_pixel(
+        &mut self,
+        factor: f64,
+        anchor_px: f64,
+        min_span_absolute: f64,
+    ) -> ChartResult<()> {
+        let anchor_time = self.map_pixel_to_x(anchor_px)?;
+        self.time_scale
+            .zoom_visible_by_factor(factor, anchor_time, min_span_absolute)
+    }
+
     /// Fits time scale against available point/candle data.
     pub fn fit_time_to_data(&mut self, tuning: TimeScaleTuning) -> ChartResult<()> {
         if self.points.is_empty() && self.candles.is_empty() {
