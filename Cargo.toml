@@ -1,6 +1,6 @@
 [package]
 name = "chart-rs"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 edition = "2024"
 rust-version = "1.85"
 description = "A Rust-native charting library for GTK4/Relm4 inspired by Lightweight Charts v5.1."
@@ -30,7 +30,7 @@ gtk4 = { version = "0.10", optional = true }
 thiserror = "2.0"
 
 [dev-dependencies]
-criterion = { version = "0.5", default-features = false }
+criterion = { version = "0.8", default-features = false }
 proptest = "1.6"
 
 [[bench]]

@@ -13,8 +13,8 @@ Use this document to track parity progress.
 
 | ID | Area | Feature | Status | Acceptance Criteria | Test Evidence | Notes |
 |---|---|---|---|---|---|---|
-| C-001 | Time Scale | Logical-to-pixel mapping | not started | Matches v5.1 behavior for visible range and spacing | TBD | |
-| C-002 | Price Scale | Autoscale baseline | not started | Stable autoscale with sparse/volatile data | TBD | |
+| C-001 | Time Scale | Logical-to-pixel mapping | in progress | Matches v5.1 behavior for visible range and spacing | `tests/core_scale_tests.rs`, `tests/property_scale_tests.rs` | Base time scale mapping implemented; parity tuning pending. |
+| C-002 | Price Scale | Autoscale baseline | in progress | Stable autoscale with sparse/volatile data | `tests/core_scale_tests.rs`, `tests/property_scale_tests.rs`, `tests/api_smoke_tests.rs` | Base autoscale and inverted Y mapping implemented; advanced behavior pending. |
 | C-003 | Series | Candlestick rendering basics | not started | OHLC bars render with deterministic geometry | TBD | |
 | C-004 | Interaction | Crosshair baseline | not started | Pointer movement updates crosshair and labels deterministically | TBD | |
 
