@@ -11,7 +11,8 @@ use crate::core::{
 };
 use crate::error::{ChartError, ChartResult};
 use crate::extensions::{
-    MarkerPlacementConfig, PlacedMarker, SeriesMarker, place_markers_on_candles,
+    ChartPlugin, MarkerPlacementConfig, PlacedMarker, PluginContext, PluginEvent, SeriesMarker,
+    place_markers_on_candles,
 };
 use crate::interaction::{CrosshairSnap, CrosshairState, InteractionMode, InteractionState};
 use crate::render::{RenderFrame, Renderer};
@@ -90,6 +91,7 @@ pub struct ChartEngine<R: Renderer> {
     points: Vec<DataPoint>,
     candles: Vec<OhlcBar>,
     series_metadata: IndexMap<String, String>,
+    plugins: Vec<Box<dyn ChartPlugin>>,
 }
 
 impl<R: Renderer> ChartEngine<R> {
@@ -114,6 +116,7 @@ impl<R: Renderer> ChartEngine<R> {
             points: Vec::new(),
             candles: Vec::new(),
             series_metadata: IndexMap::new(),
+            plugins: Vec::new(),
         })
     }
 
@@ -121,24 +124,36 @@ impl<R: Renderer> ChartEngine<R> {
     pub fn set_data(&mut self, points: Vec<DataPoint>) {
         debug!(count = points.len(), "set data points");
         self.points = points;
+        self.emit_plugin_event(PluginEvent::DataUpdated {
+            points_len: self.points.len(),
+        });
     }
 
     /// Appends a single line/point sample.
     pub fn append_point(&mut self, point: DataPoint) {
         self.points.push(point);
         trace!(count = self.points.len(), "append data point");
+        self.emit_plugin_event(PluginEvent::DataUpdated {
+            points_len: self.points.len(),
+        });
     }
 
     /// Replaces candlestick series.
     pub fn set_candles(&mut self, candles: Vec<OhlcBar>) {
         debug!(count = candles.len(), "set candles");
         self.candles = candles;
+        self.emit_plugin_event(PluginEvent::CandlesUpdated {
+            candles_len: self.candles.len(),
+        });
     }
 
     /// Appends a single OHLC bar.
     pub fn append_candle(&mut self, candle: OhlcBar) {
         self.candles.push(candle);
         trace!(count = self.candles.len(), "append candle");
+        self.emit_plugin_event(PluginEvent::CandlesUpdated {
+            candles_len: self.candles.len(),
+        });
     }
 
     /// Sets or updates deterministic series metadata.
@@ -146,6 +161,46 @@ impl<R: Renderer> ChartEngine<R> {
     /// `IndexMap` is used to preserve insertion order for stable snapshots.
     pub fn set_series_metadata(&mut self, key: impl Into<String>, value: impl Into<String>) {
         self.series_metadata.insert(key.into(), value.into());
+    }
+
+    /// Registers a plugin with unique identifier.
+    pub fn register_plugin(&mut self, plugin: Box<dyn ChartPlugin>) -> ChartResult<()> {
+        let plugin_id = plugin.id().to_owned();
+        if plugin_id.is_empty() {
+            return Err(ChartError::InvalidData(
+                "plugin id must not be empty".to_owned(),
+            ));
+        }
+        if self.plugins.iter().any(|entry| entry.id() == plugin_id) {
+            return Err(ChartError::InvalidData(format!(
+                "plugin with id `{plugin_id}` is already registered"
+            )));
+        }
+        self.plugins.push(plugin);
+        Ok(())
+    }
+
+    /// Unregisters a plugin by id. Returns `true` when removed.
+    pub fn unregister_plugin(&mut self, plugin_id: &str) -> bool {
+        if let Some(position) = self
+            .plugins
+            .iter()
+            .position(|entry| entry.id() == plugin_id)
+        {
+            self.plugins.remove(position);
+            return true;
+        }
+        false
+    }
+
+    #[must_use]
+    pub fn plugin_count(&self) -> usize {
+        self.plugins.len()
+    }
+
+    #[must_use]
+    pub fn has_plugin(&self, plugin_id: &str) -> bool {
+        self.plugins.iter().any(|plugin| plugin.id() == plugin_id)
     }
 
     #[must_use]
@@ -182,19 +237,23 @@ impl<R: Renderer> ChartEngine<R> {
     pub fn pointer_move(&mut self, x: f64, y: f64) {
         self.interaction.on_pointer_move(x, y);
         self.interaction.set_crosshair_snap(self.snap_at_x(x));
+        self.emit_plugin_event(PluginEvent::PointerMoved { x, y });
     }
 
     /// Marks pointer as outside chart bounds.
     pub fn pointer_leave(&mut self) {
         self.interaction.on_pointer_leave();
+        self.emit_plugin_event(PluginEvent::PointerLeft);
     }
 
     pub fn pan_start(&mut self) {
         self.interaction.on_pan_start();
+        self.emit_plugin_event(PluginEvent::PanStarted);
     }
 
     pub fn pan_end(&mut self) {
         self.interaction.on_pan_end();
+        self.emit_plugin_event(PluginEvent::PanEnded);
     }
 
     pub fn map_x_to_pixel(&self, x: f64) -> ChartResult<f64> {
@@ -243,17 +302,22 @@ impl<R: Renderer> ChartEngine<R> {
 
     /// Overrides visible time range (zoom/pan style behavior).
     pub fn set_time_visible_range(&mut self, start: f64, end: f64) -> ChartResult<()> {
-        self.time_scale.set_visible_range(start, end)
+        self.time_scale.set_visible_range(start, end)?;
+        self.emit_visible_range_changed();
+        Ok(())
     }
 
     /// Resets visible range to fitted full range.
     pub fn reset_time_visible_range(&mut self) {
         self.time_scale.reset_visible_range_to_full();
+        self.emit_visible_range_changed();
     }
 
     /// Pans visible range by explicit time delta.
     pub fn pan_time_visible_by(&mut self, delta_time: f64) -> ChartResult<()> {
-        self.time_scale.pan_visible_by_delta(delta_time)
+        self.time_scale.pan_visible_by_delta(delta_time)?;
+        self.emit_visible_range_changed();
+        Ok(())
     }
 
     /// Pans visible range using pixel drag delta.
@@ -270,7 +334,9 @@ impl<R: Renderer> ChartEngine<R> {
         let (start, end) = self.time_scale.visible_range();
         let span = end - start;
         let delta_time = -(delta_px / f64::from(self.viewport.width)) * span;
-        self.time_scale.pan_visible_by_delta(delta_time)
+        self.time_scale.pan_visible_by_delta(delta_time)?;
+        self.emit_visible_range_changed();
+        Ok(())
     }
 
     /// Zooms visible range around a logical time anchor.
@@ -281,7 +347,9 @@ impl<R: Renderer> ChartEngine<R> {
         min_span_absolute: f64,
     ) -> ChartResult<()> {
         self.time_scale
-            .zoom_visible_by_factor(factor, anchor_time, min_span_absolute)
+            .zoom_visible_by_factor(factor, anchor_time, min_span_absolute)?;
+        self.emit_visible_range_changed();
+        Ok(())
     }
 
     /// Zooms visible range around a pixel anchor.
@@ -293,7 +361,9 @@ impl<R: Renderer> ChartEngine<R> {
     ) -> ChartResult<()> {
         let anchor_time = self.map_pixel_to_x(anchor_px)?;
         self.time_scale
-            .zoom_visible_by_factor(factor, anchor_time, min_span_absolute)
+            .zoom_visible_by_factor(factor, anchor_time, min_span_absolute)?;
+        self.emit_visible_range_changed();
+        Ok(())
     }
 
     /// Fits time scale against available point/candle data.
@@ -303,7 +373,9 @@ impl<R: Renderer> ChartEngine<R> {
         }
 
         self.time_scale
-            .fit_to_mixed_data(&self.points, &self.candles, tuning)
+            .fit_to_mixed_data(&self.points, &self.candles, tuning)?;
+        self.emit_visible_range_changed();
+        Ok(())
     }
 
     pub fn map_price_to_pixel(&self, price: f64) -> ChartResult<f64> {
@@ -476,12 +548,38 @@ impl<R: Renderer> ChartEngine<R> {
 
     pub fn render(&mut self) -> ChartResult<()> {
         let frame = RenderFrame::new(self.viewport, self.points.clone());
-        self.renderer.render(&frame)
+        self.renderer.render(&frame)?;
+        self.emit_plugin_event(PluginEvent::Rendered);
+        Ok(())
     }
 
     #[must_use]
     pub fn into_renderer(self) -> R {
         self.renderer
+    }
+
+    fn plugin_context(&self) -> PluginContext {
+        PluginContext {
+            viewport: self.viewport,
+            time_visible_range: self.time_scale.visible_range(),
+            price_domain: self.price_scale.domain(),
+            points_len: self.points.len(),
+            candles_len: self.candles.len(),
+            interaction_mode: self.interaction.mode(),
+            crosshair: self.interaction.crosshair(),
+        }
+    }
+
+    fn emit_plugin_event(&mut self, event: PluginEvent) {
+        let context = self.plugin_context();
+        for plugin in &mut self.plugins {
+            plugin.on_event(event, context);
+        }
+    }
+
+    fn emit_visible_range_changed(&mut self) {
+        let (start, end) = self.time_scale.visible_range();
+        self.emit_plugin_event(PluginEvent::VisibleRangeChanged { start, end });
     }
 
     fn snap_at_x(&self, pointer_x: f64) -> Option<CrosshairSnap> {
