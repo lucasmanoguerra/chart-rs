@@ -36,6 +36,12 @@ Core rendering and interaction parity work is ongoing.
 - `benches` criterion benchmarks
 - `docs` architecture and parity tracking docs
 
+## Developer Docs
+
+- `docs/developer-guide.md`
+- `docs/architecture.md`
+- `docs/parity-v5.1-checklist.md`
+
 ## Getting Started
 
 ```bash
