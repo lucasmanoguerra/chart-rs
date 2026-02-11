@@ -40,6 +40,7 @@ Use this document to track parity progress.
 | R-006 | Time Axis | Session boundary/timezone-aware labeling | done | Time labels support trading-session boundaries and configurable timezone alignment | `tests/time_axis_formatter_tests.rs`, `benches/core_math_bench.rs` | Added fixed-offset timezone alignment and optional session envelope that keeps boundary labels explicit while collapsing in-session intraday labels to time-only format. |
 | R-007 | Time Axis | Major tick visual emphasis | done | Session/day boundary ticks render with deterministic major grid/label styling | `tests/render_style_tests.rs`, `benches/core_math_bench.rs` | Added major tick classification (session boundary + local midnight) with configurable major grid color/width and label font size. |
 | R-008 | Price Axis | Formatter precision/min-move policy | done | Price labels support fixed/adaptive precision, min-move rounding, and custom formatter injection | `tests/price_axis_formatter_tests.rs`, `benches/core_math_bench.rs` | Added `PriceAxisLabelPolicy` (`FixedDecimals`/`Adaptive`/`MinMove`) with deterministic min-move snapping and locale-aware formatting. |
+| R-009 | Price Axis | Display mode parity (normal/percent/indexed) | done | Price labels support deterministic normal/percentage/indexed-to-100 modes with configurable/derived base values | `tests/price_axis_formatter_tests.rs`, `benches/core_math_bench.rs` | Added `PriceAxisDisplayMode` with percent suffix behavior and explicit/derived base-price transforms. |
 
 ## Extensions
 
