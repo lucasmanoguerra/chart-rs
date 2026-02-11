@@ -3,6 +3,7 @@
 //! Keep extensions feature-gated and avoid coupling them into core paths.
 
 pub mod markers;
+pub mod plugins;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExtensionStatus {
@@ -15,3 +16,4 @@ pub use markers::{
     MarkerLabelGeometry, MarkerPlacementConfig, MarkerPosition, MarkerSide, PlacedMarker,
     SeriesMarker, place_markers_on_candles,
 };
+pub use plugins::{ChartPlugin, PluginContext, PluginEvent};

@@ -26,4 +26,4 @@ Use this document to track parity progress.
 | ID | Area | Feature | Status | Acceptance Criteria | Test Evidence | Notes |
 |---|---|---|---|---|---|---|
 | E-001 | Markers | Advanced marker placement | done | Marker collision and alignment match expected rules | `tests/markers_tests.rs`, `tests/property_markers_tests.rs` | Deterministic marker placement with lane-based collision avoidance and visible-window projection is implemented. |
-| E-002 | Plugins | Custom extension hooks | not started | Extension points allow bounded custom logic without core coupling | TBD | |
+| E-002 | Plugins | Custom extension hooks | done | Extension points allow bounded custom logic without core coupling | `tests/plugins_tests.rs` | Plugin hooks with deterministic event dispatch and read-only engine context are implemented in the `extensions` layer. |

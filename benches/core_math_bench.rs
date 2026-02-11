@@ -4,7 +4,8 @@ use chart_rs::core::{
     project_candles, project_line_segments,
 };
 use chart_rs::extensions::{
-    MarkerPlacementConfig, MarkerPosition, SeriesMarker, place_markers_on_candles,
+    ChartPlugin, MarkerPlacementConfig, MarkerPosition, PluginContext, PluginEvent, SeriesMarker,
+    place_markers_on_candles,
 };
 use chart_rs::render::NullRenderer;
 use criterion::{Criterion, criterion_group, criterion_main};
@@ -172,6 +173,37 @@ fn bench_engine_snapshot_json_2k(c: &mut Criterion) {
     });
 }
 
+fn bench_plugin_dispatch_pointer_move(c: &mut Criterion) {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 100.0).with_price_domain(0.0, 100.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    for i in 0..20 {
+        struct BenchPlugin {
+            id: String,
+        }
+        impl ChartPlugin for BenchPlugin {
+            fn id(&self) -> &str {
+                &self.id
+            }
+
+            fn on_event(&mut self, _event: PluginEvent, _context: PluginContext) {}
+        }
+        engine
+            .register_plugin(Box::new(BenchPlugin {
+                id: format!("noop-{i}"),
+            }))
+            .expect("register plugin");
+    }
+
+    c.bench_function("plugin_dispatch_pointer_move_20_plugins", |b| {
+        b.iter(|| {
+            engine.pointer_move(black_box(400.0), black_box(300.0));
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -179,6 +211,7 @@ criterion_group!(
     bench_line_projection_20k,
     bench_visible_window_points_100k,
     bench_marker_placement_5k,
+    bench_plugin_dispatch_pointer_move,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);
