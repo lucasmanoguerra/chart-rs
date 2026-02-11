@@ -53,6 +53,10 @@ Domain layer with deterministic math and model invariants.
   - `AreaVertex`
   - `AreaGeometry`
   - `project_area_geometry`
+- `baseline_series.rs`
+  - `BaselineVertex`
+  - `BaselineGeometry`
+  - `project_baseline_geometry`
 - `primitives.rs`
   - `chrono` and `rust-decimal` helpers for strongly-typed construction
 
@@ -155,6 +159,10 @@ Where to add tests:
   - deterministic area line/fill geometry and overscan behavior
 - `tests/property_area_series_tests.rs`
   - area geometry count/baseline and finiteness invariants
+- `tests/baseline_series_tests.rs`
+  - deterministic baseline line/split-fill geometry and visible-window behavior
+- `tests/property_baseline_series_tests.rs`
+  - baseline clamp invariants and finite-geometry properties
 - `tests/crosshair_tests.rs`
   - interaction-level crosshair snapping behavior
 - `tests/decimal_time_tests.rs`
