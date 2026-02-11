@@ -6,6 +6,14 @@ pub enum InteractionMode {
     Panning,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CrosshairMode {
+    /// Crosshair follows nearest data sample (current default behavior).
+    Magnet,
+    /// Crosshair follows raw pointer position without snapping.
+    Normal,
+}
+
 /// Deterministic snap candidate used to drive crosshair visuals and labels.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct CrosshairSnap {
@@ -44,6 +52,7 @@ impl Default for CrosshairState {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct InteractionState {
     mode: InteractionMode,
+    crosshair_mode: CrosshairMode,
     cursor_x: f64,
     cursor_y: f64,
     crosshair: CrosshairState,
@@ -53,6 +62,7 @@ impl Default for InteractionState {
     fn default() -> Self {
         Self {
             mode: InteractionMode::Idle,
+            crosshair_mode: CrosshairMode::Magnet,
             cursor_x: 0.0,
             cursor_y: 0.0,
             crosshair: CrosshairState::default(),
@@ -64,6 +74,15 @@ impl InteractionState {
     #[must_use]
     pub fn mode(self) -> InteractionMode {
         self.mode
+    }
+
+    #[must_use]
+    pub fn crosshair_mode(self) -> CrosshairMode {
+        self.crosshair_mode
+    }
+
+    pub fn set_crosshair_mode(&mut self, mode: CrosshairMode) {
+        self.crosshair_mode = mode;
     }
 
     #[must_use]

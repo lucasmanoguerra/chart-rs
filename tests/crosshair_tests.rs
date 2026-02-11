@@ -1,5 +1,6 @@
 use chart_rs::api::{ChartEngine, ChartEngineConfig};
 use chart_rs::core::{DataPoint, OhlcBar, Viewport};
+use chart_rs::interaction::CrosshairMode;
 use chart_rs::render::NullRenderer;
 
 #[test]
@@ -79,4 +80,45 @@ fn pointer_leave_hides_crosshair() {
     assert!(crosshair.snapped_y.is_none());
     assert!(crosshair.snapped_time.is_none());
     assert!(crosshair.snapped_price.is_none());
+}
+
+#[test]
+fn normal_crosshair_mode_disables_snapping() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 10.0).with_price_domain(0.0, 100.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    engine.set_data(vec![DataPoint::new(2.0, 20.0), DataPoint::new(8.0, 80.0)]);
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let pointer_x = engine.map_x_to_pixel(2.1).expect("x map");
+    engine.pointer_move(pointer_x, 123.0);
+
+    let crosshair = engine.crosshair_state();
+    assert!(crosshair.visible);
+    assert!((crosshair.x - pointer_x).abs() <= 1e-9);
+    assert!((crosshair.y - 123.0).abs() <= 1e-9);
+    assert!(crosshair.snapped_x.is_none());
+    assert!(crosshair.snapped_y.is_none());
+    assert!(crosshair.snapped_time.is_none());
+    assert!(crosshair.snapped_price.is_none());
+}
+
+#[test]
+fn switching_to_magnet_mode_restores_snapping() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 10.0).with_price_domain(0.0, 100.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    engine.set_data(vec![DataPoint::new(2.0, 20.0), DataPoint::new(8.0, 80.0)]);
+    let pointer_x = engine.map_x_to_pixel(2.1).expect("x map");
+
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine.pointer_move(pointer_x, 123.0);
+    assert!(engine.crosshair_state().snapped_x.is_none());
+
+    engine.set_crosshair_mode(CrosshairMode::Magnet);
+    engine.pointer_move(pointer_x, 123.0);
+    assert!(engine.crosshair_state().snapped_x.is_some());
 }

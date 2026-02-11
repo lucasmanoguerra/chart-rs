@@ -81,7 +81,8 @@ Pointer and interaction state machine.
 Interaction invariants:
 - pointer move enables crosshair visibility
 - pointer leave clears visibility and snap state
-- snapping is decided in `api` using mapped chart data/candles
+- `CrosshairMode::Magnet` snaps to nearest mapped data/candle candidate
+- `CrosshairMode::Normal` follows pointer coordinates without snapping
 
 ### `src/api`
 Main public facade (`ChartEngine`, `ChartEngineConfig`).
@@ -178,7 +179,7 @@ Where to add tests:
 - `tests/property_bar_series_tests.rs`
   - OHLC bar ordering/visibility invariants and finite-geometry properties
 - `tests/crosshair_tests.rs`
-  - interaction-level crosshair snapping behavior
+  - interaction-level crosshair snapping and mode-switch behavior
 - `tests/decimal_time_tests.rs`
   - typed constructor conversions
 - `tests/api_tuning_tests.rs`
