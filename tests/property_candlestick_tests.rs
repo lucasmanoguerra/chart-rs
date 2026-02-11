@@ -1,4 +1,8 @@
 use chart_rs::core::{OhlcBar, PriceScale, TimeScale, Viewport, project_candles};
+use chart_rs::{
+    api::{ChartEngine, ChartEngineConfig},
+    render::NullRenderer,
+};
 use proptest::prelude::*;
 
 proptest! {
@@ -29,5 +33,45 @@ proptest! {
         prop_assert!(c.wick_top <= c.body_top);
         prop_assert!(c.body_bottom <= c.wick_bottom);
         prop_assert!(c.body_top <= c.body_bottom);
+    }
+
+    #[test]
+    fn visible_projection_count_matches_visible_filter(
+        candle_count in 2usize..64,
+        start_ratio in 0.0f64..0.6,
+        width_ratio in 0.1f64..0.7
+    ) {
+        let renderer = NullRenderer::default();
+        let right = (candle_count - 1) as f64;
+        let config = ChartEngineConfig::new(
+            Viewport::new(1200, 800),
+            -1.0,
+            right + 1.0,
+        ).with_price_domain(0.0, 500.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+        let mut candles = Vec::with_capacity(candle_count);
+        for i in 0..candle_count {
+            let time = i as f64;
+            let open = 100.0 + time;
+            let close = if i % 2 == 0 { open + 2.0 } else { open - 2.0 };
+            let low = open.min(close) - 1.0;
+            let high = open.max(close) + 1.0;
+            candles.push(OhlcBar::new(time, open, high, low, close).expect("valid candle"));
+        }
+        engine.set_candles(candles);
+
+        let visible_start = right * start_ratio;
+        let visible_end = (visible_start + right * width_ratio).min(right);
+        prop_assume!(visible_end > visible_start);
+        engine
+            .set_time_visible_range(visible_start, visible_end)
+            .expect("set visible");
+
+        let expected = engine.visible_candles().len();
+        let projected = engine
+            .project_visible_candles(8.0)
+            .expect("project visible");
+        prop_assert_eq!(projected.len(), expected);
     }
 }

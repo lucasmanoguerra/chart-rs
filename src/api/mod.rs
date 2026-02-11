@@ -355,6 +355,36 @@ impl<R: Renderer> ChartEngine<R> {
         )
     }
 
+    /// Projects only candles inside the active visible time window.
+    pub fn project_visible_candles(&self, body_width_px: f64) -> ChartResult<Vec<CandleGeometry>> {
+        let (start, end) = self.time_scale.visible_range();
+        let visible = candles_in_time_window(&self.candles, start, end);
+        project_candles(
+            &visible,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            body_width_px,
+        )
+    }
+
+    /// Projects visible candles with symmetric overscan around the visible range.
+    pub fn project_visible_candles_with_overscan(
+        &self,
+        body_width_px: f64,
+        ratio: f64,
+    ) -> ChartResult<Vec<CandleGeometry>> {
+        let (start, end) = expand_visible_window(self.time_scale.visible_range(), ratio)?;
+        let visible = candles_in_time_window(&self.candles, start, end);
+        project_candles(
+            &visible,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            body_width_px,
+        )
+    }
+
     /// Projects line-series points into deterministic segment geometry.
     pub fn project_line_segments(&self) -> ChartResult<Vec<LineSegment>> {
         project_line_segments(
