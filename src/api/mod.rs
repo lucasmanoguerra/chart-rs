@@ -240,6 +240,7 @@ pub struct RenderStyle {
     pub time_axis_height_px: f64,
     pub show_last_price_line: bool,
     pub show_last_price_label: bool,
+    pub last_price_label_exclusion_px: f64,
 }
 
 impl Default for RenderStyle {
@@ -262,6 +263,7 @@ impl Default for RenderStyle {
             time_axis_height_px: 24.0,
             show_last_price_line: true,
             show_last_price_label: true,
+            last_price_label_exclusion_px: 22.0,
         }
     }
 }
@@ -1632,8 +1634,43 @@ impl<R: Renderer> ChartEngine<R> {
         )
         .abs();
         let display_suffix = price_display_mode_suffix(self.price_axis_label_config.display_mode);
+        let latest_price_marker = if let Some(last_price) = self.resolve_latest_price_value() {
+            let py = self
+                .price_scale
+                .price_to_pixel(last_price, self.viewport)?
+                .clamp(0.0, plot_bottom);
+            Some((last_price, py))
+        } else {
+            None
+        };
 
-        for (price, py) in select_ticks_with_min_spacing(price_ticks, AXIS_PRICE_MIN_SPACING_PX) {
+        let selected_price_ticks =
+            select_ticks_with_min_spacing(price_ticks, AXIS_PRICE_MIN_SPACING_PX);
+        let mut price_ticks_for_axis = selected_price_ticks.clone();
+        if style.show_last_price_label
+            && style.last_price_label_exclusion_px.is_finite()
+            && style.last_price_label_exclusion_px > 0.0
+        {
+            if let Some((_, marker_py)) = latest_price_marker {
+                price_ticks_for_axis.retain(|(_, py)| {
+                    (py - marker_py).abs() >= style.last_price_label_exclusion_px
+                });
+                if price_ticks_for_axis.is_empty() && !selected_price_ticks.is_empty() {
+                    let fallback_tick = selected_price_ticks
+                        .iter()
+                        .copied()
+                        .max_by(|left, right| {
+                            (left.1 - marker_py)
+                                .abs()
+                                .total_cmp(&(right.1 - marker_py).abs())
+                        })
+                        .expect("selected price ticks not empty");
+                    price_ticks_for_axis.push(fallback_tick);
+                }
+            }
+        }
+
+        for (price, py) in price_ticks_for_axis {
             let display_price = map_price_to_display_value(
                 price,
                 self.price_axis_label_config.display_mode,
@@ -1667,12 +1704,7 @@ impl<R: Renderer> ChartEngine<R> {
             ));
         }
 
-        if let Some(last_price) = self.resolve_latest_price_value() {
-            let py = self
-                .price_scale
-                .price_to_pixel(last_price, self.viewport)?
-                .clamp(0.0, plot_bottom);
-
+        if let Some((last_price, py)) = latest_price_marker {
             if style.show_last_price_line {
                 frame = frame.with_line(LinePrimitive::new(
                     0.0,
@@ -1984,6 +2016,12 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
                 "render style `{name}` must be finite and > 0"
             )));
         }
+    }
+    if !style.last_price_label_exclusion_px.is_finite() || style.last_price_label_exclusion_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `last_price_label_exclusion_px` must be finite and >= 0".to_owned(),
+        ));
     }
     Ok(style)
 }
