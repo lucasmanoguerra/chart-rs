@@ -502,6 +502,33 @@ fn bench_time_axis_datetime_formatter(c: &mut Criterion) {
     });
 }
 
+fn bench_time_axis_label_cache_hot(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(
+            Viewport::new(900, 420),
+            1_700_000_000.0,
+            1_700_000_000.0 + 86_400.0,
+        )
+        .with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcAdaptive,
+        })
+        .expect("set adaptive policy");
+    engine.clear_time_label_cache();
+    let _ = engine.build_render_frame().expect("warm cache");
+
+    c.bench_function("time_axis_label_cache_hot", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -521,6 +548,7 @@ criterion_group!(
     bench_render_frame_build_20k,
     bench_render_axis_layout_narrow,
     bench_time_axis_datetime_formatter,
+    bench_time_axis_label_cache_hot,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);
