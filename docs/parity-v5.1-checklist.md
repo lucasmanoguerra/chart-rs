@@ -34,7 +34,8 @@ Use this document to track parity progress.
 |---|---|---|---|---|---|---|
 | R-001 | Pipeline | Render frame + Cairo/Pango backend baseline | done | Engine builds deterministic render commands and Cairo backend draws series + axis labels | `tests/render_frame_tests.rs`, `tests/property_render_frame_tests.rs`, `tests/render_cairo_backend_tests.rs`, `benches/core_math_bench.rs` | `RenderFrame` now carries explicit line/text primitives, with deterministic axis tick labels and GTK draw-context support. |
 | R-002 | Price Axis | Tick density + collision strategy | done | Price/time labels keep deterministic spacing and avoid overlap in narrow viewports | `tests/render_axis_layout_tests.rs`, `tests/property_render_frame_tests.rs`, `benches/core_math_bench.rs` | Axis labels now use deterministic density selection and spacing-based collision filtering for narrow and wide layouts. |
-| R-003 | Time Axis | Time formatter and locale policy | not started | Time labels support deterministic formatter policy compatible with desktop locale settings | N/A | Planned follow-up for formatter injection and precision levels by zoom. |
+| R-003 | Time Axis | Time formatter and locale policy | done | Time labels support deterministic built-in policies, locale presets, and injectable custom formatter logic | `tests/time_axis_formatter_tests.rs`, `tests/property_render_frame_tests.rs` | Added decimal + UTC datetime policies, `en-US/es-ES` locale presets, and runtime custom formatter injection. |
+| R-004 | Price Scale | Visual parity styling baseline | done | Render output includes deterministic grid/axis styling close to Lightweight Charts conventions | `tests/render_style_tests.rs`, `tests/render_cairo_backend_tests.rs`, `benches/core_math_bench.rs` | Added configurable render style contract (grid, axis borders, label colors, scale panel sizing) and plot/axis panel split in frame generation. |
 
 ## Extensions
 

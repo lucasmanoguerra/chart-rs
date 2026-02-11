@@ -95,6 +95,8 @@ Responsibilities:
 - time visible range controls and fit-to-data
 - price autoscale from points/candles (default and tuned)
 - crosshair snapping behavior
+- time-axis formatter policy + locale/custom formatter injection
+- render style contract for grid/axis parity tuning
 
 ### `src/render`
 Renderer trait boundary and backend implementations.
@@ -110,6 +112,8 @@ Render invariants:
 - frame construction is deterministic for fixed engine state
 - axis labels use spacing-aware collision filtering
 - label density scales with viewport size within fixed min/max bounds
+- time-axis labels support built-in policy+locale and explicit custom formatter injection
+- render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow
 
@@ -203,6 +207,10 @@ Where to add tests:
   - render-frame determinism and finite-geometry invariants
 - `tests/render_axis_layout_tests.rs`
   - axis label density/collision behavior for narrow vs wide viewports
+- `tests/time_axis_formatter_tests.rs`
+  - time-axis policy/locale formatting and custom formatter injection behavior
+- `tests/render_style_tests.rs`
+  - render-style validation and grid/axis visual contract behavior
 - `tests/decimal_time_tests.rs`
   - typed constructor conversions
 - `tests/api_tuning_tests.rs`
