@@ -8,6 +8,11 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- No changes yet.
+
+## [0.0.31-alpha.0] - 2026-02-11
+
+### Added
 - Last-price label-box width parity baseline (`R-019`) with deterministic full-axis and fit-text width modes.
 - New render-style knobs: `last_price_label_box_width_mode`, `last_price_label_box_padding_x_px`, and `last_price_label_box_min_width_px`.
 - New render-frame/style tests and criterion benchmark coverage for fit-text width behavior.
