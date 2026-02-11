@@ -1,6 +1,6 @@
 [package]
 name = "chart-rs"
-version = "0.0.15-alpha.0"
+version = "0.0.16-alpha.0"
 edition = "2024"
 rust-version = "1.85"
 description = "A Rust-native charting library for GTK4/Relm4 inspired by Lightweight Charts v5.1."

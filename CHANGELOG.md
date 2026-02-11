@@ -8,6 +8,11 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- No changes yet.
+
+## [0.0.16-alpha.0] - 2026-02-11
+
+### Added
 - Time-axis formatter baseline (`R-003`) with locale presets and custom formatter injection.
 - Built-in time label policies for logical decimals and UTC datetime formatting.
 - Price-scale visual styling baseline (`R-004`) with configurable grid/axis style contract.
