@@ -1,0 +1,5 @@
+# Global ownership
+* @lucasmanoguerra
+
+# Workflow changes must be explicitly reviewed by repository owner
+.github/workflows/* @lucasmanoguerra
