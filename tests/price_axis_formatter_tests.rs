@@ -5,7 +5,7 @@ use chart_rs::api::{
     AxisLabelLocale, ChartEngine, ChartEngineConfig, PriceAxisDisplayMode, PriceAxisLabelConfig,
     PriceAxisLabelPolicy,
 };
-use chart_rs::core::Viewport;
+use chart_rs::core::{PriceScaleMode, Viewport};
 use chart_rs::render::{NullRenderer, TextHAlign};
 
 fn price_labels(frame: &chart_rs::render::RenderFrame) -> Vec<&str> {
@@ -25,6 +25,18 @@ fn fraction_len(label: &str) -> usize {
         return fraction.len();
     }
     0
+}
+
+fn is_log_125_ladder(value: f64) -> bool {
+    if !value.is_finite() || value <= 0.0 {
+        return false;
+    }
+    let exponent = value.log10().floor();
+    let base = 10_f64.powf(exponent);
+    let mantissa = value / base;
+    (mantissa - 1.0).abs() <= 1e-9
+        || (mantissa - 2.0).abs() <= 1e-9
+        || (mantissa - 5.0).abs() <= 1e-9
 }
 
 #[test]
@@ -282,4 +294,30 @@ fn invalid_price_axis_display_base_is_rejected() {
         })
         .expect_err("display base should fail");
     assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn log_mode_price_axis_labels_follow_125_ladder() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(820, 420), 0.0, 100.0).with_price_domain(1.0, 1_000.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine
+        .set_price_scale_mode(PriceScaleMode::Log)
+        .expect("set log mode");
+    engine
+        .set_price_axis_label_config(PriceAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: PriceAxisLabelPolicy::FixedDecimals { precision: 0 },
+            ..PriceAxisLabelConfig::default()
+        })
+        .expect("set fixed policy");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let labels = price_labels(&frame);
+    assert!(!labels.is_empty());
+    assert!(labels.iter().all(|label| {
+        let value = label.parse::<f64>().expect("parse label");
+        is_log_125_ladder(value)
+    }));
 }

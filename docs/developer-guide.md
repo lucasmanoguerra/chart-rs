@@ -123,6 +123,7 @@ Render invariants:
 - session/day boundary ticks can render with dedicated major grid/label styling
 - price-axis labels support fixed/adaptive precision, min-move rounding, and normal/percent/indexed display modes
 - price-axis ticks are generated in transformed scale space, then mapped back to raw prices (linear/log-safe)
+- log-mode price-axis ticks prefer deterministic 1/2/5 decade ladders with endpoint-preserving downsampling
 - repeated redraws reuse deterministic time-label cache entries (`time_label_cache_stats`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
