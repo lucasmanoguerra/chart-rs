@@ -381,6 +381,48 @@ impl<R: Renderer> ChartEngine<R> {
         Ok(())
     }
 
+    /// Applies wheel-driven zoom around a pixel anchor.
+    ///
+    /// Conventions:
+    /// - `wheel_delta_y < 0` zooms in
+    /// - `wheel_delta_y > 0` zooms out
+    /// - one wheel notch is normalized as `120` units
+    ///
+    /// Returns the effective zoom factor applied to the visible range.
+    pub fn wheel_zoom_time_visible(
+        &mut self,
+        wheel_delta_y: f64,
+        anchor_px: f64,
+        zoom_step_ratio: f64,
+        min_span_absolute: f64,
+    ) -> ChartResult<f64> {
+        if !wheel_delta_y.is_finite() {
+            return Err(ChartError::InvalidData(
+                "wheel delta must be finite".to_owned(),
+            ));
+        }
+        if !zoom_step_ratio.is_finite() || zoom_step_ratio <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "wheel zoom step ratio must be finite and > 0".to_owned(),
+            ));
+        }
+        if wheel_delta_y == 0.0 {
+            return Ok(1.0);
+        }
+
+        let normalized_steps = wheel_delta_y / 120.0;
+        let base = 1.0 + zoom_step_ratio;
+        let factor = base.powf(-normalized_steps);
+        if !factor.is_finite() || factor <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "computed wheel zoom factor must be finite and > 0".to_owned(),
+            ));
+        }
+
+        self.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
+        Ok(factor)
+    }
+
     /// Fits time scale against available point/candle data.
     pub fn fit_time_to_data(&mut self, tuning: TimeScaleTuning) -> ChartResult<()> {
         if self.points.is_empty() && self.candles.is_empty() {
