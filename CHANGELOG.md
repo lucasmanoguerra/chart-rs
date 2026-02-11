@@ -8,6 +8,11 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Nothing yet.
+
+## [0.0.10-alpha.0] - 2026-02-11
+
+### Added
 - OHLC bar series projection baseline (`C-011`) with deterministic stem/tick geometry over active scales.
 - Visible-window and overscan OHLC bar projection helpers for candle data.
 - New integration/property tests covering tick-width validation and OHLC ordering invariants.
