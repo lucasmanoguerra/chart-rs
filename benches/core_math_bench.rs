@@ -1,7 +1,7 @@
 use chart_rs::api::{ChartEngine, ChartEngineConfig};
 use chart_rs::core::{
-    DataPoint, LinearScale, OhlcBar, PriceScale, TimeScale, Viewport, project_candles,
-    project_line_segments,
+    DataPoint, LinearScale, OhlcBar, PriceScale, TimeScale, Viewport, points_in_time_window,
+    project_candles, project_line_segments,
 };
 use chart_rs::render::NullRenderer;
 use criterion::{Criterion, criterion_group, criterion_main};
@@ -78,6 +78,23 @@ fn bench_line_projection_20k(c: &mut Criterion) {
     });
 }
 
+fn bench_visible_window_points_100k(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..100_000)
+        .map(|i| {
+            let x = i as f64;
+            let y = (x * 0.02).sin() * 100.0 + x * 0.001;
+            DataPoint::new(x, y)
+        })
+        .collect();
+
+    c.bench_function("visible_window_points_100k", |b| {
+        b.iter(|| {
+            let _ =
+                points_in_time_window(black_box(&points), black_box(45_000.0), black_box(55_000.0));
+        })
+    });
+}
+
 fn bench_engine_snapshot_json_2k(c: &mut Criterion) {
     let renderer = NullRenderer::default();
     let config = ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 2_001.0)
@@ -114,6 +131,7 @@ criterion_group!(
     bench_linear_scale_round_trip,
     bench_candle_projection_10k,
     bench_line_projection_20k,
+    bench_visible_window_points_100k,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);
