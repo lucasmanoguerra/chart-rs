@@ -8,7 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Price-axis label cache baseline (`R-012`) with deterministic cache keys for built-in/custom formatter paths.
+- New `ChartEngine` cache stats/clear APIs for price labels (`price_label_cache_stats`, `clear_price_label_cache`).
+- New tests and benchmark coverage for repeated redraw cache-hit behavior.
 
 ## [0.0.23-alpha.0] - 2026-02-11
 
