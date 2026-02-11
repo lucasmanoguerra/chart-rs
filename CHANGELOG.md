@@ -8,7 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Last-price label-box parity baseline (`R-017`) with deterministic filled axis-panel box behind latest-price label text.
+- New render-style knobs for label-box behavior: `show_last_price_label_box`, `last_price_label_box_use_marker_color`, `last_price_label_box_color`, `last_price_label_box_text_color`, and `last_price_label_box_padding_y_px`.
+- New render-frame/style/backend tests and benchmark coverage for label-box rendering.
 
 ## [0.0.28-alpha.0] - 2026-02-11
 

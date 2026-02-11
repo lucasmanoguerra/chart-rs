@@ -85,6 +85,47 @@ impl LinePrimitive {
     }
 }
 
+/// Draw command for one filled rectangle in pixel space.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RectPrimitive {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub fill_color: Color,
+}
+
+impl RectPrimitive {
+    #[must_use]
+    pub const fn new(x: f64, y: f64, width: f64, height: f64, fill_color: Color) -> Self {
+        Self {
+            x,
+            y,
+            width,
+            height,
+            fill_color,
+        }
+    }
+
+    pub fn validate(self) -> ChartResult<()> {
+        if !self.x.is_finite() || !self.y.is_finite() {
+            return Err(ChartError::InvalidData(
+                "rect coordinates must be finite".to_owned(),
+            ));
+        }
+        if !self.width.is_finite()
+            || !self.height.is_finite()
+            || self.width <= 0.0
+            || self.height <= 0.0
+        {
+            return Err(ChartError::InvalidData(
+                "rect size must be finite and > 0".to_owned(),
+            ));
+        }
+        self.fill_color.validate()
+    }
+}
+
 /// Horizontal text alignment relative to `TextPrimitive::x`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextHAlign {

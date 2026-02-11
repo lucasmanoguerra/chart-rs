@@ -24,7 +24,9 @@ use crate::interaction::{
     CrosshairMode, CrosshairSnap, CrosshairState, InteractionMode, InteractionState,
     KineticPanConfig, KineticPanState,
 };
-use crate::render::{Color, LinePrimitive, RenderFrame, Renderer, TextHAlign, TextPrimitive};
+use crate::render::{
+    Color, LinePrimitive, RectPrimitive, RenderFrame, Renderer, TextHAlign, TextPrimitive,
+};
 
 #[cfg(feature = "cairo-backend")]
 use crate::render::CairoContextRenderer;
@@ -260,6 +262,16 @@ pub struct RenderStyle {
     pub last_price_use_trend_color: bool,
     /// Selects whether last-price marker tracks full-series or visible-range latest sample.
     pub last_price_source_mode: LastPriceSourceMode,
+    /// Enables a filled price-box background behind last-price axis text.
+    pub show_last_price_label_box: bool,
+    /// Uses trend/marker color for last-price label box background when enabled.
+    pub last_price_label_box_use_marker_color: bool,
+    /// Fallback label-box fill color when marker-color mode is disabled.
+    pub last_price_label_box_color: Color,
+    /// Text color used inside the last-price label box.
+    pub last_price_label_box_text_color: Color,
+    /// Vertical padding around last-price text when drawing label box.
+    pub last_price_label_box_padding_y_px: f64,
     pub last_price_label_exclusion_px: f64,
 }
 
@@ -288,6 +300,11 @@ impl Default for RenderStyle {
             show_last_price_label: true,
             last_price_use_trend_color: false,
             last_price_source_mode: LastPriceSourceMode::LatestData,
+            show_last_price_label_box: false,
+            last_price_label_box_use_marker_color: true,
+            last_price_label_box_color: Color::rgb(0.16, 0.38, 1.0),
+            last_price_label_box_text_color: Color::rgb(1.0, 1.0, 1.0),
+            last_price_label_box_padding_y_px: 2.5,
             last_price_label_exclusion_px: 22.0,
         }
     }
@@ -949,6 +966,15 @@ impl<R: Renderer> ChartEngine<R> {
             _ => style.last_price_neutral_color,
         };
         (trend_color, trend_color)
+    }
+
+    fn resolve_last_price_label_box_fill_color(&self, marker_label_color: Color) -> Color {
+        let style = self.render_style;
+        if style.last_price_label_box_use_marker_color {
+            marker_label_color
+        } else {
+            style.last_price_label_box_color
+        }
     }
 
     fn resolve_time_label_cache_profile(&self, visible_span_abs: f64) -> TimeLabelCacheProfile {
@@ -1865,12 +1891,35 @@ impl<R: Renderer> ChartEngine<R> {
                     display_tick_step_abs,
                     display_suffix,
                 );
+                let text_y = (py - style.last_price_label_font_size_px * 0.72).max(0.0);
+                if style.show_last_price_label_box {
+                    let fill_color =
+                        self.resolve_last_price_label_box_fill_color(marker_label_color);
+                    let box_left = plot_right;
+                    let box_width = (viewport_width - box_left).max(0.0);
+                    let box_top = (text_y - style.last_price_label_box_padding_y_px)
+                        .clamp(0.0, viewport_height);
+                    let box_bottom = (text_y
+                        + style.last_price_label_font_size_px
+                        + style.last_price_label_box_padding_y_px)
+                        .clamp(0.0, viewport_height);
+                    let box_height = (box_bottom - box_top).max(0.0);
+                    if box_width > 0.0 && box_height > 0.0 {
+                        frame = frame.with_rect(RectPrimitive::new(
+                            box_left, box_top, box_width, box_height, fill_color,
+                        ));
+                    }
+                }
                 frame = frame.with_text(TextPrimitive::new(
                     text,
                     viewport_width - 6.0,
-                    (py - style.last_price_label_font_size_px * 0.72).max(0.0),
+                    text_y,
                     style.last_price_label_font_size_px,
-                    marker_label_color,
+                    if style.show_last_price_label_box {
+                        style.last_price_label_box_text_color
+                    } else {
+                        marker_label_color
+                    },
                     TextHAlign::Right,
                 ));
             }
@@ -2135,6 +2184,8 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.last_price_up_color.validate()?;
     style.last_price_down_color.validate()?;
     style.last_price_neutral_color.validate()?;
+    style.last_price_label_box_color.validate()?;
+    style.last_price_label_box_text_color.validate()?;
 
     for (name, value) in [
         ("grid_line_width", style.grid_line_width),
@@ -2162,6 +2213,13 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `last_price_label_exclusion_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.last_price_label_box_padding_y_px.is_finite()
+        || style.last_price_label_box_padding_y_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `last_price_label_box_padding_y_px` must be finite and >= 0".to_owned(),
         ));
     }
     Ok(style)

@@ -61,6 +61,11 @@ fn custom_render_style_is_applied_to_frame() {
         show_last_price_label: true,
         last_price_use_trend_color: true,
         last_price_source_mode: LastPriceSourceMode::LatestData,
+        show_last_price_label_box: true,
+        last_price_label_box_use_marker_color: false,
+        last_price_label_box_color: Color::rgb(0.1, 0.1, 0.1),
+        last_price_label_box_text_color: Color::rgb(0.95, 0.95, 0.95),
+        last_price_label_box_padding_y_px: 3.5,
         last_price_label_exclusion_px: 24.0,
     };
     engine
@@ -153,6 +158,38 @@ fn invalid_last_price_trend_color_is_rejected() {
 
     let mut style = engine.render_style();
     style.last_price_up_color = Color::rgb(1.2, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_last_price_label_box_padding_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.last_price_label_box_padding_y_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_last_price_label_box_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.last_price_label_box_color = Color::rgb(-0.1, 0.2, 0.2);
 
     let err = engine
         .set_render_style(style)
