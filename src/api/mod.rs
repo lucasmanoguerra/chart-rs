@@ -264,6 +264,14 @@ pub struct TimeLabelCacheStats {
     pub size: usize,
 }
 
+/// Runtime metrics exposed by the in-engine price-label cache.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct PriceLabelCacheStats {
+    pub hits: u64,
+    pub misses: u64,
+    pub size: usize,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum TimeLabelPattern {
     Date,
@@ -271,6 +279,18 @@ enum TimeLabelPattern {
     DateSecond,
     TimeMinute,
     TimeSecond,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum PriceLabelCachePolicy {
+    FixedDecimals {
+        precision: u8,
+    },
+    MinMove {
+        min_move_nanos: i64,
+        trim_trailing_zeros: bool,
+    },
+    Adaptive,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -291,14 +311,40 @@ enum TimeLabelCacheProfile {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum PriceLabelCacheProfile {
+    BuiltIn {
+        locale: AxisLabelLocale,
+        policy: PriceLabelCachePolicy,
+    },
+    Custom {
+        formatter_generation: u64,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct TimeLabelCacheKey {
     profile: TimeLabelCacheProfile,
     logical_time_millis: i64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct PriceLabelCacheKey {
+    profile: PriceLabelCacheProfile,
+    display_price_nanos: i64,
+    tick_step_nanos: i64,
+    has_percent_suffix: bool,
+}
+
 #[derive(Debug, Default)]
 struct TimeLabelCache {
     entries: HashMap<TimeLabelCacheKey, String>,
+    hits: u64,
+    misses: u64,
+}
+
+#[derive(Debug, Default)]
+struct PriceLabelCache {
+    entries: HashMap<PriceLabelCacheKey, String>,
     hits: u64,
     misses: u64,
 }
@@ -328,6 +374,38 @@ impl TimeLabelCache {
 
     fn stats(&self) -> TimeLabelCacheStats {
         TimeLabelCacheStats {
+            hits: self.hits,
+            misses: self.misses,
+            size: self.entries.len(),
+        }
+    }
+}
+
+impl PriceLabelCache {
+    const MAX_ENTRIES: usize = 8192;
+
+    fn get(&mut self, key: PriceLabelCacheKey) -> Option<String> {
+        let value = self.entries.get(&key).cloned();
+        if value.is_some() {
+            self.hits = self.hits.saturating_add(1);
+        }
+        value
+    }
+
+    fn insert(&mut self, key: PriceLabelCacheKey, value: String) {
+        self.misses = self.misses.saturating_add(1);
+        if self.entries.len() >= Self::MAX_ENTRIES {
+            self.entries.clear();
+        }
+        self.entries.insert(key, value);
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+    }
+
+    fn stats(&self) -> PriceLabelCacheStats {
+        PriceLabelCacheStats {
             hits: self.hits,
             misses: self.misses,
             size: self.entries.len(),
@@ -369,7 +447,9 @@ pub struct ChartEngine<R: Renderer> {
     time_label_formatter: Option<TimeLabelFormatterFn>,
     price_label_formatter: Option<PriceLabelFormatterFn>,
     time_label_formatter_generation: u64,
+    price_label_formatter_generation: u64,
     time_label_cache: RefCell<TimeLabelCache>,
+    price_label_cache: RefCell<PriceLabelCache>,
     render_style: RenderStyle,
 }
 
@@ -402,7 +482,9 @@ impl<R: Renderer> ChartEngine<R> {
             time_label_formatter: None,
             price_label_formatter: None,
             time_label_formatter_generation: 0,
+            price_label_formatter_generation: 0,
             time_label_cache: RefCell::new(TimeLabelCache::default()),
+            price_label_cache: RefCell::new(PriceLabelCache::default()),
             render_style: RenderStyle::default(),
         })
     }
@@ -542,6 +624,7 @@ impl<R: Renderer> ChartEngine<R> {
     pub fn set_price_axis_label_config(&mut self, config: PriceAxisLabelConfig) -> ChartResult<()> {
         validate_price_axis_label_config(config)?;
         self.price_axis_label_config = config;
+        self.price_label_cache.borrow_mut().clear();
         Ok(())
     }
 
@@ -561,10 +644,16 @@ impl<R: Renderer> ChartEngine<R> {
 
     pub fn set_price_label_formatter(&mut self, formatter: PriceLabelFormatterFn) {
         self.price_label_formatter = Some(formatter);
+        self.price_label_formatter_generation =
+            self.price_label_formatter_generation.saturating_add(1);
+        self.price_label_cache.borrow_mut().clear();
     }
 
     pub fn clear_price_label_formatter(&mut self) {
         self.price_label_formatter = None;
+        self.price_label_formatter_generation =
+            self.price_label_formatter_generation.saturating_add(1);
+        self.price_label_cache.borrow_mut().clear();
     }
 
     #[must_use]
@@ -574,6 +663,17 @@ impl<R: Renderer> ChartEngine<R> {
 
     pub fn clear_time_label_cache(&self) {
         self.time_label_cache.borrow_mut().clear();
+    }
+
+    /// Returns hit/miss counters for the price-axis label cache.
+    #[must_use]
+    pub fn price_label_cache_stats(&self) -> PriceLabelCacheStats {
+        self.price_label_cache.borrow().stats()
+    }
+
+    /// Clears cached price-axis label strings.
+    pub fn clear_price_label_cache(&self) {
+        self.price_label_cache.borrow_mut().clear();
     }
 
     #[must_use]
@@ -615,14 +715,29 @@ impl<R: Renderer> ChartEngine<R> {
         tick_step_abs: f64,
         mode_suffix: &str,
     ) -> String {
-        if let Some(formatter) = &self.price_label_formatter {
-            return formatter(display_price);
+        let profile = self.resolve_price_label_cache_profile();
+        let key = PriceLabelCacheKey {
+            profile,
+            display_price_nanos: quantize_price_label_value(display_price),
+            tick_step_nanos: quantize_price_label_value(tick_step_abs),
+            has_percent_suffix: !mode_suffix.is_empty(),
+        };
+
+        if let Some(cached) = self.price_label_cache.borrow_mut().get(key) {
+            return cached;
         }
-        let mut text =
-            format_price_axis_label(display_price, self.price_axis_label_config, tick_step_abs);
+
+        let mut text = if let Some(formatter) = &self.price_label_formatter {
+            formatter(display_price)
+        } else {
+            format_price_axis_label(display_price, self.price_axis_label_config, tick_step_abs)
+        };
         if !mode_suffix.is_empty() {
             text.push_str(mode_suffix);
         }
+        self.price_label_cache
+            .borrow_mut()
+            .insert(key, text.clone());
         text
     }
 
@@ -681,6 +796,19 @@ impl<R: Renderer> ChartEngine<R> {
                 timezone: self.time_axis_label_config.timezone,
                 session: self.time_axis_label_config.session,
             },
+        }
+    }
+
+    fn resolve_price_label_cache_profile(&self) -> PriceLabelCacheProfile {
+        if self.price_label_formatter.is_some() {
+            return PriceLabelCacheProfile::Custom {
+                formatter_generation: self.price_label_formatter_generation,
+            };
+        }
+
+        PriceLabelCacheProfile::BuiltIn {
+            locale: self.price_axis_label_config.locale,
+            policy: price_policy_profile(self.price_axis_label_config.policy),
         }
     }
 
@@ -1818,6 +1946,36 @@ fn quantize_logical_time_millis(logical_time: f64) -> i64 {
         i64::MIN
     } else {
         millis as i64
+    }
+}
+
+fn quantize_price_label_value(value: f64) -> i64 {
+    if !value.is_finite() {
+        return 0;
+    }
+    let nanos = (value * 1_000_000_000.0).round();
+    if nanos > (i64::MAX as f64) {
+        i64::MAX
+    } else if nanos < (i64::MIN as f64) {
+        i64::MIN
+    } else {
+        nanos as i64
+    }
+}
+
+fn price_policy_profile(policy: PriceAxisLabelPolicy) -> PriceLabelCachePolicy {
+    match policy {
+        PriceAxisLabelPolicy::FixedDecimals { precision } => {
+            PriceLabelCachePolicy::FixedDecimals { precision }
+        }
+        PriceAxisLabelPolicy::MinMove {
+            min_move,
+            trim_trailing_zeros,
+        } => PriceLabelCachePolicy::MinMove {
+            min_move_nanos: quantize_price_label_value(min_move),
+            trim_trailing_zeros,
+        },
+        PriceAxisLabelPolicy::Adaptive => PriceLabelCachePolicy::Adaptive,
     }
 }
 

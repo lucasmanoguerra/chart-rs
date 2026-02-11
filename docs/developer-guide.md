@@ -100,6 +100,7 @@ Responsibilities:
 - time-axis formatter policy + locale/custom formatter injection
 - price-axis formatter policy + display-mode + custom formatter injection
 - zoom-aware adaptive time-axis formatting and label-cache metrics
+- price-axis label-cache metrics for redraw hot paths (`price_label_cache_stats`)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -125,6 +126,7 @@ Render invariants:
 - price-axis ticks are generated in transformed scale space, then mapped back to raw prices (linear/log-safe)
 - log-mode price-axis ticks prefer deterministic 1/2/5 decade ladders with endpoint-preserving downsampling
 - repeated redraws reuse deterministic time-label cache entries (`time_label_cache_stats`)
+- repeated redraws reuse deterministic price-label cache entries (`price_label_cache_stats`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow
@@ -226,7 +228,7 @@ Where to add tests:
 - `tests/time_axis_formatter_tests.rs`
   - time-axis policy/locale formatting, adaptive zoom behavior, and label-cache hit behavior
 - `tests/price_axis_formatter_tests.rs`
-  - price-axis formatting policies, display modes, and formatter override behavior
+  - price-axis formatting policies, display modes, formatter override behavior, and cache-hit validation
 - `tests/render_style_tests.rs`
   - render-style validation and grid/axis visual contract behavior
 - `tests/decimal_time_tests.rs`

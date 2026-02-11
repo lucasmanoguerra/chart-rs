@@ -321,3 +321,50 @@ fn log_mode_price_axis_labels_follow_125_ladder() {
         is_log_125_ladder(value)
     }));
 }
+
+#[test]
+fn price_label_cache_reports_hits_for_repeated_frame_builds() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(820, 420), 0.0, 100.0).with_price_domain(95.0, 105.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine
+        .set_price_axis_label_config(PriceAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: PriceAxisLabelPolicy::Adaptive,
+            ..PriceAxisLabelConfig::default()
+        })
+        .expect("set adaptive policy");
+
+    engine.clear_price_label_cache();
+    let before = engine.price_label_cache_stats();
+    assert_eq!(before.hits, 0);
+    assert_eq!(before.misses, 0);
+
+    let _ = engine.build_render_frame().expect("first frame");
+    let after_first = engine.price_label_cache_stats();
+    assert!(after_first.misses > 0);
+    assert!(after_first.size > 0);
+
+    let _ = engine.build_render_frame().expect("second frame");
+    let after_second = engine.price_label_cache_stats();
+    assert!(after_second.hits > after_first.hits);
+}
+
+#[test]
+fn changing_price_axis_config_clears_price_label_cache_entries() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(820, 420), 0.0, 100.0).with_price_domain(95.0, 105.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let _ = engine.build_render_frame().expect("seed frame");
+    assert!(engine.price_label_cache_stats().size > 0);
+
+    let mut config = engine.price_axis_label_config();
+    config.policy = PriceAxisLabelPolicy::FixedDecimals { precision: 3 };
+    engine
+        .set_price_axis_label_config(config)
+        .expect("set policy");
+    assert_eq!(engine.price_label_cache_stats().size, 0);
+}
