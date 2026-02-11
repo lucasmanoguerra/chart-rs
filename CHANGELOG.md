@@ -8,6 +8,11 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- No changes yet.
+
+## [0.0.23-alpha.0] - 2026-02-11
+
+### Added
 - Price-axis log ladder parity baseline (`R-011`) with deterministic 1/2/5 decade ticks in log mode.
 - Log tick downsampling now preserves endpoints and domain direction for stable axis labeling.
 - New log-ladder regression tests and benchmark coverage for tick generation/render paths.
