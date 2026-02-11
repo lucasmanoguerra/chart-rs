@@ -232,6 +232,16 @@ pub enum LastPriceSourceMode {
     LatestVisible,
 }
 
+/// Width policy used for latest-price label box layout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LastPriceLabelBoxWidthMode {
+    /// Stretch label box to the full axis panel width.
+    #[default]
+    FullAxis,
+    /// Fit label box to text width using configured horizontal padding/min width.
+    FitText,
+}
+
 /// Style contract for the current render frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderStyle {
@@ -272,8 +282,14 @@ pub struct RenderStyle {
     pub last_price_label_box_text_color: Color,
     /// When enabled, text color is derived from label-box fill luminance.
     pub last_price_label_box_auto_text_contrast: bool,
+    /// Width mode for latest-price label box layout.
+    pub last_price_label_box_width_mode: LastPriceLabelBoxWidthMode,
+    /// Horizontal text padding for latest-price label box.
+    pub last_price_label_box_padding_x_px: f64,
     /// Vertical padding around last-price text when drawing label box.
     pub last_price_label_box_padding_y_px: f64,
+    /// Minimum width for latest-price label box.
+    pub last_price_label_box_min_width_px: f64,
     /// Border width for last-price label box.
     pub last_price_label_box_border_width_px: f64,
     /// Border color for last-price label box.
@@ -313,7 +329,10 @@ impl Default for RenderStyle {
             last_price_label_box_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_box_text_color: Color::rgb(1.0, 1.0, 1.0),
             last_price_label_box_auto_text_contrast: true,
+            last_price_label_box_width_mode: LastPriceLabelBoxWidthMode::FullAxis,
+            last_price_label_box_padding_x_px: 6.0,
             last_price_label_box_padding_y_px: 2.5,
+            last_price_label_box_min_width_px: 42.0,
             last_price_label_box_border_width_px: 0.0,
             last_price_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
             last_price_label_box_corner_radius_px: 0.0,
@@ -1011,6 +1030,20 @@ impl<R: Renderer> ChartEngine<R> {
         } else {
             Color::rgb(1.0, 1.0, 1.0)
         }
+    }
+
+    fn estimate_label_text_width_px(text: &str, font_size_px: f64) -> f64 {
+        // Keep this estimate deterministic and backend-independent.
+        let units = text.chars().fold(0.0, |acc, ch| {
+            acc + match ch {
+                '0'..='9' => 0.62,
+                '.' | ',' => 0.34,
+                '-' | '+' | '%' => 0.42,
+                ' ' => 0.33,
+                _ => 0.58,
+            }
+        });
+        (units * font_size_px).max(font_size_px)
     }
 
     fn resolve_time_label_cache_profile(&self, visible_span_abs: f64) -> TimeLabelCacheProfile {
@@ -1932,9 +1965,25 @@ impl<R: Renderer> ChartEngine<R> {
                     self.resolve_last_price_label_box_fill_color(marker_label_color);
                 let label_text_color = self
                     .resolve_last_price_label_box_text_color(box_fill_color, marker_label_color);
+                let axis_panel_left = plot_right;
+                let axis_panel_width = (viewport_width - axis_panel_left).max(0.0);
+                let default_text_anchor_x = viewport_width - 6.0;
+                let mut label_text_anchor_x = default_text_anchor_x;
                 if style.show_last_price_label_box {
-                    let box_left = plot_right;
-                    let box_width = (viewport_width - box_left).max(0.0);
+                    let estimated_text_width = Self::estimate_label_text_width_px(
+                        &text,
+                        style.last_price_label_font_size_px,
+                    );
+                    // Keep width selection deterministic and backend-independent so snapshots
+                    // remain stable across null/cairo renderers and CI environments.
+                    let requested_box_width = match style.last_price_label_box_width_mode {
+                        LastPriceLabelBoxWidthMode::FullAxis => axis_panel_width,
+                        LastPriceLabelBoxWidthMode::FitText => (estimated_text_width
+                            + 2.0 * style.last_price_label_box_padding_x_px)
+                            .max(style.last_price_label_box_min_width_px),
+                    };
+                    let box_width = requested_box_width.clamp(0.0, axis_panel_width);
+                    let box_left = (viewport_width - box_width).max(axis_panel_left);
                     let box_top = (text_y - style.last_price_label_box_padding_y_px)
                         .clamp(0.0, viewport_height);
                     let box_bottom = (text_y
@@ -1942,6 +1991,9 @@ impl<R: Renderer> ChartEngine<R> {
                         + style.last_price_label_box_padding_y_px)
                         .clamp(0.0, viewport_height);
                     let box_height = (box_bottom - box_top).max(0.0);
+                    label_text_anchor_x = (viewport_width
+                        - style.last_price_label_box_padding_x_px)
+                        .clamp(box_left, viewport_width);
                     if box_width > 0.0 && box_height > 0.0 {
                         let mut rect = RectPrimitive::new(
                             box_left,
@@ -1968,7 +2020,11 @@ impl<R: Renderer> ChartEngine<R> {
                 }
                 frame = frame.with_text(TextPrimitive::new(
                     text,
-                    viewport_width - 6.0,
+                    if style.show_last_price_label_box {
+                        label_text_anchor_x
+                    } else {
+                        default_text_anchor_x
+                    },
                     text_y,
                     style.last_price_label_font_size_px,
                     label_text_color,
@@ -2273,6 +2329,20 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `last_price_label_box_padding_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.last_price_label_box_padding_x_px.is_finite()
+        || style.last_price_label_box_padding_x_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `last_price_label_box_padding_x_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.last_price_label_box_min_width_px.is_finite()
+        || style.last_price_label_box_min_width_px <= 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `last_price_label_box_min_width_px` must be finite and > 0".to_owned(),
         ));
     }
     if !style.last_price_label_box_border_width_px.is_finite()

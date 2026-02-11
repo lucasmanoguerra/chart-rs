@@ -1,4 +1,6 @@
-use chart_rs::api::{ChartEngine, ChartEngineConfig, LastPriceSourceMode, RenderStyle};
+use chart_rs::api::{
+    ChartEngine, ChartEngineConfig, LastPriceLabelBoxWidthMode, LastPriceSourceMode, RenderStyle,
+};
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, NullRenderer, TextHAlign};
 
@@ -485,5 +487,41 @@ fn last_price_label_box_corner_radius_is_clamped_to_box_size() {
     assert!(frame.rects.iter().any(|rect| {
         rect.corner_radius <= (rect.width.min(rect.height)) * 0.5 + 1e-9
             && rect.corner_radius >= 0.0
+    }));
+}
+
+#[test]
+fn last_price_label_box_fit_text_respects_min_width_and_padding() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        price_axis_width_px: 120.0,
+        show_last_price_label_box: true,
+        last_price_label_box_width_mode: LastPriceLabelBoxWidthMode::FitText,
+        last_price_label_box_padding_x_px: 10.0,
+        last_price_label_box_min_width_px: 80.0,
+        last_price_label_box_use_marker_color: false,
+        last_price_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let expected_box_width = 80.0;
+    let expected_text_x =
+        f64::from(engine.viewport().width) - style.last_price_label_box_padding_x_px;
+    assert!(frame.rects.iter().any(|rect| {
+        (rect.width - expected_box_width).abs() <= 1e-9
+            && rect.width < style.price_axis_width_px
+            && rect.fill_color == style.last_price_label_box_color
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.text == "20.00"
+            && (text.x - expected_text_x).abs() <= 1e-9
     }));
 }
