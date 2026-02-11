@@ -10,6 +10,14 @@ and this project adheres to Semantic Versioning.
 ### Added
 - Nothing yet.
 
+## [0.0.6-alpha.0] - 2026-02-11
+
+### Added
+- Advanced marker placement baseline (`E-001`) with deterministic lane collision handling and visible-window projection.
+- Plugin hooks baseline (`E-002`) with bounded extension points and read-only engine context.
+- Deterministic plugin event dispatch integrated across data updates, interaction, viewport updates, and rendering.
+- New integration tests for plugin lifecycle/event behavior and benchmark coverage for multi-plugin dispatch overhead.
+
 ## [0.0.5-alpha.0] - 2026-02-11
 
 ### Added
