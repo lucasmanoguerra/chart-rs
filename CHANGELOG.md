@@ -8,7 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Time-axis major tick parity baseline (`R-007`) with deterministic boundary classification for session start/end and local-midnight transitions.
+- New render-style knobs for major ticks (`major_grid_line_color`, `major_grid_line_width`, `major_time_label_font_size_px`).
+- New render-style regression test coverage and benchmark for major-tick styled frame generation.
 
 ## [0.0.18-alpha.0] - 2026-02-11
 
