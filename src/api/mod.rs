@@ -1,7 +1,8 @@
 use smallvec::SmallVec;
 
 use crate::core::{
-    CandleGeometry, DataPoint, OhlcBar, PriceScale, TimeScale, Viewport, project_candles,
+    CandleGeometry, DataPoint, OhlcBar, PriceScale, PriceScaleTuning, TimeScale, TimeScaleTuning,
+    Viewport, project_candles,
 };
 use crate::error::{ChartError, ChartResult};
 use crate::interaction::{CrosshairState, InteractionMode, InteractionState};
@@ -135,6 +136,33 @@ impl<R: Renderer> ChartEngine<R> {
         self.time_scale.pixel_to_time(pixel, self.viewport)
     }
 
+    #[must_use]
+    pub fn time_visible_range(&self) -> (f64, f64) {
+        self.time_scale.visible_range()
+    }
+
+    #[must_use]
+    pub fn time_full_range(&self) -> (f64, f64) {
+        self.time_scale.full_range()
+    }
+
+    pub fn set_time_visible_range(&mut self, start: f64, end: f64) -> ChartResult<()> {
+        self.time_scale.set_visible_range(start, end)
+    }
+
+    pub fn reset_time_visible_range(&mut self) {
+        self.time_scale.reset_visible_range_to_full();
+    }
+
+    pub fn fit_time_to_data(&mut self, tuning: TimeScaleTuning) -> ChartResult<()> {
+        if self.points.is_empty() && self.candles.is_empty() {
+            return Ok(());
+        }
+
+        self.time_scale
+            .fit_to_mixed_data(&self.points, &self.candles, tuning)
+    }
+
     pub fn map_price_to_pixel(&self, price: f64) -> ChartResult<f64> {
         self.price_scale.price_to_pixel(price, self.viewport)
     }
@@ -149,18 +177,29 @@ impl<R: Renderer> ChartEngine<R> {
     }
 
     pub fn autoscale_price_from_data(&mut self) -> ChartResult<()> {
+        self.autoscale_price_from_data_tuned(PriceScaleTuning::default())
+    }
+
+    pub fn autoscale_price_from_data_tuned(&mut self, tuning: PriceScaleTuning) -> ChartResult<()> {
         if self.points.is_empty() {
             return Ok(());
         }
-        self.price_scale = PriceScale::from_data(&self.points)?;
+        self.price_scale = PriceScale::from_data_tuned(&self.points, tuning)?;
         Ok(())
     }
 
     pub fn autoscale_price_from_candles(&mut self) -> ChartResult<()> {
+        self.autoscale_price_from_candles_tuned(PriceScaleTuning::default())
+    }
+
+    pub fn autoscale_price_from_candles_tuned(
+        &mut self,
+        tuning: PriceScaleTuning,
+    ) -> ChartResult<()> {
         if self.candles.is_empty() {
             return Ok(());
         }
-        self.price_scale = PriceScale::from_ohlc(&self.candles)?;
+        self.price_scale = PriceScale::from_ohlc_tuned(&self.candles, tuning)?;
         Ok(())
     }
 

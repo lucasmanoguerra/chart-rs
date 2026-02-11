@@ -34,6 +34,6 @@ fn engine_smoke_flow() {
     assert!((y_back - 30.0).abs() <= 1e-9);
 
     let (min, max) = engine.price_domain();
-    assert_eq!(min, 10.0);
-    assert_eq!(max, 30.0);
+    assert_eq!(min, 8.0);
+    assert_eq!(max, 32.0);
 }
