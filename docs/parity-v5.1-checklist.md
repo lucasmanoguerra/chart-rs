@@ -18,6 +18,7 @@ Use this document to track parity progress.
 | C-003 | Series | Candlestick rendering basics | in progress | OHLC bars render with deterministic geometry | `tests/candlestick_tests.rs`, `tests/property_candlestick_tests.rs` | Base OHLC validation + deterministic candle geometry projection implemented. |
 | C-004 | Interaction | Crosshair baseline | in progress | Pointer movement updates crosshair and labels deterministically | `tests/crosshair_tests.rs` | Base crosshair visibility + nearest-point/candle snapping implemented. |
 | C-005 | Interaction | Visible range pan/zoom baseline | done | Drag and zoom operations move visible range deterministically around anchor points | `tests/interaction_pan_zoom_tests.rs`, `tests/property_api_tests.rs` | Time scale pan/zoom APIs are implemented for both logical-time and pixel anchors. |
+| C-006 | Series | Line series projection baseline | done | Line data maps to deterministic segment geometry over active scales | `tests/line_series_tests.rs`, `tests/property_line_series_tests.rs` | Core and API line-segment projection helpers are implemented. |
 
 ## Extensions
 
