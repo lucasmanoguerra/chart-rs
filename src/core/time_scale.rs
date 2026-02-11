@@ -153,6 +153,54 @@ impl TimeScale {
         self.visible_end = self.full_end;
     }
 
+    /// Pans the visible range by an additive time delta.
+    pub fn pan_visible_by_delta(&mut self, delta_time: f64) -> ChartResult<()> {
+        if !delta_time.is_finite() {
+            return Err(ChartError::InvalidData(
+                "pan delta must be finite".to_owned(),
+            ));
+        }
+
+        self.visible_start += delta_time;
+        self.visible_end += delta_time;
+        Ok(())
+    }
+
+    /// Zooms visible range around an anchor time.
+    ///
+    /// `factor > 1.0` zooms in, `0.0 < factor < 1.0` zooms out.
+    /// The resulting span is clamped by `min_span_absolute`.
+    pub fn zoom_visible_by_factor(
+        &mut self,
+        factor: f64,
+        anchor_time: f64,
+        min_span_absolute: f64,
+    ) -> ChartResult<()> {
+        if !factor.is_finite() || factor <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "zoom factor must be finite and > 0".to_owned(),
+            ));
+        }
+        if !anchor_time.is_finite() {
+            return Err(ChartError::InvalidData(
+                "zoom anchor must be finite".to_owned(),
+            ));
+        }
+        if !min_span_absolute.is_finite() || min_span_absolute <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "zoom min span must be finite and > 0".to_owned(),
+            ));
+        }
+
+        let current_span = self.visible_end - self.visible_start;
+        let target_span = (current_span / factor).max(min_span_absolute);
+        let left_ratio = (anchor_time - self.visible_start) / current_span;
+
+        let new_start = anchor_time - left_ratio * target_span;
+        let new_end = new_start + target_span;
+        self.set_visible_range(new_start, new_end)
+    }
+
     /// Re-fits the scale from mixed data and applies tuning.
     pub fn fit_to_mixed_data(
         &mut self,
