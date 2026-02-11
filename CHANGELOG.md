@@ -8,6 +8,11 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- No changes yet.
+
+## [0.0.22-alpha.0] - 2026-02-11
+
+### Added
 - Price scale mode parity baseline (`R-010`) with `Linear`/`Log` mapping and runtime mode switching API in `ChartEngine`.
 - Log-mode autoscale now applies tuning in transformed domain to keep deterministic positive domains.
 - New log-mode regression tests and benchmark coverage for price-axis render frame generation.
