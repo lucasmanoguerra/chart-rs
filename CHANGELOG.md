@@ -8,7 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Last-price source mode baseline (`R-016`) with deterministic selection between latest full-series sample and latest visible-range sample.
+- New render-style knob `last_price_source_mode` with `LastPriceSourceMode::{LatestData, LatestVisible}`.
+- New render-frame tests and benchmark coverage for visible-range marker-source behavior under pan/zoom.
 
 ## [0.0.27-alpha.0] - 2026-02-11
 
