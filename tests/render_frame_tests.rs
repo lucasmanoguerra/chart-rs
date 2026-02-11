@@ -1,4 +1,4 @@
-use chart_rs::api::{ChartEngine, ChartEngineConfig, RenderStyle};
+use chart_rs::api::{ChartEngine, ChartEngineConfig, LastPriceSourceMode, RenderStyle};
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, NullRenderer, TextHAlign};
 
@@ -285,5 +285,81 @@ fn last_price_trend_color_uses_neutral_without_previous_sample() {
         text.h_align == TextHAlign::Right
             && text.text == "14.00"
             && text.color == trend_style.last_price_neutral_color
+    }));
+}
+
+#[test]
+fn last_price_source_mode_latest_visible_uses_latest_visible_sample() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 10.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1.0, 10.0),
+        DataPoint::new(2.0, 20.0),
+        DataPoint::new(3.0, 30.0),
+        DataPoint::new(4.0, 40.0),
+    ]);
+    engine
+        .set_time_visible_range(1.0, 2.2)
+        .expect("set visible range");
+
+    let style = RenderStyle {
+        last_price_line_color: Color::rgb(0.0, 1.0, 0.0),
+        last_price_label_color: Color::rgb(0.0, 1.0, 0.0),
+        last_price_source_mode: LastPriceSourceMode::LatestVisible,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let expected_y = engine.map_price_to_pixel(20.0).expect("map").clamp(
+        0.0,
+        f64::from(engine.viewport().height) - style.time_axis_height_px,
+    );
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.last_price_line_color
+            && line.stroke_width == style.last_price_line_width
+            && (line.y1 - expected_y).abs() <= 1e-9
+            && (line.y2 - expected_y).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.text == "20.00"
+            && text.color == style.last_price_label_color
+    }));
+}
+
+#[test]
+fn last_price_source_mode_latest_visible_hides_marker_for_empty_visible_window() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 10.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1.0, 10.0),
+        DataPoint::new(2.0, 20.0),
+        DataPoint::new(3.0, 30.0),
+        DataPoint::new(4.0, 40.0),
+    ]);
+    engine
+        .set_time_visible_range(8.0, 9.0)
+        .expect("set visible range");
+
+    let style = RenderStyle {
+        last_price_line_color: Color::rgb(0.0, 1.0, 0.0),
+        last_price_label_color: Color::rgb(0.0, 1.0, 0.0),
+        last_price_source_mode: LastPriceSourceMode::LatestVisible,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.last_price_line_color
+            && line.stroke_width == style.last_price_line_width
+    }));
+    assert!(!frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right && text.color == style.last_price_label_color
     }));
 }

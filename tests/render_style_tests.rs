@@ -1,7 +1,7 @@
 use chart_rs::ChartError;
 use chart_rs::api::{
-    AxisLabelLocale, ChartEngine, ChartEngineConfig, RenderStyle, TimeAxisLabelConfig,
-    TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
+    AxisLabelLocale, ChartEngine, ChartEngineConfig, LastPriceSourceMode, RenderStyle,
+    TimeAxisLabelConfig, TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::Viewport;
 use chart_rs::render::{Color, NullRenderer};
@@ -60,6 +60,7 @@ fn custom_render_style_is_applied_to_frame() {
         show_last_price_line: true,
         show_last_price_label: true,
         last_price_use_trend_color: true,
+        last_price_source_mode: LastPriceSourceMode::LatestData,
         last_price_label_exclusion_px: 24.0,
     };
     engine

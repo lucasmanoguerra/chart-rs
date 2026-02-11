@@ -220,6 +220,16 @@ pub struct PriceAxisLabelConfig {
     pub display_mode: PriceAxisDisplayMode,
 }
 
+/// Source policy used for latest-price marker selection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LastPriceSourceMode {
+    /// Use the newest sample across full series data.
+    #[default]
+    LatestData,
+    /// Use the newest sample that is currently inside visible time range.
+    LatestVisible,
+}
+
 /// Style contract for the current render frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderStyle {
@@ -248,6 +258,8 @@ pub struct RenderStyle {
     pub show_last_price_label: bool,
     /// When enabled, last-price line/label colors are derived from price direction.
     pub last_price_use_trend_color: bool,
+    /// Selects whether last-price marker tracks full-series or visible-range latest sample.
+    pub last_price_source_mode: LastPriceSourceMode,
     pub last_price_label_exclusion_px: f64,
 }
 
@@ -275,6 +287,7 @@ impl Default for RenderStyle {
             show_last_price_line: true,
             show_last_price_label: true,
             last_price_use_trend_color: false,
+            last_price_source_mode: LastPriceSourceMode::LatestData,
             last_price_label_exclusion_px: 22.0,
         }
     }
@@ -802,11 +815,26 @@ impl<R: Renderer> ChartEngine<R> {
         if domain.0.is_finite() { domain.0 } else { 1.0 }
     }
 
-    fn resolve_latest_price_sample(&self) -> Option<(f64, f64)> {
+    fn resolve_latest_price_sample_with_window(
+        &self,
+        window: Option<(f64, f64)>,
+    ) -> Option<(f64, f64)> {
+        let normalized_window = window.map(|(start, end)| {
+            if start <= end {
+                (start, end)
+            } else {
+                (end, start)
+            }
+        });
         let mut candidate: Option<(f64, f64)> = None;
 
         for point in &self.points {
             if !point.x.is_finite() || !point.y.is_finite() {
+                continue;
+            }
+            if let Some((window_start, window_end)) = normalized_window
+                && (point.x < window_start || point.x > window_end)
+            {
                 continue;
             }
             candidate = match candidate {
@@ -821,6 +849,11 @@ impl<R: Renderer> ChartEngine<R> {
             if !candle.time.is_finite() || !candle.close.is_finite() {
                 continue;
             }
+            if let Some((window_start, window_end)) = normalized_window
+                && (candle.time < window_start || candle.time > window_end)
+            {
+                continue;
+            }
             candidate = match candidate {
                 Some((best_time, best_price)) if best_time >= candle.time => {
                     Some((best_time, best_price))
@@ -832,11 +865,27 @@ impl<R: Renderer> ChartEngine<R> {
         candidate
     }
 
-    fn resolve_previous_price_before_time(&self, latest_time: f64) -> Option<f64> {
+    fn resolve_previous_price_before_time_with_window(
+        &self,
+        latest_time: f64,
+        window: Option<(f64, f64)>,
+    ) -> Option<f64> {
+        let normalized_window = window.map(|(start, end)| {
+            if start <= end {
+                (start, end)
+            } else {
+                (end, start)
+            }
+        });
         let mut candidate: Option<(f64, f64)> = None;
 
         for point in &self.points {
             if !point.x.is_finite() || !point.y.is_finite() || point.x >= latest_time {
+                continue;
+            }
+            if let Some((window_start, window_end)) = normalized_window
+                && (point.x < window_start || point.x > window_end)
+            {
                 continue;
             }
             // Preserve first-seen winner for equal timestamps to keep frame snapshots stable.
@@ -852,6 +901,11 @@ impl<R: Renderer> ChartEngine<R> {
             if !candle.time.is_finite() || !candle.close.is_finite() || candle.time >= latest_time {
                 continue;
             }
+            if let Some((window_start, window_end)) = normalized_window
+                && (candle.time < window_start || candle.time > window_end)
+            {
+                continue;
+            }
             candidate = match candidate {
                 Some((best_time, best_price)) if best_time >= candle.time => {
                     Some((best_time, best_price))
@@ -863,9 +917,19 @@ impl<R: Renderer> ChartEngine<R> {
         candidate.map(|(_, price)| price)
     }
 
-    fn resolve_latest_and_previous_price_values(&self) -> Option<(f64, Option<f64>)> {
-        let (latest_time, latest_price) = self.resolve_latest_price_sample()?;
-        let previous_price = self.resolve_previous_price_before_time(latest_time);
+    fn resolve_latest_and_previous_price_values(
+        &self,
+        source_mode: LastPriceSourceMode,
+        visible_start: f64,
+        visible_end: f64,
+    ) -> Option<(f64, Option<f64>)> {
+        let window = match source_mode {
+            LastPriceSourceMode::LatestData => None,
+            LastPriceSourceMode::LatestVisible => Some((visible_start, visible_end)),
+        };
+        let (latest_time, latest_price) = self.resolve_latest_price_sample_with_window(window)?;
+        let previous_price =
+            self.resolve_previous_price_before_time_with_window(latest_time, window);
         Some((latest_price, previous_price))
     }
 
@@ -1701,9 +1765,12 @@ impl<R: Renderer> ChartEngine<R> {
         )
         .abs();
         let display_suffix = price_display_mode_suffix(self.price_axis_label_config.display_mode);
-        let latest_price_marker = if let Some((last_price, previous_price)) =
-            self.resolve_latest_and_previous_price_values()
-        {
+        let latest_price_marker = if let Some((last_price, previous_price)) = self
+            .resolve_latest_and_previous_price_values(
+                style.last_price_source_mode,
+                visible_start,
+                visible_end,
+            ) {
             let py = self
                 .price_scale
                 .price_to_pixel(last_price, self.viewport)?
