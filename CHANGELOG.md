@@ -10,6 +10,15 @@ and this project adheres to Semantic Versioning.
 ### Added
 - Nothing yet.
 
+## [0.0.3-alpha.0] - 2026-02-11
+
+### Added
+- Base OHLC candlestick model (`OhlcBar`) with input validation.
+- Deterministic candlestick geometry projection from time/price scales.
+- `ChartEngine` support for candle storage, price autoscale from candles, and candle projection.
+- Unit/integration/property tests for candlestick invariants and geometry consistency.
+- Parity checklist progress update for C-003 candlestick basics.
+
 ## [0.0.2-alpha.0] - 2026-02-11
 
 ### Added
