@@ -21,6 +21,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
+        let style = engine.render_style();
 
         prop_assert_eq!(&first, &second);
         let time_labels: Vec<f64> = first
@@ -32,7 +33,7 @@ proptest! {
         let price_labels: Vec<f64> = first
             .texts
             .iter()
-            .filter(|label| label.h_align == TextHAlign::Right)
+            .filter(|label| label.h_align == TextHAlign::Right && label.color == style.axis_label_color)
             .map(|label| label.y + 8.0)
             .collect();
 

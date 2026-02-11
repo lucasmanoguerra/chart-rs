@@ -8,7 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Last-price marker parity baseline (`R-013`) with deterministic line/label rendering from the newest point/candle sample.
+- New render-style knobs for last-price marker color/width/font-size and visibility toggles.
+- New render/property tests and benchmark coverage for latest-price marker behavior.
 
 ## [0.0.24-alpha.0] - 2026-02-11
 

@@ -44,12 +44,18 @@ fn custom_render_style_is_applied_to_frame() {
         major_grid_line_color: Color::rgb(0.8, 0.4, 0.1),
         axis_border_color: Color::rgb(0.2, 0.2, 0.2),
         axis_label_color: Color::rgb(0.0, 0.0, 0.0),
+        last_price_line_color: Color::rgb(0.2, 0.2, 0.8),
+        last_price_label_color: Color::rgb(0.2, 0.2, 0.8),
         grid_line_width: 2.0,
         major_grid_line_width: 3.0,
         axis_line_width: 1.5,
+        last_price_line_width: 1.75,
         major_time_label_font_size_px: 13.0,
+        last_price_label_font_size_px: 12.0,
         price_axis_width_px: 84.0,
         time_axis_height_px: 28.0,
+        show_last_price_line: true,
+        show_last_price_label: true,
     };
     engine
         .set_render_style(custom_style)
@@ -93,6 +99,22 @@ fn invalid_render_style_is_rejected() {
 
     let mut style = engine.render_style();
     style.grid_line_width = 0.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_last_price_style_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.last_price_line_width = 0.0;
 
     let err = engine
         .set_render_style(style)
