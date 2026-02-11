@@ -5,9 +5,9 @@ use smallvec::SmallVec;
 use tracing::{debug, trace};
 
 use crate::core::{
-    CandleGeometry, DataPoint, LineSegment, OhlcBar, PriceScale, PriceScaleTuning, TimeScale,
-    TimeScaleTuning, Viewport, candles_in_time_window, points_in_time_window, project_candles,
-    project_line_segments,
+    AreaGeometry, CandleGeometry, DataPoint, LineSegment, OhlcBar, PriceScale, PriceScaleTuning,
+    TimeScale, TimeScaleTuning, Viewport, candles_in_time_window, points_in_time_window,
+    project_area_geometry, project_candles, project_line_segments,
 };
 use crate::error::{ChartError, ChartResult};
 use crate::extensions::{
@@ -523,6 +523,33 @@ impl<R: Renderer> ChartEngine<R> {
             self.price_scale,
             self.viewport,
         )
+    }
+
+    /// Projects point-series data into deterministic area geometry.
+    pub fn project_area_geometry(&self) -> ChartResult<AreaGeometry> {
+        project_area_geometry(
+            &self.points,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+        )
+    }
+
+    /// Projects only area geometry for points inside the visible time range.
+    pub fn project_visible_area_geometry(&self) -> ChartResult<AreaGeometry> {
+        let (start, end) = self.time_scale.visible_range();
+        let visible = points_in_time_window(&self.points, start, end);
+        project_area_geometry(&visible, self.time_scale, self.price_scale, self.viewport)
+    }
+
+    /// Projects visible area geometry with symmetric overscan around the window.
+    pub fn project_visible_area_geometry_with_overscan(
+        &self,
+        ratio: f64,
+    ) -> ChartResult<AreaGeometry> {
+        let (start, end) = expand_visible_window(self.time_scale.visible_range(), ratio)?;
+        let visible = points_in_time_window(&self.points, start, end);
+        project_area_geometry(&visible, self.time_scale, self.price_scale, self.viewport)
     }
 
     /// Builds a deterministic snapshot useful for regression tests.

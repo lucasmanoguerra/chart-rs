@@ -8,7 +8,10 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- Nothing yet.
+- Area series projection baseline (`C-008`) with deterministic line/fill geometry in `core` + `api`.
+- Visible-window and overscan area projection helpers for point data.
+- New integration/property tests for area geometry invariants and visible-range behavior.
+- Criterion benchmark for area projection throughput.
 
 ## [0.0.6-alpha.0] - 2026-02-11
 
