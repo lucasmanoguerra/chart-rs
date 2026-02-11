@@ -46,6 +46,7 @@ Use this document to track parity progress.
 | R-012 | Price Axis | Label cache baseline | done | Repeated redraws reuse deterministic cached price-axis labels across built-in/custom formatter paths | `tests/price_axis_formatter_tests.rs`, `benches/core_math_bench.rs` | Added cache stats/clear APIs and deterministic cache-key profiles for built-in/custom formatters. |
 | R-013 | Price Axis | Last price line + label baseline | done | Render frame includes deterministic latest-price marker line/label with configurable style toggles | `tests/render_frame_tests.rs`, `tests/property_render_frame_tests.rs`, `benches/core_math_bench.rs` | Added latest-price marker rendering using newest point/candle sample, with style knobs for line/label colors, widths, and visibility. |
 | R-014 | Price Axis | Last-price label collision filter | done | Price-axis labels avoid overlap with last-price label via deterministic exclusion radius and fallback label retention | `tests/render_frame_tests.rs`, `tests/render_style_tests.rs`, `benches/core_math_bench.rs` | Added configurable `last_price_label_exclusion_px` filter for axis labels near the last-price marker. |
+| R-015 | Price Axis | Last-price trend color policy | done | Last-price marker can switch to deterministic up/down/neutral coloring based on latest vs previous visible sample | `tests/render_frame_tests.rs`, `tests/render_style_tests.rs`, `benches/core_math_bench.rs` | Added render-style trend-color knobs and optional trend-driven color selection for last-price line/label. |
 
 ## Extensions
 

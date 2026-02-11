@@ -230,6 +230,12 @@ pub struct RenderStyle {
     pub axis_label_color: Color,
     pub last_price_line_color: Color,
     pub last_price_label_color: Color,
+    /// Applied when trend coloring is enabled and latest sample is above previous.
+    pub last_price_up_color: Color,
+    /// Applied when trend coloring is enabled and latest sample is below previous.
+    pub last_price_down_color: Color,
+    /// Applied when trend coloring is enabled and no direction can be inferred.
+    pub last_price_neutral_color: Color,
     pub grid_line_width: f64,
     pub major_grid_line_width: f64,
     pub axis_line_width: f64,
@@ -240,6 +246,8 @@ pub struct RenderStyle {
     pub time_axis_height_px: f64,
     pub show_last_price_line: bool,
     pub show_last_price_label: bool,
+    /// When enabled, last-price line/label colors are derived from price direction.
+    pub last_price_use_trend_color: bool,
     pub last_price_label_exclusion_px: f64,
 }
 
@@ -253,6 +261,9 @@ impl Default for RenderStyle {
             axis_label_color: Color::rgb(0.10, 0.12, 0.16),
             last_price_line_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_color: Color::rgb(0.16, 0.38, 1.0),
+            last_price_up_color: Color::rgb(0.06, 0.62, 0.35),
+            last_price_down_color: Color::rgb(0.86, 0.22, 0.19),
+            last_price_neutral_color: Color::rgb(0.16, 0.38, 1.0),
             grid_line_width: 1.0,
             major_grid_line_width: 1.25,
             axis_line_width: 1.0,
@@ -263,6 +274,7 @@ impl Default for RenderStyle {
             time_axis_height_px: 24.0,
             show_last_price_line: true,
             show_last_price_label: true,
+            last_price_use_trend_color: false,
             last_price_label_exclusion_px: 22.0,
         }
     }
@@ -790,7 +802,7 @@ impl<R: Renderer> ChartEngine<R> {
         if domain.0.is_finite() { domain.0 } else { 1.0 }
     }
 
-    fn resolve_latest_price_value(&self) -> Option<f64> {
+    fn resolve_latest_price_sample(&self) -> Option<(f64, f64)> {
         let mut candidate: Option<(f64, f64)> = None;
 
         for point in &self.points {
@@ -817,7 +829,62 @@ impl<R: Renderer> ChartEngine<R> {
             };
         }
 
+        candidate
+    }
+
+    fn resolve_previous_price_before_time(&self, latest_time: f64) -> Option<f64> {
+        let mut candidate: Option<(f64, f64)> = None;
+
+        for point in &self.points {
+            if !point.x.is_finite() || !point.y.is_finite() || point.x >= latest_time {
+                continue;
+            }
+            // Preserve first-seen winner for equal timestamps to keep frame snapshots stable.
+            candidate = match candidate {
+                Some((best_time, best_price)) if best_time >= point.x => {
+                    Some((best_time, best_price))
+                }
+                _ => Some((point.x, point.y)),
+            };
+        }
+
+        for candle in &self.candles {
+            if !candle.time.is_finite() || !candle.close.is_finite() || candle.time >= latest_time {
+                continue;
+            }
+            candidate = match candidate {
+                Some((best_time, best_price)) if best_time >= candle.time => {
+                    Some((best_time, best_price))
+                }
+                _ => Some((candle.time, candle.close)),
+            };
+        }
+
         candidate.map(|(_, price)| price)
+    }
+
+    fn resolve_latest_and_previous_price_values(&self) -> Option<(f64, Option<f64>)> {
+        let (latest_time, latest_price) = self.resolve_latest_price_sample()?;
+        let previous_price = self.resolve_previous_price_before_time(latest_time);
+        Some((latest_price, previous_price))
+    }
+
+    fn resolve_last_price_marker_colors(
+        &self,
+        latest_price: f64,
+        previous_price: Option<f64>,
+    ) -> (Color, Color) {
+        let style = self.render_style;
+        if !style.last_price_use_trend_color {
+            return (style.last_price_line_color, style.last_price_label_color);
+        }
+
+        let trend_color = match previous_price {
+            Some(previous) if latest_price > previous => style.last_price_up_color,
+            Some(previous) if latest_price < previous => style.last_price_down_color,
+            _ => style.last_price_neutral_color,
+        };
+        (trend_color, trend_color)
     }
 
     fn resolve_time_label_cache_profile(&self, visible_span_abs: f64) -> TimeLabelCacheProfile {
@@ -1634,12 +1701,16 @@ impl<R: Renderer> ChartEngine<R> {
         )
         .abs();
         let display_suffix = price_display_mode_suffix(self.price_axis_label_config.display_mode);
-        let latest_price_marker = if let Some(last_price) = self.resolve_latest_price_value() {
+        let latest_price_marker = if let Some((last_price, previous_price)) =
+            self.resolve_latest_and_previous_price_values()
+        {
             let py = self
                 .price_scale
                 .price_to_pixel(last_price, self.viewport)?
                 .clamp(0.0, plot_bottom);
-            Some((last_price, py))
+            let (marker_line_color, marker_label_color) =
+                self.resolve_last_price_marker_colors(last_price, previous_price);
+            Some((last_price, py, marker_line_color, marker_label_color))
         } else {
             None
         };
@@ -1651,7 +1722,7 @@ impl<R: Renderer> ChartEngine<R> {
             && style.last_price_label_exclusion_px.is_finite()
             && style.last_price_label_exclusion_px > 0.0
         {
-            if let Some((_, marker_py)) = latest_price_marker {
+            if let Some((_, marker_py, _, _)) = latest_price_marker {
                 price_ticks_for_axis.retain(|(_, py)| {
                     (py - marker_py).abs() >= style.last_price_label_exclusion_px
                 });
@@ -1704,7 +1775,7 @@ impl<R: Renderer> ChartEngine<R> {
             ));
         }
 
-        if let Some((last_price, py)) = latest_price_marker {
+        if let Some((last_price, py, marker_line_color, marker_label_color)) = latest_price_marker {
             if style.show_last_price_line {
                 frame = frame.with_line(LinePrimitive::new(
                     0.0,
@@ -1712,7 +1783,7 @@ impl<R: Renderer> ChartEngine<R> {
                     plot_right,
                     py,
                     style.last_price_line_width,
-                    style.last_price_line_color,
+                    marker_line_color,
                 ));
             }
 
@@ -1732,7 +1803,7 @@ impl<R: Renderer> ChartEngine<R> {
                     viewport_width - 6.0,
                     (py - style.last_price_label_font_size_px * 0.72).max(0.0),
                     style.last_price_label_font_size_px,
-                    style.last_price_label_color,
+                    marker_label_color,
                     TextHAlign::Right,
                 ));
             }
@@ -1994,6 +2065,9 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.axis_label_color.validate()?;
     style.last_price_line_color.validate()?;
     style.last_price_label_color.validate()?;
+    style.last_price_up_color.validate()?;
+    style.last_price_down_color.validate()?;
+    style.last_price_neutral_color.validate()?;
 
     for (name, value) in [
         ("grid_line_width", style.grid_line_width),

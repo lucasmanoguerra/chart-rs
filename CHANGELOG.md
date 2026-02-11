@@ -8,7 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Last-price trend color policy baseline (`R-015`) with deterministic up/down/neutral marker coloring from latest-vs-previous sample comparison.
+- New render-style knobs: `last_price_use_trend_color`, `last_price_up_color`, `last_price_down_color`, and `last_price_neutral_color`.
+- New render-frame/style tests and benchmark coverage for trend-driven marker coloring.
 
 ## [0.0.26-alpha.0] - 2026-02-11
 
