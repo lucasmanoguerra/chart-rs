@@ -8,7 +8,7 @@ use chart_rs::extensions::{
     ChartPlugin, MarkerPlacementConfig, MarkerPosition, PluginContext, PluginEvent, SeriesMarker,
     place_markers_on_candles,
 };
-use chart_rs::interaction::CrosshairMode;
+use chart_rs::interaction::{CrosshairMode, KineticPanConfig};
 use chart_rs::render::NullRenderer;
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
@@ -386,6 +386,50 @@ fn bench_wheel_zoom_step(c: &mut Criterion) {
     });
 }
 
+fn bench_wheel_pan_step(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0).with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+
+    c.bench_function("wheel_pan_step_pair", |b| {
+        b.iter(|| {
+            let _ = engine
+                .wheel_pan_time_visible(black_box(120.0), black_box(0.1))
+                .expect("wheel pan forward");
+            let _ = engine
+                .wheel_pan_time_visible(black_box(-120.0), black_box(0.1))
+                .expect("wheel pan back");
+        })
+    });
+}
+
+fn bench_kinetic_pan_step(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0).with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+    engine
+        .set_kinetic_pan_config(KineticPanConfig {
+            decay_per_second: 0.85,
+            stop_velocity_abs: 0.01,
+        })
+        .expect("set config");
+
+    c.bench_function("kinetic_pan_step_active", |b| {
+        b.iter(|| {
+            engine
+                .start_kinetic_pan(black_box(300.0))
+                .expect("start kinetic");
+            let _ = engine
+                .step_kinetic_pan(black_box(0.016))
+                .expect("step kinetic");
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -400,6 +444,8 @@ criterion_group!(
     bench_plugin_dispatch_pointer_move,
     bench_crosshair_modes_pointer_move,
     bench_wheel_zoom_step,
+    bench_wheel_pan_step,
+    bench_kinetic_pan_step,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);

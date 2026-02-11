@@ -84,6 +84,8 @@ Interaction invariants:
 - `CrosshairMode::Magnet` snaps to nearest mapped data/candle candidate
 - `CrosshairMode::Normal` follows pointer coordinates without snapping
 - wheel delta is normalized to 120-step notches for deterministic zoom factors
+- wheel pan preserves visible-range span while shifting window deterministically
+- kinetic pan uses deterministic step integration with explicit decay tuning
 
 ### `src/api`
 Main public facade (`ChartEngine`, `ChartEngineConfig`).
@@ -183,6 +185,8 @@ Where to add tests:
   - interaction-level crosshair snapping and mode-switch behavior
 - `tests/interaction_wheel_zoom_tests.rs`
   - deterministic wheel-zoom direction, no-op, and anchor-stability behavior
+- `tests/interaction_kinetic_pan_tests.rs`
+  - deterministic wheel-pan and kinetic-pan stepping behavior
 - `tests/decimal_time_tests.rs`
   - typed constructor conversions
 - `tests/api_tuning_tests.rs`
