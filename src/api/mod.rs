@@ -19,7 +19,10 @@ use crate::interaction::{
     CrosshairMode, CrosshairSnap, CrosshairState, InteractionMode, InteractionState,
     KineticPanConfig, KineticPanState,
 };
-use crate::render::{RenderFrame, Renderer};
+use crate::render::{Color, LinePrimitive, RenderFrame, Renderer, TextHAlign, TextPrimitive};
+
+#[cfg(feature = "cairo-backend")]
+use crate::render::CairoContextRenderer;
 
 /// Public engine bootstrap configuration.
 ///
@@ -225,6 +228,18 @@ impl<R: Renderer> ChartEngine<R> {
     #[must_use]
     pub fn viewport(&self) -> Viewport {
         self.viewport
+    }
+
+    /// Updates viewport dimensions used by scale mapping and render layout.
+    pub fn set_viewport(&mut self, viewport: Viewport) -> ChartResult<()> {
+        if !viewport.is_valid() {
+            return Err(ChartError::InvalidViewport {
+                width: viewport.width,
+                height: viewport.height,
+            });
+        }
+        self.viewport = viewport;
+        Ok(())
     }
 
     #[must_use]
@@ -865,9 +880,123 @@ impl<R: Renderer> ChartEngine<R> {
             .map_err(|e| ChartError::InvalidData(format!("failed to serialize snapshot: {e}")))
     }
 
+    /// Materializes backend-agnostic primitives for one draw pass.
+    ///
+    /// This keeps geometry computation deterministic and centralized in the API
+    /// layer while renderer backends only execute drawing commands.
+    pub fn build_render_frame(&self) -> ChartResult<RenderFrame> {
+        let mut frame = RenderFrame::new(self.viewport);
+        let (visible_start, visible_end) = self.time_scale.visible_range();
+
+        let visible_points = points_in_time_window(&self.points, visible_start, visible_end);
+        let segments = project_line_segments(
+            &visible_points,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+        )?;
+
+        // Keep style constants explicit here so all backends stay visually aligned.
+        let series_color = Color::rgb(0.15, 0.48, 0.88);
+        for segment in segments {
+            frame = frame.with_line(LinePrimitive::new(
+                segment.x1,
+                segment.y1,
+                segment.x2,
+                segment.y2,
+                1.5,
+                series_color,
+            ));
+        }
+
+        let viewport_width = f64::from(self.viewport.width);
+        let viewport_height = f64::from(self.viewport.height);
+        let axis_color = Color::rgb(0.72, 0.75, 0.78);
+        let label_color = Color::rgb(0.22, 0.25, 0.28);
+
+        // Axis baselines are rendered as simple primitives so they can be reused
+        // unchanged by null, cairo, and future GPU backends.
+        frame = frame.with_line(LinePrimitive::new(
+            0.0,
+            viewport_height - 1.0,
+            viewport_width,
+            viewport_height - 1.0,
+            1.0,
+            axis_color,
+        ));
+        frame = frame.with_line(LinePrimitive::new(
+            viewport_width - 1.0,
+            0.0,
+            viewport_width - 1.0,
+            viewport_height,
+            1.0,
+            axis_color,
+        ));
+
+        for time in axis_ticks(self.time_scale.visible_range(), 5) {
+            let px = self.time_scale.time_to_pixel(time, self.viewport)?;
+            let text = format!("{time:.2}");
+            frame = frame.with_text(TextPrimitive::new(
+                text,
+                px,
+                viewport_height - 16.0,
+                11.0,
+                label_color,
+                TextHAlign::Center,
+            ));
+            frame = frame.with_line(LinePrimitive::new(
+                px.max(0.0).min(viewport_width),
+                viewport_height - 6.0,
+                px.max(0.0).min(viewport_width),
+                viewport_height,
+                1.0,
+                axis_color,
+            ));
+        }
+
+        for price in axis_ticks(self.price_scale.domain(), 5) {
+            let py = self.price_scale.price_to_pixel(price, self.viewport)?;
+            let text = format!("{price:.2}");
+            frame = frame.with_text(TextPrimitive::new(
+                text,
+                viewport_width - 6.0,
+                py - 8.0,
+                11.0,
+                label_color,
+                TextHAlign::Right,
+            ));
+            frame = frame.with_line(LinePrimitive::new(
+                viewport_width - 6.0,
+                py.max(0.0).min(viewport_height),
+                viewport_width,
+                py.max(0.0).min(viewport_height),
+                1.0,
+                axis_color,
+            ));
+        }
+
+        frame.validate()?;
+        Ok(frame)
+    }
+
     pub fn render(&mut self) -> ChartResult<()> {
-        let frame = RenderFrame::new(self.viewport, self.points.clone());
+        let frame = self.build_render_frame()?;
         self.renderer.render(&frame)?;
+        self.emit_plugin_event(PluginEvent::Rendered);
+        Ok(())
+    }
+
+    /// Renders the frame into an external cairo context.
+    ///
+    /// This path is used by GTK draw callbacks while keeping the renderer
+    /// implementation decoupled from GTK-specific APIs.
+    #[cfg(feature = "cairo-backend")]
+    pub fn render_on_cairo_context(&mut self, context: &cairo::Context) -> ChartResult<()>
+    where
+        R: CairoContextRenderer,
+    {
+        let frame = self.build_render_frame()?;
+        self.renderer.render_on_cairo_context(context, &frame)?;
         self.emit_plugin_event(PluginEvent::Rendered);
         Ok(())
     }
@@ -1000,6 +1129,25 @@ fn markers_in_time_window(markers: &[SeriesMarker], start: f64, end: f64) -> Vec
         .iter()
         .filter(|marker| marker.time >= min_t && marker.time <= max_t)
         .cloned()
+        .collect()
+}
+
+fn axis_ticks(range: (f64, f64), tick_count: usize) -> Vec<f64> {
+    if tick_count == 0 {
+        return Vec::new();
+    }
+
+    if tick_count == 1 {
+        return vec![range.0];
+    }
+
+    let span = range.1 - range.0;
+    let denominator = (tick_count - 1) as f64;
+    (0..tick_count)
+        .map(|index| {
+            let ratio = (index as f64) / denominator;
+            range.0 + span * ratio
+        })
         .collect()
 }
 

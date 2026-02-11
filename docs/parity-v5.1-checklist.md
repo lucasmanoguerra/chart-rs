@@ -28,6 +28,14 @@ Use this document to track parity progress.
 | C-010 | Series | Histogram series projection baseline | done | Histogram values map to deterministic bar geometry anchored to a baseline | `tests/histogram_series_tests.rs`, `tests/property_histogram_series_tests.rs` | Core and API histogram projection (visible + overscan variants) are implemented with explicit bar width validation and baseline anchoring. |
 | C-011 | Series | OHLC bar series projection baseline | done | OHLC bars map to deterministic stem/tick geometry over active scales | `tests/bar_series_tests.rs`, `tests/property_bar_series_tests.rs` | Core and API bar projection (visible + overscan variants) are implemented with explicit tick width validation and OHLC ordering invariants. |
 
+## Render
+
+| ID | Area | Feature | Status | Acceptance Criteria | Test Evidence | Notes |
+|---|---|---|---|---|---|---|
+| R-001 | Pipeline | Render frame + Cairo/Pango backend baseline | done | Engine builds deterministic render commands and Cairo backend draws series + axis labels | `tests/render_frame_tests.rs`, `tests/property_render_frame_tests.rs`, `tests/render_cairo_backend_tests.rs`, `benches/core_math_bench.rs` | `RenderFrame` now carries explicit line/text primitives, with deterministic axis tick labels and GTK draw-context support. |
+| R-002 | Price Axis | Tick density + collision strategy | not started | Price labels keep deterministic spacing and avoid overlap in narrow viewports | N/A | Planned follow-up to improve label compaction and side-scale behavior. |
+| R-003 | Time Axis | Time formatter and locale policy | not started | Time labels support deterministic formatter policy compatible with desktop locale settings | N/A | Planned follow-up for formatter injection and precision levels by zoom. |
+
 ## Extensions
 
 | ID | Area | Feature | Status | Acceptance Criteria | Test Evidence | Notes |

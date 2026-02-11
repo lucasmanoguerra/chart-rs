@@ -100,9 +100,11 @@ Responsibilities:
 Renderer trait boundary and backend implementations.
 
 - `RenderFrame`
+- `LinePrimitive`
+- `TextPrimitive`
 - `Renderer`
 - `NullRenderer`
-- feature-gated cairo backend
+- feature-gated cairo backend (`CairoRenderer`, `CairoContextRenderer`)
 
 ## 3) Data Flow
 
@@ -112,7 +114,8 @@ Typical runtime flow:
 2. push/update points and/or candles
 3. call fit/autoscale APIs to derive tuned domains
 4. pointer/wheel events update crosshair and visible-range interaction state
-5. renderer consumes immutable frame data
+5. `build_render_frame` materializes deterministic primitives (series + axes + labels)
+6. renderer consumes immutable frame data
 
 ## 4) Scale Tuning Details
 
@@ -187,6 +190,12 @@ Where to add tests:
   - deterministic wheel-zoom direction, no-op, and anchor-stability behavior
 - `tests/interaction_kinetic_pan_tests.rs`
   - deterministic wheel-pan and kinetic-pan stepping behavior
+- `tests/render_frame_tests.rs`
+  - deterministic render-frame construction and null-renderer command counts
+- `tests/render_cairo_backend_tests.rs`
+  - cairo backend command execution and external-context rendering behavior
+- `tests/property_render_frame_tests.rs`
+  - render-frame determinism and finite-geometry invariants
 - `tests/decimal_time_tests.rs`
   - typed constructor conversions
 - `tests/api_tuning_tests.rs`

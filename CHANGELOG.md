@@ -8,7 +8,10 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Render pipeline baseline (`R-001`) with deterministic line/text primitives in `RenderFrame`.
+- Real cairo/pango/pangocairo backend execution path with external cairo-context support for GTK drawing callbacks.
+- Public `ChartEngine::build_render_frame` and `ChartEngine::render_on_cairo_context` APIs.
+- New render-focused integration/property tests and criterion benchmark coverage.
 
 ## [0.0.13-alpha.0] - 2026-02-11
 

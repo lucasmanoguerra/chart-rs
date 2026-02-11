@@ -62,3 +62,12 @@ Tuning contracts:
   - pointer move sets visible state and updates coordinates
   - nearest snap candidate is selected from points/candles
   - pointer leave hides crosshair and clears snap state
+
+## Render Strategy
+
+- `api` builds a deterministic `RenderFrame` containing backend-agnostic line/text primitives
+- `render` backends execute primitives only (no scale math or interaction decisions)
+- `cairo-backend` supports:
+  - offscreen image-surface rendering
+  - external cairo-context rendering (used by GTK `DrawingArea`)
+- `platform_gtk` keeps widget lifecycle/event wiring isolated from render/domain code
