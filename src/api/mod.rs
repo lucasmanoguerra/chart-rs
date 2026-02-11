@@ -10,6 +10,9 @@ use crate::core::{
     project_line_segments,
 };
 use crate::error::{ChartError, ChartResult};
+use crate::extensions::{
+    MarkerPlacementConfig, PlacedMarker, SeriesMarker, place_markers_on_candles,
+};
 use crate::interaction::{CrosshairSnap, CrosshairState, InteractionMode, InteractionState};
 use crate::render::{RenderFrame, Renderer};
 
@@ -385,6 +388,61 @@ impl<R: Renderer> ChartEngine<R> {
         )
     }
 
+    /// Projects markers against the full candle set.
+    pub fn project_markers_on_candles(
+        &self,
+        markers: &[SeriesMarker],
+        config: MarkerPlacementConfig,
+    ) -> ChartResult<Vec<PlacedMarker>> {
+        place_markers_on_candles(
+            markers,
+            &self.candles,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            config,
+        )
+    }
+
+    /// Projects markers against candles in the active visible time window.
+    pub fn project_visible_markers_on_candles(
+        &self,
+        markers: &[SeriesMarker],
+        config: MarkerPlacementConfig,
+    ) -> ChartResult<Vec<PlacedMarker>> {
+        let (start, end) = self.time_scale.visible_range();
+        let visible = candles_in_time_window(&self.candles, start, end);
+        let visible_markers = markers_in_time_window(markers, start, end);
+        place_markers_on_candles(
+            &visible_markers,
+            &visible,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            config,
+        )
+    }
+
+    /// Projects markers against visible candles with symmetric window overscan.
+    pub fn project_visible_markers_on_candles_with_overscan(
+        &self,
+        markers: &[SeriesMarker],
+        ratio: f64,
+        config: MarkerPlacementConfig,
+    ) -> ChartResult<Vec<PlacedMarker>> {
+        let (start, end) = expand_visible_window(self.time_scale.visible_range(), ratio)?;
+        let visible = candles_in_time_window(&self.candles, start, end);
+        let visible_markers = markers_in_time_window(markers, start, end);
+        place_markers_on_candles(
+            &visible_markers,
+            &visible,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
+            config,
+        )
+    }
+
     /// Projects line-series points into deterministic segment geometry.
     pub fn project_line_segments(&self) -> ChartResult<Vec<LineSegment>> {
         project_line_segments(
@@ -512,4 +570,18 @@ fn expand_visible_window(range: (f64, f64), ratio: f64) -> ChartResult<(f64, f64
     let span = range.1 - range.0;
     let padding = span * ratio;
     Ok((range.0 - padding, range.1 + padding))
+}
+
+fn markers_in_time_window(markers: &[SeriesMarker], start: f64, end: f64) -> Vec<SeriesMarker> {
+    let (min_t, max_t) = if start <= end {
+        (start, end)
+    } else {
+        (end, start)
+    };
+
+    markers
+        .iter()
+        .filter(|marker| marker.time >= min_t && marker.time <= max_t)
+        .cloned()
+        .collect()
 }

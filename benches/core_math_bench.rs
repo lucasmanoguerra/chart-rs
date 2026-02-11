@@ -3,6 +3,9 @@ use chart_rs::core::{
     DataPoint, LinearScale, OhlcBar, PriceScale, TimeScale, Viewport, points_in_time_window,
     project_candles, project_line_segments,
 };
+use chart_rs::extensions::{
+    MarkerPlacementConfig, MarkerPosition, SeriesMarker, place_markers_on_candles,
+};
 use chart_rs::render::NullRenderer;
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
@@ -95,6 +98,49 @@ fn bench_visible_window_points_100k(c: &mut Criterion) {
     });
 }
 
+fn bench_marker_placement_5k(c: &mut Criterion) {
+    let viewport = Viewport::new(1920, 1080);
+    let time_scale = TimeScale::new(0.0, 5_001.0).expect("valid time scale");
+    let price_scale = PriceScale::new(0.0, 10_000.0).expect("valid price scale");
+
+    let candles: Vec<OhlcBar> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            let open = 1_000.0 + t * 0.2;
+            let close = if i % 2 == 0 { open + 2.0 } else { open - 2.0 };
+            let low = open.min(close) - 1.0;
+            let high = open.max(close) + 1.0;
+            OhlcBar::new(t, open, high, low, close).expect("valid generated candle")
+        })
+        .collect();
+    let markers: Vec<SeriesMarker> = (0..5_000)
+        .map(|i| {
+            let position = if i % 2 == 0 {
+                MarkerPosition::AboveBar
+            } else {
+                MarkerPosition::BelowBar
+            };
+            SeriesMarker::new(format!("m-{i}"), i as f64, position)
+                .with_text("marker")
+                .with_priority(i % 10)
+        })
+        .collect();
+
+    c.bench_function("marker_placement_5k", |b| {
+        b.iter(|| {
+            let _ = place_markers_on_candles(
+                black_box(&markers),
+                black_box(&candles),
+                black_box(time_scale),
+                black_box(price_scale),
+                black_box(viewport),
+                black_box(MarkerPlacementConfig::default()),
+            )
+            .expect("marker placement should succeed");
+        })
+    });
+}
+
 fn bench_engine_snapshot_json_2k(c: &mut Criterion) {
     let renderer = NullRenderer::default();
     let config = ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 2_001.0)
@@ -132,6 +178,7 @@ criterion_group!(
     bench_candle_projection_10k,
     bench_line_projection_20k,
     bench_visible_window_points_100k,
+    bench_marker_placement_5k,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);
