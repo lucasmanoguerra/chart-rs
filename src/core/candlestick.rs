@@ -1,3 +1,7 @@
+use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
+
+use crate::core::primitives::{datetime_to_unix_seconds, decimal_to_f64};
 use crate::core::{PriceScale, TimeScale, Viewport};
 use crate::error::{ChartError, ChartResult};
 
@@ -42,6 +46,22 @@ impl OhlcBar {
             low,
             close,
         })
+    }
+
+    pub fn from_decimal_time(
+        time: DateTime<Utc>,
+        open: Decimal,
+        high: Decimal,
+        low: Decimal,
+        close: Decimal,
+    ) -> ChartResult<Self> {
+        Self::new(
+            datetime_to_unix_seconds(time),
+            decimal_to_f64(open, "open")?,
+            decimal_to_f64(high, "high")?,
+            decimal_to_f64(low, "low")?,
+            decimal_to_f64(close, "close")?,
+        )
     }
 
     #[must_use]

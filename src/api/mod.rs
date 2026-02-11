@@ -1,8 +1,10 @@
+use smallvec::SmallVec;
+
 use crate::core::{
     CandleGeometry, DataPoint, OhlcBar, PriceScale, TimeScale, Viewport, project_candles,
 };
 use crate::error::{ChartError, ChartResult};
-use crate::interaction::{InteractionMode, InteractionState};
+use crate::interaction::{CrosshairState, InteractionMode, InteractionState};
 use crate::render::{RenderFrame, Renderer};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -103,8 +105,18 @@ impl<R: Renderer> ChartEngine<R> {
         self.interaction.mode()
     }
 
+    #[must_use]
+    pub fn crosshair_state(&self) -> CrosshairState {
+        self.interaction.crosshair()
+    }
+
     pub fn pointer_move(&mut self, x: f64, y: f64) {
         self.interaction.on_pointer_move(x, y);
+        self.interaction.set_crosshair_snap(self.snap_at_x(x));
+    }
+
+    pub fn pointer_leave(&mut self) {
+        self.interaction.on_pointer_leave();
     }
 
     pub fn pan_start(&mut self) {
@@ -170,5 +182,60 @@ impl<R: Renderer> ChartEngine<R> {
     #[must_use]
     pub fn into_renderer(self) -> R {
         self.renderer
+    }
+
+    fn snap_at_x(&self, pointer_x: f64) -> Option<(f64, f64)> {
+        let mut candidates: SmallVec<[(f64, f64, f64); 2]> = SmallVec::new();
+        if let Some(snap) = self.nearest_data_snap(pointer_x) {
+            candidates.push(snap);
+        }
+        if let Some(snap) = self.nearest_candle_snap(pointer_x) {
+            candidates.push(snap);
+        }
+
+        candidates
+            .into_iter()
+            .min_by(|a, b| a.0.total_cmp(&b.0))
+            .map(|(_, sx, sy)| (sx, sy))
+    }
+
+    fn nearest_data_snap(&self, pointer_x: f64) -> Option<(f64, f64, f64)> {
+        let mut best: Option<(f64, f64, f64)> = None;
+        for point in &self.points {
+            let x_px = match self.time_scale.time_to_pixel(point.x, self.viewport) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let y_px = match self.price_scale.price_to_pixel(point.y, self.viewport) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let dist = (x_px - pointer_x).abs();
+            match best {
+                Some((current, _, _)) if current <= dist => {}
+                _ => best = Some((dist, x_px, y_px)),
+            }
+        }
+        best
+    }
+
+    fn nearest_candle_snap(&self, pointer_x: f64) -> Option<(f64, f64, f64)> {
+        let mut best: Option<(f64, f64, f64)> = None;
+        for candle in &self.candles {
+            let x_px = match self.time_scale.time_to_pixel(candle.time, self.viewport) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let y_px = match self.price_scale.price_to_pixel(candle.close, self.viewport) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let dist = (x_px - pointer_x).abs();
+            match best {
+                Some((current, _, _)) if current <= dist => {}
+                _ => best = Some((dist, x_px, y_px)),
+            }
+        }
+        best
     }
 }

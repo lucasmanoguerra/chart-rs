@@ -1,5 +1,6 @@
 pub mod candlestick;
 pub mod price_scale;
+pub mod primitives;
 pub mod scale;
 pub mod time_scale;
 pub mod types;
