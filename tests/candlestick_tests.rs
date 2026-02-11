@@ -48,8 +48,8 @@ fn engine_autoscales_and_projects_candles() {
         .expect("autoscale from candles");
 
     let (min, max) = engine.price_domain();
-    assert_eq!(min, 90.0);
-    assert_eq!(max, 120.0);
+    assert_eq!(min, 87.0);
+    assert_eq!(max, 123.0);
 
     let geometries = engine.project_candles(8.0).expect("project candles");
     assert_eq!(geometries.len(), 2);

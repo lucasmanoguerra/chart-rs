@@ -39,3 +39,26 @@ Each feature requires:
 - integration tests for cross-module behavior
 - property tests with `proptest`
 - benchmark updates with `criterion` for performance-sensitive paths
+
+## Scale Strategy
+
+- `TimeScale`
+  - tracks full range and visible range
+  - supports fit-to-data with configurable left/right padding
+- `PriceScale`
+  - supports tuned autoscale from points or candles
+  - always maps higher prices to smaller Y pixel values (inverted axis)
+
+Tuning contracts:
+- all ratio values must be finite and non-negative
+- degenerate ranges are expanded with explicit minimum span values
+- tuned domains must contain source data ranges
+
+## Interaction Strategy
+
+- interaction state is stored in `interaction` module
+- data/candle snapping decisions are computed in `api` layer
+- crosshair baseline:
+  - pointer move sets visible state and updates coordinates
+  - nearest snap candidate is selected from points/candles
+  - pointer leave hides crosshair and clears snap state

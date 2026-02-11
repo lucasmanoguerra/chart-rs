@@ -5,6 +5,7 @@ Thanks for contributing to `chart-rs`.
 ## Ground Rules
 
 - Follow `AGENTS.md` as the architecture and quality contract.
+- Read `docs/developer-guide.md` before implementing non-trivial features.
 - Keep modules focused and responsibilities separated.
 - Prefer small, reviewable pull requests.
 - Every behavior change must include tests.

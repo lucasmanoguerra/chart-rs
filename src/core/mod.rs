@@ -6,7 +6,7 @@ pub mod time_scale;
 pub mod types;
 
 pub use candlestick::{CandleGeometry, OhlcBar, project_candles};
-pub use price_scale::PriceScale;
+pub use price_scale::{PriceScale, PriceScaleTuning};
 pub use scale::LinearScale;
-pub use time_scale::TimeScale;
+pub use time_scale::{TimeScale, TimeScaleTuning};
 pub use types::{DataPoint, Viewport};
