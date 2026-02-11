@@ -60,6 +60,9 @@ Domain layer with deterministic math and model invariants.
 - `histogram_series.rs`
   - `HistogramBar`
   - `project_histogram_bars`
+- `bar_series.rs`
+  - `BarGeometry`
+  - `project_bars`
 - `primitives.rs`
   - `chrono` and `rust-decimal` helpers for strongly-typed construction
 
@@ -170,6 +173,10 @@ Where to add tests:
   - deterministic histogram geometry, width validation, and visible-window behavior
 - `tests/property_histogram_series_tests.rs`
   - histogram axis/bar invariants and finite-geometry properties
+- `tests/bar_series_tests.rs`
+  - deterministic OHLC bar geometry, tick-width validation, and visible-window behavior
+- `tests/property_bar_series_tests.rs`
+  - OHLC bar ordering/visibility invariants and finite-geometry properties
 - `tests/crosshair_tests.rs`
   - interaction-level crosshair snapping behavior
 - `tests/decimal_time_tests.rs`
