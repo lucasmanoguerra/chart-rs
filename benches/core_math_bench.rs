@@ -1,6 +1,6 @@
 use chart_rs::api::{
-    AxisLabelLocale, ChartEngine, ChartEngineConfig, RenderStyle, TimeAxisLabelConfig,
-    TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
+    AxisLabelLocale, ChartEngine, ChartEngineConfig, PriceAxisLabelConfig, PriceAxisLabelPolicy,
+    RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{
     DataPoint, LinearScale, OhlcBar, PriceScale, TimeScale, Viewport, points_in_time_window,
@@ -599,6 +599,30 @@ fn bench_render_major_time_tick_styling(c: &mut Criterion) {
     });
 }
 
+fn bench_price_axis_min_move_formatter(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 1_000.0)
+            .with_price_domain(99.0, 101.0),
+    )
+    .expect("engine init");
+    engine
+        .set_price_axis_label_config(PriceAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: PriceAxisLabelPolicy::MinMove {
+                min_move: 0.01,
+                trim_trailing_zeros: false,
+            },
+        })
+        .expect("set price-axis policy");
+
+    c.bench_function("price_axis_min_move_formatter", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -621,6 +645,7 @@ criterion_group!(
     bench_time_axis_label_cache_hot,
     bench_time_axis_session_timezone_formatter,
     bench_render_major_time_tick_styling,
+    bench_price_axis_min_move_formatter,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);

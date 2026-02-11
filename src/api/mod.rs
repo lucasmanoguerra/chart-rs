@@ -178,6 +178,34 @@ pub struct TimeAxisLabelConfig {
     pub session: Option<TimeAxisSessionConfig>,
 }
 
+/// Built-in policy used for price-axis labels.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum PriceAxisLabelPolicy {
+    /// Render price values with a fixed number of decimals.
+    FixedDecimals { precision: u8 },
+    /// Round prices to a deterministic minimum move before formatting.
+    MinMove {
+        min_move: f64,
+        trim_trailing_zeros: bool,
+    },
+    /// Select precision from current visible price-step density.
+    Adaptive,
+}
+
+impl Default for PriceAxisLabelPolicy {
+    fn default() -> Self {
+        Self::FixedDecimals { precision: 2 }
+    }
+}
+
+/// Runtime formatter configuration for the price axis.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct PriceAxisLabelConfig {
+    pub locale: AxisLabelLocale,
+    pub policy: PriceAxisLabelPolicy,
+}
+
 /// Style contract for the current render frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderStyle {
@@ -213,6 +241,7 @@ impl Default for RenderStyle {
 }
 
 pub type TimeLabelFormatterFn = Arc<dyn Fn(f64) -> String + Send + Sync + 'static>;
+pub type PriceLabelFormatterFn = Arc<dyn Fn(f64) -> String + Send + Sync + 'static>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct TimeLabelCacheStats {
@@ -321,7 +350,9 @@ pub struct ChartEngine<R: Renderer> {
     series_metadata: IndexMap<String, String>,
     plugins: Vec<Box<dyn ChartPlugin>>,
     time_axis_label_config: TimeAxisLabelConfig,
+    price_axis_label_config: PriceAxisLabelConfig,
     time_label_formatter: Option<TimeLabelFormatterFn>,
+    price_label_formatter: Option<PriceLabelFormatterFn>,
     time_label_formatter_generation: u64,
     time_label_cache: RefCell<TimeLabelCache>,
     render_style: RenderStyle,
@@ -351,7 +382,9 @@ impl<R: Renderer> ChartEngine<R> {
             series_metadata: IndexMap::new(),
             plugins: Vec::new(),
             time_axis_label_config: TimeAxisLabelConfig::default(),
+            price_axis_label_config: PriceAxisLabelConfig::default(),
             time_label_formatter: None,
+            price_label_formatter: None,
             time_label_formatter_generation: 0,
             time_label_cache: RefCell::new(TimeLabelCache::default()),
             render_style: RenderStyle::default(),
@@ -485,6 +518,17 @@ impl<R: Renderer> ChartEngine<R> {
         Ok(())
     }
 
+    #[must_use]
+    pub fn price_axis_label_config(&self) -> PriceAxisLabelConfig {
+        self.price_axis_label_config
+    }
+
+    pub fn set_price_axis_label_config(&mut self, config: PriceAxisLabelConfig) -> ChartResult<()> {
+        validate_price_axis_label_config(config)?;
+        self.price_axis_label_config = config;
+        Ok(())
+    }
+
     pub fn set_time_label_formatter(&mut self, formatter: TimeLabelFormatterFn) {
         self.time_label_formatter = Some(formatter);
         self.time_label_formatter_generation =
@@ -497,6 +541,14 @@ impl<R: Renderer> ChartEngine<R> {
         self.time_label_formatter_generation =
             self.time_label_formatter_generation.saturating_add(1);
         self.time_label_cache.borrow_mut().clear();
+    }
+
+    pub fn set_price_label_formatter(&mut self, formatter: PriceLabelFormatterFn) {
+        self.price_label_formatter = Some(formatter);
+    }
+
+    pub fn clear_price_label_formatter(&mut self) {
+        self.price_label_formatter = None;
     }
 
     #[must_use]
@@ -539,6 +591,13 @@ impl<R: Renderer> ChartEngine<R> {
             .borrow_mut()
             .insert(key, value.clone());
         value
+    }
+
+    fn format_price_axis_label(&self, price: f64, tick_step_abs: f64) -> String {
+        if let Some(formatter) = &self.price_label_formatter {
+            return formatter(price);
+        }
+        format_price_axis_label(price, self.price_axis_label_config, tick_step_abs)
     }
 
     fn resolve_time_label_cache_profile(&self, visible_span_abs: f64) -> TimeLabelCacheProfile {
@@ -1313,9 +1372,10 @@ impl<R: Renderer> ChartEngine<R> {
             let clamped_py = py.clamp(0.0, plot_bottom);
             price_ticks.push((price, clamped_py));
         }
+        let price_tick_step_abs = axis_tick_step(self.price_scale.domain(), price_tick_count).abs();
 
         for (price, py) in select_ticks_with_min_spacing(price_ticks, AXIS_PRICE_MIN_SPACING_PX) {
-            let text = format_axis_decimal(price, 2, self.time_axis_label_config.locale);
+            let text = self.format_price_axis_label(price, price_tick_step_abs);
             frame = frame.with_text(TextPrimitive::new(
                 text,
                 viewport_width - 6.0,
@@ -1527,6 +1587,29 @@ fn validate_time_axis_label_config(
     Ok(config)
 }
 
+fn validate_price_axis_label_config(
+    config: PriceAxisLabelConfig,
+) -> ChartResult<PriceAxisLabelConfig> {
+    match config.policy {
+        PriceAxisLabelPolicy::FixedDecimals { precision } => {
+            if precision > 12 {
+                return Err(ChartError::InvalidData(
+                    "price-axis decimal precision must be <= 12".to_owned(),
+                ));
+            }
+        }
+        PriceAxisLabelPolicy::MinMove { min_move, .. } => {
+            if !min_move.is_finite() || min_move <= 0.0 {
+                return Err(ChartError::InvalidData(
+                    "price-axis min_move must be finite and > 0".to_owned(),
+                ));
+            }
+        }
+        PriceAxisLabelPolicy::Adaptive => {}
+    }
+    Ok(config)
+}
+
 fn validate_time_axis_session_config(
     session: TimeAxisSessionConfig,
 ) -> ChartResult<TimeAxisSessionConfig> {
@@ -1716,6 +1799,102 @@ fn is_major_time_tick(logical_time: f64, config: TimeAxisLabelConfig) -> bool {
     local_dt.hour() == 0 && local_dt.minute() == 0 && local_dt.second() == 0
 }
 
+fn format_price_axis_label(value: f64, config: PriceAxisLabelConfig, tick_step_abs: f64) -> String {
+    if !value.is_finite() {
+        return "nan".to_owned();
+    }
+
+    match config.policy {
+        PriceAxisLabelPolicy::FixedDecimals { precision } => {
+            format_axis_decimal(value, usize::from(precision), config.locale)
+        }
+        PriceAxisLabelPolicy::MinMove {
+            min_move,
+            trim_trailing_zeros,
+        } => {
+            let precision = precision_from_step(min_move);
+            let snapped = if min_move.is_finite() && min_move > 0.0 {
+                (value / min_move).round() * min_move
+            } else {
+                value
+            };
+            let text = format_axis_decimal(snapped, precision, config.locale);
+            if trim_trailing_zeros {
+                trim_axis_decimal(text, config.locale)
+            } else {
+                text
+            }
+        }
+        PriceAxisLabelPolicy::Adaptive => {
+            let nice_step = normalize_step_for_precision(tick_step_abs);
+            let precision = precision_from_step(nice_step);
+            format_axis_decimal(value, precision, config.locale)
+        }
+    }
+}
+
+fn normalize_step_for_precision(step_abs: f64) -> f64 {
+    if !step_abs.is_finite() || step_abs <= 0.0 {
+        return 0.01;
+    }
+
+    let magnitude = 10.0_f64.powf(step_abs.log10().floor());
+    if !magnitude.is_finite() || magnitude <= 0.0 {
+        return step_abs;
+    }
+
+    let normalized = step_abs / magnitude;
+    let nice = if normalized < 1.5 {
+        1.0
+    } else if normalized < 3.0 {
+        2.0
+    } else if normalized < 7.0 {
+        5.0
+    } else {
+        10.0
+    };
+    nice * magnitude
+}
+
+fn precision_from_step(step: f64) -> usize {
+    if !step.is_finite() || step <= 0.0 {
+        return 2;
+    }
+    let text = format!("{:.12}", step.abs());
+    let Some((_, fraction)) = text.split_once('.') else {
+        return 0;
+    };
+    fraction.trim_end_matches('0').len().clamp(0, 12)
+}
+
+fn trim_axis_decimal(mut text: String, locale: AxisLabelLocale) -> String {
+    let separator = match locale {
+        AxisLabelLocale::EnUs => '.',
+        AxisLabelLocale::EsEs => ',',
+    };
+
+    if let Some(index) = text.find(separator) {
+        let mut trim_start = text.len();
+        for (idx, ch) in text.char_indices().rev() {
+            if idx <= index {
+                break;
+            }
+            if ch != '0' {
+                break;
+            }
+            trim_start = idx;
+        }
+        if trim_start < text.len() {
+            text.truncate(trim_start);
+        }
+        if text.ends_with(separator) {
+            text.pop();
+        }
+    }
+
+    if text == "-0" { "0".to_owned() } else { text }
+}
+
 fn format_axis_decimal(value: f64, precision: usize, locale: AxisLabelLocale) -> String {
     let text = format!("{value:.precision$}");
     match locale {
@@ -1803,6 +1982,13 @@ fn axis_ticks(range: (f64, f64), tick_count: usize) -> Vec<f64> {
             range.0 + span * ratio
         })
         .collect()
+}
+
+fn axis_tick_step(range: (f64, f64), tick_count: usize) -> f64 {
+    if tick_count <= 1 {
+        return (range.1 - range.0).abs();
+    }
+    (range.1 - range.0) / ((tick_count - 1) as f64)
 }
 
 fn validate_kinetic_pan_config(config: KineticPanConfig) -> ChartResult<KineticPanConfig> {
