@@ -1,5 +1,8 @@
 use chart_rs::api::{ChartEngine, ChartEngineConfig};
-use chart_rs::core::{LinearScale, OhlcBar, PriceScale, TimeScale, Viewport, project_candles};
+use chart_rs::core::{
+    DataPoint, LinearScale, OhlcBar, PriceScale, TimeScale, Viewport, project_candles,
+    project_line_segments,
+};
 use chart_rs::render::NullRenderer;
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
@@ -49,6 +52,32 @@ fn bench_candle_projection_10k(c: &mut Criterion) {
     });
 }
 
+fn bench_line_projection_20k(c: &mut Criterion) {
+    let viewport = Viewport::new(1920, 1080);
+    let time_scale = TimeScale::new(0.0, 20_001.0).expect("valid time scale");
+    let price_scale = PriceScale::new(0.0, 5_000.0).expect("valid price scale");
+
+    let points: Vec<DataPoint> = (0..20_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 1_000.0 + (t * 0.07).sin() * 250.0 + t * 0.02;
+            DataPoint::new(t, y)
+        })
+        .collect();
+
+    c.bench_function("line_projection_20k", |b| {
+        b.iter(|| {
+            let _ = project_line_segments(
+                black_box(&points),
+                black_box(time_scale),
+                black_box(price_scale),
+                black_box(viewport),
+            )
+            .expect("line projection should succeed");
+        })
+    });
+}
+
 fn bench_engine_snapshot_json_2k(c: &mut Criterion) {
     let renderer = NullRenderer::default();
     let config = ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 2_001.0)
@@ -84,6 +113,7 @@ criterion_group!(
     benches,
     bench_linear_scale_round_trip,
     bench_candle_projection_10k,
+    bench_line_projection_20k,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);

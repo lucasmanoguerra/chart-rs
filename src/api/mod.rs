@@ -5,8 +5,8 @@ use smallvec::SmallVec;
 use tracing::{debug, trace};
 
 use crate::core::{
-    CandleGeometry, DataPoint, OhlcBar, PriceScale, PriceScaleTuning, TimeScale, TimeScaleTuning,
-    Viewport, project_candles,
+    CandleGeometry, DataPoint, LineSegment, OhlcBar, PriceScale, PriceScaleTuning, TimeScale,
+    TimeScaleTuning, Viewport, project_candles, project_line_segments,
 };
 use crate::error::{ChartError, ChartResult};
 use crate::interaction::{CrosshairState, InteractionMode, InteractionState};
@@ -325,6 +325,16 @@ impl<R: Renderer> ChartEngine<R> {
             self.price_scale,
             self.viewport,
             body_width_px,
+        )
+    }
+
+    /// Projects line-series points into deterministic segment geometry.
+    pub fn project_line_segments(&self) -> ChartResult<Vec<LineSegment>> {
+        project_line_segments(
+            &self.points,
+            self.time_scale,
+            self.price_scale,
+            self.viewport,
         )
     }
 
