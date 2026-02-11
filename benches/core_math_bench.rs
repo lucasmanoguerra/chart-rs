@@ -430,6 +430,30 @@ fn bench_kinetic_pan_step(c: &mut Criterion) {
     });
 }
 
+fn bench_render_frame_build_20k(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1920, 1080), 0.0, 20_000.0)
+            .with_price_domain(-2_000.0, 2_000.0),
+    )
+    .expect("engine init");
+
+    let points: Vec<DataPoint> = (0..20_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = (t * 0.01).sin() * 500.0 + t * 0.02 - 1_000.0;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+
+    c.bench_function("render_frame_build_20k", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -446,6 +470,7 @@ criterion_group!(
     bench_wheel_zoom_step,
     bench_wheel_pan_step,
     bench_kinetic_pan_step,
+    bench_render_frame_build_20k,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);
