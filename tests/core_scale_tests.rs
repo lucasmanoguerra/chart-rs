@@ -1,5 +1,6 @@
 use chart_rs::core::{
-    DataPoint, LinearScale, PriceScale, PriceScaleTuning, TimeScale, TimeScaleTuning, Viewport,
+    DataPoint, LinearScale, PriceScale, PriceScaleMode, PriceScaleTuning, TimeScale,
+    TimeScaleTuning, Viewport,
 };
 
 #[test]
@@ -104,4 +105,35 @@ fn price_scale_tuned_padding_is_applied() {
     let (min, max) = scale.domain();
     assert!((min - 9.0).abs() <= 1e-9);
     assert!((max - 22.0).abs() <= 1e-9);
+}
+
+#[test]
+fn price_scale_log_mode_keeps_ratio_spacing() {
+    let viewport = Viewport::new(800, 600);
+    let scale = PriceScale::new_with_mode(1.0, 1_000.0, PriceScaleMode::Log).expect("log scale");
+
+    let y1 = scale.price_to_pixel(1.0, viewport).expect("y1");
+    let y10 = scale.price_to_pixel(10.0, viewport).expect("y10");
+    let y100 = scale.price_to_pixel(100.0, viewport).expect("y100");
+    let y1000 = scale.price_to_pixel(1_000.0, viewport).expect("y1000");
+
+    let d1 = y1 - y10;
+    let d2 = y10 - y100;
+    let d3 = y100 - y1000;
+    assert!((d1 - d2).abs() <= 1e-6);
+    assert!((d2 - d3).abs() <= 1e-6);
+
+    let price = 25.0;
+    let px = scale.price_to_pixel(price, viewport).expect("to pixel");
+    let recovered = scale.pixel_to_price(px, viewport).expect("from pixel");
+    assert!((recovered - price).abs() <= 1e-9);
+}
+
+#[test]
+fn price_scale_log_mode_rejects_non_positive_prices() {
+    let viewport = Viewport::new(800, 600);
+    assert!(PriceScale::new_with_mode(0.0, 100.0, PriceScaleMode::Log).is_err());
+
+    let scale = PriceScale::new_with_mode(1.0, 100.0, PriceScaleMode::Log).expect("log scale");
+    assert!(scale.price_to_pixel(0.0, viewport).is_err());
 }

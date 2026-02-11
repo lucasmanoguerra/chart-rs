@@ -40,8 +40,9 @@ Domain layer with deterministic math and model invariants.
   - visible/full range logic
 - `price_scale.rs`
   - `PriceScale`
+  - `PriceScaleMode`
   - `PriceScaleTuning`
-  - autoscale tuning + inverted Y mapping
+  - autoscale tuning + inverted Y mapping (linear/log mode aware)
 - `candlestick.rs`
   - `OhlcBar`
   - `CandleGeometry`
@@ -95,6 +96,7 @@ Responsibilities:
 - time visible range controls and fit-to-data
 - price autoscale from points/candles (default and tuned)
 - crosshair snapping behavior
+- price scale mode switching (`Linear` / `Log`) with domain validation
 - time-axis formatter policy + locale/custom formatter injection
 - price-axis formatter policy + display-mode + custom formatter injection
 - zoom-aware adaptive time-axis formatting and label-cache metrics
@@ -120,6 +122,7 @@ Render invariants:
 - time-axis UTC policies can align to fixed-offset local timezones and optional session windows
 - session/day boundary ticks can render with dedicated major grid/label styling
 - price-axis labels support fixed/adaptive precision, min-move rounding, and normal/percent/indexed display modes
+- price-axis ticks are generated in transformed scale space, then mapped back to raw prices (linear/log-safe)
 - repeated redraws reuse deterministic time-label cache entries (`time_label_cache_stats`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
@@ -157,6 +160,8 @@ Autoscale behavior:
 - computes min/max from points or candle low/high
 - expands degenerate range with `min_span_absolute`
 - applies top/bottom padding
+- `Linear` mode pads directly in raw-price space
+- `Log` mode validates strictly-positive prices and applies span/padding in log space
 - keeps inverted Y behavior (`higher price` => `smaller pixel y`)
 
 ## 5) Crosshair Baseline Behavior
@@ -175,6 +180,8 @@ Where to add tests:
 
 - `tests/core_scale_tests.rs`
   - deterministic scale behavior and edge cases
+- `tests/price_scale_mode_tests.rs`
+  - linear/log mode switching behavior and log-autoscale invariants
 - `tests/property_scale_tests.rs`
   - invariant properties for tuned/round-trip mapping
 - `tests/candlestick_tests.rs`

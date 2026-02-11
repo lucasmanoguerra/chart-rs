@@ -11,8 +11,8 @@ use tracing::{debug, trace};
 
 use crate::core::{
     AreaGeometry, BarGeometry, BaselineGeometry, CandleGeometry, DataPoint, HistogramBar,
-    LineSegment, OhlcBar, PriceScale, PriceScaleTuning, TimeScale, TimeScaleTuning, Viewport,
-    candles_in_time_window, points_in_time_window, project_area_geometry, project_bars,
+    LineSegment, OhlcBar, PriceScale, PriceScaleMode, PriceScaleTuning, TimeScale, TimeScaleTuning,
+    Viewport, candles_in_time_window, points_in_time_window, project_area_geometry, project_bars,
     project_baseline_geometry, project_candles, project_histogram_bars, project_line_segments,
 };
 use crate::error::{ChartError, ChartResult};
@@ -358,6 +358,7 @@ pub struct ChartEngine<R: Renderer> {
     viewport: Viewport,
     time_scale: TimeScale,
     price_scale: PriceScale,
+    price_scale_mode: PriceScaleMode,
     interaction: InteractionState,
     points: Vec<DataPoint>,
     candles: Vec<OhlcBar>,
@@ -390,6 +391,7 @@ impl<R: Renderer> ChartEngine<R> {
             viewport: config.viewport,
             time_scale,
             price_scale,
+            price_scale_mode: PriceScaleMode::Linear,
             interaction: InteractionState::default(),
             points: Vec::new(),
             candles: Vec::new(),
@@ -987,10 +989,12 @@ impl<R: Renderer> ChartEngine<R> {
         Ok(())
     }
 
+    /// Maps a raw price value into pixel Y under the active price scale mode.
     pub fn map_price_to_pixel(&self, price: f64) -> ChartResult<f64> {
         self.price_scale.price_to_pixel(price, self.viewport)
     }
 
+    /// Maps a pixel Y coordinate back into a raw price value.
     pub fn map_pixel_to_price(&self, pixel: f64) -> ChartResult<f64> {
         self.price_scale.pixel_to_price(pixel, self.viewport)
     }
@@ -998,6 +1002,21 @@ impl<R: Renderer> ChartEngine<R> {
     #[must_use]
     pub fn price_domain(&self) -> (f64, f64) {
         self.price_scale.domain()
+    }
+
+    /// Returns the active price scale mapping mode.
+    #[must_use]
+    pub fn price_scale_mode(&self) -> PriceScaleMode {
+        self.price_scale_mode
+    }
+
+    /// Switches the price scale mapping mode while preserving the current raw domain.
+    ///
+    /// When switching to `PriceScaleMode::Log`, the current domain must be strictly positive.
+    pub fn set_price_scale_mode(&mut self, mode: PriceScaleMode) -> ChartResult<()> {
+        self.price_scale = self.price_scale.with_mode(mode)?;
+        self.price_scale_mode = mode;
+        Ok(())
     }
 
     pub fn autoscale_price_from_data(&mut self) -> ChartResult<()> {
@@ -1009,7 +1028,8 @@ impl<R: Renderer> ChartEngine<R> {
         if self.points.is_empty() {
             return Ok(());
         }
-        self.price_scale = PriceScale::from_data_tuned(&self.points, tuning)?;
+        self.price_scale =
+            PriceScale::from_data_tuned_with_mode(&self.points, tuning, self.price_scale_mode)?;
         Ok(())
     }
 
@@ -1025,7 +1045,8 @@ impl<R: Renderer> ChartEngine<R> {
         if self.candles.is_empty() {
             return Ok(());
         }
-        self.price_scale = PriceScale::from_ohlc_tuned(&self.candles, tuning)?;
+        self.price_scale =
+            PriceScale::from_ohlc_tuned_with_mode(&self.candles, tuning, self.price_scale_mode)?;
         Ok(())
     }
 
@@ -1425,13 +1446,14 @@ impl<R: Renderer> ChartEngine<R> {
             ));
         }
 
-        let mut price_ticks = Vec::with_capacity(price_tick_count);
-        for price in axis_ticks(self.price_scale.domain(), price_tick_count) {
+        let raw_price_ticks = self.price_scale.ticks(price_tick_count)?;
+        let mut price_ticks = Vec::with_capacity(raw_price_ticks.len());
+        for price in raw_price_ticks.iter().copied() {
             let py = self.price_scale.price_to_pixel(price, self.viewport)?;
             let clamped_py = py.clamp(0.0, plot_bottom);
             price_ticks.push((price, clamped_py));
         }
-        let price_tick_step_abs = axis_tick_step(self.price_scale.domain(), price_tick_count).abs();
+        let price_tick_step_abs = tick_step_hint_from_values(&raw_price_ticks);
         let fallback_display_base_price = self.resolve_price_display_base_price();
         let display_tick_step_abs = map_price_step_to_display_value(
             price_tick_step_abs,
@@ -2134,11 +2156,20 @@ fn axis_ticks(range: (f64, f64), tick_count: usize) -> Vec<f64> {
         .collect()
 }
 
-fn axis_tick_step(range: (f64, f64), tick_count: usize) -> f64 {
-    if tick_count <= 1 {
-        return (range.1 - range.0).abs();
+fn tick_step_hint_from_values(values: &[f64]) -> f64 {
+    if values.len() <= 1 {
+        return 0.0;
     }
-    (range.1 - range.0) / ((tick_count - 1) as f64)
+
+    let mut best = f64::INFINITY;
+    for pair in values.windows(2) {
+        let step = (pair[1] - pair[0]).abs();
+        if step.is_finite() && step > 0.0 {
+            best = best.min(step);
+        }
+    }
+
+    if best.is_finite() { best } else { 0.0 }
 }
 
 fn validate_kinetic_pan_config(config: KineticPanConfig) -> ChartResult<KineticPanConfig> {

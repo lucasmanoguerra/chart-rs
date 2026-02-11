@@ -47,6 +47,8 @@ Each feature requires:
   - supports fit-to-data with configurable left/right padding
 - `PriceScale`
   - supports tuned autoscale from points or candles
+  - supports `PriceScaleMode::Linear` and `PriceScaleMode::Log`
+  - log mode validates strictly-positive domains and applies tuning in transformed log space
   - always maps higher prices to smaller Y pixel values (inverted axis)
 
 Tuning contracts:
