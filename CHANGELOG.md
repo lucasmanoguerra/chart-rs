@@ -8,7 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Price-axis display mode parity baseline (`R-009`) with deterministic `Normal`, `Percentage`, and `IndexedTo100` label transforms.
+- Configurable/derived display base-price support with explicit validation for percentage/indexed modes.
+- Extended price-axis formatter tests and benchmark coverage for display-transform paths.
 
 ## [0.0.20-alpha.0] - 2026-02-11
 

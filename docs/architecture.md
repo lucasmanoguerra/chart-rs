@@ -70,7 +70,7 @@ Tuning contracts:
 - time-axis labels are produced via policy+locale config with optional custom formatter injection
 - time-axis formatter supports zoom-aware adaptive detail, fixed-offset timezone alignment, and optional session-boundary semantics
 - time-axis major ticks (session boundaries/local-midnight) can be emphasized through deterministic style knobs
-- price-axis labels support fixed/adaptive precision and min-move rounding policy via deterministic API config
+- price-axis labels support fixed/adaptive precision, min-move rounding, and normal/percent/indexed display modes via deterministic API config
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract
 - `render` backends execute primitives only (no scale math or interaction decisions)

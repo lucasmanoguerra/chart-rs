@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use chart_rs::ChartError;
 use chart_rs::api::{
-    AxisLabelLocale, ChartEngine, ChartEngineConfig, PriceAxisLabelConfig, PriceAxisLabelPolicy,
+    AxisLabelLocale, ChartEngine, ChartEngineConfig, PriceAxisDisplayMode, PriceAxisLabelConfig,
+    PriceAxisLabelPolicy,
 };
 use chart_rs::core::Viewport;
 use chart_rs::render::{NullRenderer, TextHAlign};
@@ -37,6 +38,7 @@ fn price_axis_fixed_decimals_policy_is_applied() {
         .set_price_axis_label_config(PriceAxisLabelConfig {
             locale: AxisLabelLocale::EnUs,
             policy: PriceAxisLabelPolicy::FixedDecimals { precision: 4 },
+            ..PriceAxisLabelConfig::default()
         })
         .expect("set price label config");
 
@@ -57,6 +59,7 @@ fn price_axis_locale_es_uses_comma_separator() {
         .set_price_axis_label_config(PriceAxisLabelConfig {
             locale: AxisLabelLocale::EsEs,
             policy: PriceAxisLabelPolicy::FixedDecimals { precision: 1 },
+            ..PriceAxisLabelConfig::default()
         })
         .expect("set price label config");
 
@@ -76,6 +79,7 @@ fn adaptive_price_policy_increases_precision_for_narrow_domains() {
         .set_price_axis_label_config(PriceAxisLabelConfig {
             locale: AxisLabelLocale::EnUs,
             policy: PriceAxisLabelPolicy::Adaptive,
+            ..PriceAxisLabelConfig::default()
         })
         .expect("set wide policy");
 
@@ -87,6 +91,7 @@ fn adaptive_price_policy_increases_precision_for_narrow_domains() {
         .set_price_axis_label_config(PriceAxisLabelConfig {
             locale: AxisLabelLocale::EnUs,
             policy: PriceAxisLabelPolicy::Adaptive,
+            ..PriceAxisLabelConfig::default()
         })
         .expect("set narrow policy");
 
@@ -122,6 +127,7 @@ fn min_move_policy_snaps_price_labels() {
                 min_move: 0.25,
                 trim_trailing_zeros: false,
             },
+            ..PriceAxisLabelConfig::default()
         })
         .expect("set min-move policy");
 
@@ -149,6 +155,7 @@ fn min_move_policy_can_trim_trailing_zeros() {
                 min_move: 0.5,
                 trim_trailing_zeros: true,
             },
+            ..PriceAxisLabelConfig::default()
         })
         .expect("set min-move policy");
 
@@ -183,6 +190,7 @@ fn invalid_price_axis_precision_is_rejected() {
         .set_price_axis_label_config(PriceAxisLabelConfig {
             locale: AxisLabelLocale::EnUs,
             policy: PriceAxisLabelPolicy::FixedDecimals { precision: 32 },
+            ..PriceAxisLabelConfig::default()
         })
         .expect_err("precision should fail");
     assert!(matches!(err, ChartError::InvalidData(_)));
@@ -202,7 +210,76 @@ fn invalid_price_axis_min_move_is_rejected() {
                 min_move: 0.0,
                 trim_trailing_zeros: false,
             },
+            ..PriceAxisLabelConfig::default()
         })
         .expect_err("min_move should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn percentage_display_mode_uses_percent_suffix() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(820, 420), 0.0, 100.0).with_price_domain(95.0, 105.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    engine
+        .set_price_axis_label_config(PriceAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: PriceAxisLabelPolicy::FixedDecimals { precision: 2 },
+            display_mode: PriceAxisDisplayMode::Percentage {
+                base_price: Some(100.0),
+            },
+        })
+        .expect("set percentage mode");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let labels = price_labels(&frame);
+    assert!(!labels.is_empty());
+    assert!(labels.iter().all(|label| label.ends_with('%')));
+}
+
+#[test]
+fn indexed_to_100_display_mode_applies_base_transform() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(820, 420), 0.0, 100.0).with_price_domain(95.0, 105.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    engine
+        .set_price_axis_label_config(PriceAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: PriceAxisLabelPolicy::FixedDecimals { precision: 2 },
+            display_mode: PriceAxisDisplayMode::IndexedTo100 {
+                base_price: Some(50.0),
+            },
+        })
+        .expect("set indexed mode");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let labels = price_labels(&frame);
+    assert!(!labels.is_empty());
+    assert!(labels.iter().all(|label| {
+        let value = label.parse::<f64>().expect("parse indexed label");
+        (180.0..=220.0).contains(&value)
+    }));
+}
+
+#[test]
+fn invalid_price_axis_display_base_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(820, 420), 0.0, 100.0).with_price_domain(0.0, 10.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let err = engine
+        .set_price_axis_label_config(PriceAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: PriceAxisLabelPolicy::Adaptive,
+            display_mode: PriceAxisDisplayMode::Percentage {
+                base_price: Some(0.0),
+            },
+        })
+        .expect_err("display base should fail");
     assert!(matches!(err, ChartError::InvalidData(_)));
 }

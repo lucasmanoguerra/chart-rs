@@ -198,12 +198,26 @@ impl Default for PriceAxisLabelPolicy {
     }
 }
 
+/// Display transform used for price-axis labels.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
+pub enum PriceAxisDisplayMode {
+    #[default]
+    Normal,
+    Percentage {
+        base_price: Option<f64>,
+    },
+    IndexedTo100 {
+        base_price: Option<f64>,
+    },
+}
+
 /// Runtime formatter configuration for the price axis.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct PriceAxisLabelConfig {
     pub locale: AxisLabelLocale,
     pub policy: PriceAxisLabelPolicy,
+    pub display_mode: PriceAxisDisplayMode,
 }
 
 /// Style contract for the current render frame.
@@ -593,11 +607,56 @@ impl<R: Renderer> ChartEngine<R> {
         value
     }
 
-    fn format_price_axis_label(&self, price: f64, tick_step_abs: f64) -> String {
+    fn format_price_axis_label(
+        &self,
+        display_price: f64,
+        tick_step_abs: f64,
+        mode_suffix: &str,
+    ) -> String {
         if let Some(formatter) = &self.price_label_formatter {
-            return formatter(price);
+            return formatter(display_price);
         }
-        format_price_axis_label(price, self.price_axis_label_config, tick_step_abs)
+        let mut text =
+            format_price_axis_label(display_price, self.price_axis_label_config, tick_step_abs);
+        if !mode_suffix.is_empty() {
+            text.push_str(mode_suffix);
+        }
+        text
+    }
+
+    fn resolve_price_display_base_price(&self) -> f64 {
+        let mut candidate: Option<(f64, f64)> = None;
+
+        for point in &self.points {
+            if !point.x.is_finite() || !point.y.is_finite() {
+                continue;
+            }
+            candidate = match candidate {
+                Some((best_time, best_price)) if best_time <= point.x => {
+                    Some((best_time, best_price))
+                }
+                _ => Some((point.x, point.y)),
+            };
+        }
+
+        for candle in &self.candles {
+            if !candle.time.is_finite() || !candle.close.is_finite() {
+                continue;
+            }
+            candidate = match candidate {
+                Some((best_time, best_price)) if best_time <= candle.time => {
+                    Some((best_time, best_price))
+                }
+                _ => Some((candle.time, candle.close)),
+            };
+        }
+
+        if let Some((_, base_price)) = candidate {
+            return base_price;
+        }
+
+        let domain = self.price_scale.domain();
+        if domain.0.is_finite() { domain.0 } else { 1.0 }
     }
 
     fn resolve_time_label_cache_profile(&self, visible_span_abs: f64) -> TimeLabelCacheProfile {
@@ -1373,9 +1432,23 @@ impl<R: Renderer> ChartEngine<R> {
             price_ticks.push((price, clamped_py));
         }
         let price_tick_step_abs = axis_tick_step(self.price_scale.domain(), price_tick_count).abs();
+        let fallback_display_base_price = self.resolve_price_display_base_price();
+        let display_tick_step_abs = map_price_step_to_display_value(
+            price_tick_step_abs,
+            self.price_axis_label_config.display_mode,
+            fallback_display_base_price,
+        )
+        .abs();
+        let display_suffix = price_display_mode_suffix(self.price_axis_label_config.display_mode);
 
         for (price, py) in select_ticks_with_min_spacing(price_ticks, AXIS_PRICE_MIN_SPACING_PX) {
-            let text = self.format_price_axis_label(price, price_tick_step_abs);
+            let display_price = map_price_to_display_value(
+                price,
+                self.price_axis_label_config.display_mode,
+                fallback_display_base_price,
+            );
+            let text =
+                self.format_price_axis_label(display_price, display_tick_step_abs, display_suffix);
             frame = frame.with_text(TextPrimitive::new(
                 text,
                 viewport_width - 6.0,
@@ -1607,6 +1680,21 @@ fn validate_price_axis_label_config(
         }
         PriceAxisLabelPolicy::Adaptive => {}
     }
+
+    match config.display_mode {
+        PriceAxisDisplayMode::Normal => {}
+        PriceAxisDisplayMode::Percentage { base_price }
+        | PriceAxisDisplayMode::IndexedTo100 { base_price } => {
+            if let Some(base_price) = base_price {
+                if !base_price.is_finite() || base_price == 0.0 {
+                    return Err(ChartError::InvalidData(
+                        "price-axis display base_price must be finite and != 0".to_owned(),
+                    ));
+                }
+            }
+        }
+    }
+
     Ok(config)
 }
 
@@ -1797,6 +1885,68 @@ fn is_major_time_tick(logical_time: f64, config: TimeAxisLabelConfig) -> bool {
     }
 
     local_dt.hour() == 0 && local_dt.minute() == 0 && local_dt.second() == 0
+}
+
+fn resolved_price_display_base(mode: PriceAxisDisplayMode, fallback_base_price: f64) -> f64 {
+    let explicit_base = match mode {
+        PriceAxisDisplayMode::Normal => None,
+        PriceAxisDisplayMode::Percentage { base_price }
+        | PriceAxisDisplayMode::IndexedTo100 { base_price } => base_price,
+    };
+
+    let base = explicit_base.unwrap_or(fallback_base_price);
+    if !base.is_finite() || base == 0.0 {
+        1.0
+    } else {
+        base
+    }
+}
+
+fn map_price_to_display_value(
+    raw_price: f64,
+    mode: PriceAxisDisplayMode,
+    fallback_base_price: f64,
+) -> f64 {
+    if !raw_price.is_finite() {
+        return raw_price;
+    }
+
+    match mode {
+        PriceAxisDisplayMode::Normal => raw_price,
+        PriceAxisDisplayMode::Percentage { .. } => {
+            let base = resolved_price_display_base(mode, fallback_base_price);
+            ((raw_price / base) - 1.0) * 100.0
+        }
+        PriceAxisDisplayMode::IndexedTo100 { .. } => {
+            let base = resolved_price_display_base(mode, fallback_base_price);
+            (raw_price / base) * 100.0
+        }
+    }
+}
+
+fn map_price_step_to_display_value(
+    raw_step_abs: f64,
+    mode: PriceAxisDisplayMode,
+    fallback_base_price: f64,
+) -> f64 {
+    if !raw_step_abs.is_finite() || raw_step_abs <= 0.0 {
+        return raw_step_abs;
+    }
+
+    match mode {
+        PriceAxisDisplayMode::Normal => raw_step_abs,
+        PriceAxisDisplayMode::Percentage { .. } | PriceAxisDisplayMode::IndexedTo100 { .. } => {
+            let base = resolved_price_display_base(mode, fallback_base_price);
+            (raw_step_abs / base).abs() * 100.0
+        }
+    }
+}
+
+fn price_display_mode_suffix(mode: PriceAxisDisplayMode) -> &'static str {
+    match mode {
+        PriceAxisDisplayMode::Percentage { .. } => "%",
+        PriceAxisDisplayMode::Normal | PriceAxisDisplayMode::IndexedTo100 { .. } => "",
+    }
 }
 
 fn format_price_axis_label(value: f64, config: PriceAxisLabelConfig, tick_step_abs: f64) -> String {

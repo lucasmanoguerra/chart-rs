@@ -96,7 +96,7 @@ Responsibilities:
 - price autoscale from points/candles (default and tuned)
 - crosshair snapping behavior
 - time-axis formatter policy + locale/custom formatter injection
-- price-axis formatter policy + custom formatter injection
+- price-axis formatter policy + display-mode + custom formatter injection
 - zoom-aware adaptive time-axis formatting and label-cache metrics
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
@@ -119,7 +119,7 @@ Render invariants:
 - time-axis labels support built-in policy+locale and explicit custom formatter injection
 - time-axis UTC policies can align to fixed-offset local timezones and optional session windows
 - session/day boundary ticks can render with dedicated major grid/label styling
-- price-axis labels support fixed/adaptive precision and deterministic min-move rounding policies
+- price-axis labels support fixed/adaptive precision, min-move rounding, and normal/percent/indexed display modes
 - repeated redraws reuse deterministic time-label cache entries (`time_label_cache_stats`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
@@ -218,7 +218,7 @@ Where to add tests:
 - `tests/time_axis_formatter_tests.rs`
   - time-axis policy/locale formatting, adaptive zoom behavior, and label-cache hit behavior
 - `tests/price_axis_formatter_tests.rs`
-  - price-axis fixed/adaptive/min-move formatting policies and formatter override behavior
+  - price-axis formatting policies, display modes, and formatter override behavior
 - `tests/render_style_tests.rs`
   - render-style validation and grid/axis visual contract behavior
 - `tests/decimal_time_tests.rs`
