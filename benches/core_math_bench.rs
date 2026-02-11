@@ -4,9 +4,9 @@ use chart_rs::api::{
     TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{
-    DataPoint, LinearScale, OhlcBar, PriceScale, TimeScale, Viewport, points_in_time_window,
-    project_area_geometry, project_bars, project_baseline_geometry, project_candles,
-    project_histogram_bars, project_line_segments,
+    DataPoint, LinearScale, OhlcBar, PriceScale, PriceScaleMode, TimeScale, Viewport,
+    points_in_time_window, project_area_geometry, project_bars, project_baseline_geometry,
+    project_candles, project_histogram_bars, project_line_segments,
 };
 use chart_rs::extensions::{
     ChartPlugin, MarkerPlacementConfig, MarkerPosition, PluginContext, PluginEvent, SeriesMarker,
@@ -649,6 +649,24 @@ fn bench_price_axis_percentage_display(c: &mut Criterion) {
     });
 }
 
+fn bench_price_axis_log_mode_display(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 1_000.0)
+            .with_price_domain(1.0, 1_000.0),
+    )
+    .expect("engine init");
+    engine
+        .set_price_scale_mode(PriceScaleMode::Log)
+        .expect("set log mode");
+
+    c.bench_function("price_axis_log_mode_display", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -673,6 +691,7 @@ criterion_group!(
     bench_render_major_time_tick_styling,
     bench_price_axis_min_move_formatter,
     bench_price_axis_percentage_display,
+    bench_price_axis_log_mode_display,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);

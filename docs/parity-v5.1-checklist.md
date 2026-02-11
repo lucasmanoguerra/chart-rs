@@ -41,6 +41,7 @@ Use this document to track parity progress.
 | R-007 | Time Axis | Major tick visual emphasis | done | Session/day boundary ticks render with deterministic major grid/label styling | `tests/render_style_tests.rs`, `benches/core_math_bench.rs` | Added major tick classification (session boundary + local midnight) with configurable major grid color/width and label font size. |
 | R-008 | Price Axis | Formatter precision/min-move policy | done | Price labels support fixed/adaptive precision, min-move rounding, and custom formatter injection | `tests/price_axis_formatter_tests.rs`, `benches/core_math_bench.rs` | Added `PriceAxisLabelPolicy` (`FixedDecimals`/`Adaptive`/`MinMove`) with deterministic min-move snapping and locale-aware formatting. |
 | R-009 | Price Axis | Display mode parity (normal/percent/indexed) | done | Price labels support deterministic normal/percentage/indexed-to-100 modes with configurable/derived base values | `tests/price_axis_formatter_tests.rs`, `benches/core_math_bench.rs` | Added `PriceAxisDisplayMode` with percent suffix behavior and explicit/derived base-price transforms. |
+| R-010 | Price Scale | Linear/log mode baseline | done | Price scale supports deterministic linear/log mapping, mode switching, and log-safe autoscale behavior | `tests/core_scale_tests.rs`, `tests/price_scale_mode_tests.rs`, `benches/core_math_bench.rs` | Added `PriceScaleMode` (`Linear`/`Log`), API mode switching, and log-domain tick/autoscale handling. |
 
 ## Extensions
 
