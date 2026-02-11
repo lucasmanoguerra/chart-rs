@@ -113,3 +113,60 @@ fn last_price_marker_can_be_disabled() {
         text.color == custom_style.last_price_label_color && text.h_align == TextHAlign::Right
     }));
 }
+
+#[test]
+fn last_price_label_exclusion_filters_overlapping_axis_labels() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(320, 240), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1.0, 12.0),
+        DataPoint::new(2.0, 16.0),
+        DataPoint::new(3.0, 18.0),
+        DataPoint::new(4.0, 17.0),
+    ]);
+
+    let no_exclusion_style = RenderStyle {
+        last_price_line_color: Color::rgb(1.0, 0.0, 0.0),
+        last_price_label_color: Color::rgb(1.0, 0.0, 0.0),
+        show_last_price_line: false,
+        show_last_price_label: true,
+        last_price_label_exclusion_px: 0.0,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(no_exclusion_style)
+        .expect("set style no exclusion");
+    let frame_no_exclusion = engine.build_render_frame().expect("frame no exclusion");
+    let axis_labels_no_exclusion = frame_no_exclusion
+        .texts
+        .iter()
+        .filter(|text| {
+            text.h_align == TextHAlign::Right && text.color == no_exclusion_style.axis_label_color
+        })
+        .count();
+
+    let strong_exclusion_style = RenderStyle {
+        last_price_label_exclusion_px: 10_000.0,
+        ..no_exclusion_style
+    };
+    engine
+        .set_render_style(strong_exclusion_style)
+        .expect("set style strong exclusion");
+    let frame_strong_exclusion = engine.build_render_frame().expect("frame strong exclusion");
+    let axis_labels_strong_exclusion = frame_strong_exclusion
+        .texts
+        .iter()
+        .filter(|text| {
+            text.h_align == TextHAlign::Right
+                && text.color == strong_exclusion_style.axis_label_color
+        })
+        .count();
+
+    assert!(axis_labels_strong_exclusion < axis_labels_no_exclusion);
+    assert!(frame_strong_exclusion.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.color == strong_exclusion_style.last_price_label_color
+    }));
+}

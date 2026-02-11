@@ -75,6 +75,7 @@ Tuning contracts:
 - time-axis major ticks (session boundaries/local-midnight) can be emphasized through deterministic style knobs
 - price-axis labels support fixed/adaptive precision, min-move rounding, and normal/percent/indexed display modes via deterministic API config
 - latest-price line/label marker can be rendered from newest point/candle sample with style toggles
+- price-axis label selection can exclude deterministic overlap zones around the last-price marker
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract

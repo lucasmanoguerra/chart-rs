@@ -8,7 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Last-price label collision filter baseline (`R-014`) with deterministic exclusion radius around the latest-price marker.
+- New render-style knob `last_price_label_exclusion_px` to tune overlap filtering behavior.
+- New render-style/frame tests and benchmark coverage for collision-filtered axis labels.
 
 ## [0.0.25-alpha.0] - 2026-02-11
 
