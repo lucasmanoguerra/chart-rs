@@ -1,7 +1,8 @@
 use chart_rs::api::{ChartEngine, ChartEngineConfig};
 use chart_rs::core::{
     DataPoint, LinearScale, OhlcBar, PriceScale, TimeScale, Viewport, points_in_time_window,
-    project_area_geometry, project_baseline_geometry, project_candles, project_line_segments,
+    project_area_geometry, project_baseline_geometry, project_candles, project_histogram_bars,
+    project_line_segments,
 };
 use chart_rs::extensions::{
     ChartPlugin, MarkerPlacementConfig, MarkerPosition, PluginContext, PluginEvent, SeriesMarker,
@@ -135,6 +136,34 @@ fn bench_baseline_projection_20k(c: &mut Criterion) {
     });
 }
 
+fn bench_histogram_projection_20k(c: &mut Criterion) {
+    let viewport = Viewport::new(1920, 1080);
+    let time_scale = TimeScale::new(0.0, 20_001.0).expect("valid time scale");
+    let price_scale = PriceScale::new(0.0, 5_000.0).expect("valid price scale");
+
+    let points: Vec<DataPoint> = (0..20_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 1_000.0 + (t * 0.07).sin() * 250.0 + t * 0.02;
+            DataPoint::new(t, y)
+        })
+        .collect();
+
+    c.bench_function("histogram_projection_20k", |b| {
+        b.iter(|| {
+            let _ = project_histogram_bars(
+                black_box(&points),
+                black_box(time_scale),
+                black_box(price_scale),
+                black_box(viewport),
+                black_box(5.0),
+                black_box(1_000.0),
+            )
+            .expect("histogram projection should succeed");
+        })
+    });
+}
+
 fn bench_visible_window_points_100k(c: &mut Criterion) {
     let points: Vec<DataPoint> = (0..100_000)
         .map(|i| {
@@ -264,6 +293,7 @@ criterion_group!(
     bench_line_projection_20k,
     bench_area_projection_20k,
     bench_baseline_projection_20k,
+    bench_histogram_projection_20k,
     bench_visible_window_points_100k,
     bench_marker_placement_5k,
     bench_plugin_dispatch_pointer_move,

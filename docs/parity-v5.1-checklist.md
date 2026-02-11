@@ -22,6 +22,7 @@ Use this document to track parity progress.
 | C-007 | Series | Visible data window selection | done | Point/candle series can be filtered by visible logical range with deterministic ordering | `tests/visible_data_window_tests.rs`, `tests/property_api_tests.rs` | Core windowing helpers and API visible-window methods (with overscan) are implemented. |
 | C-008 | Series | Area series projection baseline | done | Area data maps to deterministic line/fill geometry over active scales | `tests/area_series_tests.rs`, `tests/property_area_series_tests.rs` | Core and API area geometry projection (visible + overscan variants) are implemented with explicit baseline-closed polygons. |
 | C-009 | Series | Baseline series projection baseline | done | Baseline data maps to deterministic line + above/below fill geometry over active scales | `tests/baseline_series_tests.rs`, `tests/property_baseline_series_tests.rs` | Core and API baseline geometry projection (visible + overscan variants) are implemented with explicit baseline-closed polygons and clamped split regions. |
+| C-010 | Series | Histogram series projection baseline | done | Histogram values map to deterministic bar geometry anchored to a baseline | `tests/histogram_series_tests.rs`, `tests/property_histogram_series_tests.rs` | Core and API histogram projection (visible + overscan variants) are implemented with explicit bar width validation and baseline anchoring. |
 
 ## Extensions
 
