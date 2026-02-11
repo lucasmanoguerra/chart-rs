@@ -106,6 +106,11 @@ Renderer trait boundary and backend implementations.
 - `NullRenderer`
 - feature-gated cairo backend (`CairoRenderer`, `CairoContextRenderer`)
 
+Render invariants:
+- frame construction is deterministic for fixed engine state
+- axis labels use spacing-aware collision filtering
+- label density scales with viewport size within fixed min/max bounds
+
 ## 3) Data Flow
 
 Typical runtime flow:
@@ -196,6 +201,8 @@ Where to add tests:
   - cairo backend command execution and external-context rendering behavior
 - `tests/property_render_frame_tests.rs`
   - render-frame determinism and finite-geometry invariants
+- `tests/render_axis_layout_tests.rs`
+  - axis label density/collision behavior for narrow vs wide viewports
 - `tests/decimal_time_tests.rs`
   - typed constructor conversions
 - `tests/api_tuning_tests.rs`

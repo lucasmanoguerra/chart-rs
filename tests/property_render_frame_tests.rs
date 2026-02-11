@@ -1,6 +1,6 @@
 use chart_rs::api::{ChartEngine, ChartEngineConfig};
 use chart_rs::core::{DataPoint, Viewport};
-use chart_rs::render::NullRenderer;
+use chart_rs::render::{NullRenderer, TextHAlign};
 use proptest::prelude::*;
 
 proptest! {
@@ -23,7 +23,21 @@ proptest! {
         let second = engine.build_render_frame().expect("second frame");
 
         prop_assert_eq!(&first, &second);
-        prop_assert_eq!(first.texts.len(), 10);
+        let time_labels: Vec<f64> = first
+            .texts
+            .iter()
+            .filter(|label| label.h_align == TextHAlign::Center)
+            .map(|label| label.x)
+            .collect();
+        let price_labels: Vec<f64> = first
+            .texts
+            .iter()
+            .filter(|label| label.h_align == TextHAlign::Right)
+            .map(|label| label.y + 8.0)
+            .collect();
+
+        prop_assert!(!time_labels.is_empty());
+        prop_assert!(!price_labels.is_empty());
         prop_assert!(first.lines.iter().all(|line|
             line.x1.is_finite()
             && line.y1.is_finite()
@@ -32,5 +46,13 @@ proptest! {
             && line.stroke_width.is_finite()
             && line.stroke_width > 0.0
         ));
+
+        let mut sorted_time = time_labels;
+        sorted_time.sort_by(f64::total_cmp);
+        prop_assert!(sorted_time.windows(2).all(|pair| pair[1] - pair[0] >= 56.0));
+
+        let mut sorted_price = price_labels;
+        sorted_price.sort_by(f64::total_cmp);
+        prop_assert!(sorted_price.windows(2).all(|pair| pair[1] - pair[0] >= 22.0));
     }
 }

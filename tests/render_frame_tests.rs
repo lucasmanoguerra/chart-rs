@@ -1,6 +1,6 @@
 use chart_rs::api::{ChartEngine, ChartEngineConfig};
 use chart_rs::core::{DataPoint, Viewport};
-use chart_rs::render::NullRenderer;
+use chart_rs::render::{NullRenderer, TextHAlign};
 
 #[test]
 fn build_render_frame_includes_series_and_axis_primitives() {
@@ -17,8 +17,20 @@ fn build_render_frame_includes_series_and_axis_primitives() {
     let frame = engine.build_render_frame().expect("build frame");
     frame.validate().expect("valid frame");
 
-    assert!(frame.lines.len() >= 14, "expected series + axis lines");
-    assert_eq!(frame.texts.len(), 10, "expected 5 time + 5 price labels");
+    let time_label_count = frame
+        .texts
+        .iter()
+        .filter(|label| label.h_align == TextHAlign::Center)
+        .count();
+    let price_label_count = frame
+        .texts
+        .iter()
+        .filter(|label| label.h_align == TextHAlign::Right)
+        .count();
+
+    assert!(frame.lines.len() >= 18, "expected series + axis lines");
+    assert!(time_label_count >= 2, "time labels must be present");
+    assert!(price_label_count >= 2, "price labels must be present");
 }
 
 #[test]
@@ -32,10 +44,11 @@ fn null_renderer_receives_computed_frame_counts() {
         DataPoint::new(15.0, 20.0),
         DataPoint::new(30.0, 15.0),
     ]);
+    let frame = engine.build_render_frame().expect("build frame");
 
     engine.render().expect("render");
     let renderer = engine.into_renderer();
 
-    assert!(renderer.last_line_count >= 14);
-    assert_eq!(renderer.last_text_count, 10);
+    assert_eq!(renderer.last_line_count, frame.lines.len());
+    assert_eq!(renderer.last_text_count, frame.texts.len());
 }
