@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, FixedOffset, Timelike, Utc};
 use indexmap::IndexMap;
 use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
@@ -101,11 +101,81 @@ impl Default for TimeAxisLabelPolicy {
     }
 }
 
+/// Timezone alignment used by UTC-based time-axis policies.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub enum TimeAxisTimeZone {
+    #[default]
+    Utc,
+    FixedOffsetMinutes {
+        minutes: i16,
+    },
+}
+
+impl TimeAxisTimeZone {
+    #[must_use]
+    fn offset_minutes(self) -> i16 {
+        match self {
+            Self::Utc => 0,
+            Self::FixedOffsetMinutes { minutes } => minutes,
+        }
+    }
+
+    #[must_use]
+    fn fixed_offset(self) -> FixedOffset {
+        let seconds = i32::from(self.offset_minutes()) * 60;
+        FixedOffset::east_opt(seconds)
+            .unwrap_or_else(|| FixedOffset::east_opt(0).expect("zero UTC offset is valid"))
+    }
+}
+
+/// Optional trading-session envelope used by time-axis labels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct TimeAxisSessionConfig {
+    pub start_hour: u8,
+    pub start_minute: u8,
+    pub end_hour: u8,
+    pub end_minute: u8,
+}
+
+impl TimeAxisSessionConfig {
+    #[must_use]
+    fn start_minute_of_day(self) -> u16 {
+        u16::from(self.start_hour) * 60 + u16::from(self.start_minute)
+    }
+
+    #[must_use]
+    fn end_minute_of_day(self) -> u16 {
+        u16::from(self.end_hour) * 60 + u16::from(self.end_minute)
+    }
+
+    #[must_use]
+    fn contains_local_minute(self, minute_of_day: u16) -> bool {
+        let start = self.start_minute_of_day();
+        let end = self.end_minute_of_day();
+        if start < end {
+            minute_of_day >= start && minute_of_day <= end
+        } else {
+            minute_of_day >= start || minute_of_day <= end
+        }
+    }
+
+    #[must_use]
+    fn is_boundary(self, minute_of_day: u16, second: u32) -> bool {
+        if second != 0 {
+            return false;
+        }
+        minute_of_day == self.start_minute_of_day() || minute_of_day == self.end_minute_of_day()
+    }
+}
+
 /// Runtime formatter configuration for the time axis.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct TimeAxisLabelConfig {
     pub locale: AxisLabelLocale,
     pub policy: TimeAxisLabelPolicy,
+    pub timezone: TimeAxisTimeZone,
+    pub session: Option<TimeAxisSessionConfig>,
 }
 
 /// Style contract for the current render frame.
@@ -150,6 +220,8 @@ enum TimeLabelPattern {
     Date,
     DateMinute,
     DateSecond,
+    TimeMinute,
+    TimeSecond,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -161,6 +233,8 @@ enum TimeLabelCacheProfile {
     Utc {
         locale: AxisLabelLocale,
         pattern: TimeLabelPattern,
+        timezone: TimeAxisTimeZone,
+        session: Option<TimeAxisSessionConfig>,
     },
     Custom {
         formatter_generation: u64,
@@ -478,6 +552,8 @@ impl<R: Renderer> ChartEngine<R> {
             ResolvedTimeLabelPattern::Utc { pattern } => TimeLabelCacheProfile::Utc {
                 locale: self.time_axis_label_config.locale,
                 pattern,
+                timezone: self.time_axis_label_config.timezone,
+                session: self.time_axis_label_config.session,
             },
         }
     }
@@ -1420,7 +1496,44 @@ fn validate_time_axis_label_config(
         }
         TimeAxisLabelPolicy::UtcDateTime { .. } | TimeAxisLabelPolicy::UtcAdaptive => {}
     }
+
+    let offset_minutes = i32::from(config.timezone.offset_minutes());
+    if !(-14 * 60..=14 * 60).contains(&offset_minutes) {
+        return Err(ChartError::InvalidData(
+            "time-axis timezone offset must be between -840 and 840 minutes".to_owned(),
+        ));
+    }
+
+    if let Some(session) = config.session {
+        validate_time_axis_session_config(session)?;
+    }
+
     Ok(config)
+}
+
+fn validate_time_axis_session_config(
+    session: TimeAxisSessionConfig,
+) -> ChartResult<TimeAxisSessionConfig> {
+    for (name, value, max_exclusive) in [
+        ("start_hour", session.start_hour, 24),
+        ("start_minute", session.start_minute, 60),
+        ("end_hour", session.end_hour, 24),
+        ("end_minute", session.end_minute, 60),
+    ] {
+        if value >= max_exclusive {
+            return Err(ChartError::InvalidData(format!(
+                "time-axis session `{name}` must be < {max_exclusive}"
+            )));
+        }
+    }
+
+    if session.start_minute_of_day() == session.end_minute_of_day() {
+        return Err(ChartError::InvalidData(
+            "time-axis session start/end must not be equal".to_owned(),
+        ));
+    }
+
+    Ok(session)
 }
 
 fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
@@ -1511,17 +1624,49 @@ fn format_time_axis_label(
             let Some(dt) = DateTime::<Utc>::from_timestamp(seconds, 0) else {
                 return format_axis_decimal(logical_time, 2, config.locale);
             };
+            let local_dt = dt.with_timezone(&config.timezone.fixed_offset());
+            let pattern = resolve_session_time_label_pattern(pattern, config.session, local_dt);
 
             let pattern = match (config.locale, pattern) {
                 (AxisLabelLocale::EnUs, TimeLabelPattern::Date) => "%Y-%m-%d",
                 (AxisLabelLocale::EnUs, TimeLabelPattern::DateMinute) => "%Y-%m-%d %H:%M",
                 (AxisLabelLocale::EnUs, TimeLabelPattern::DateSecond) => "%Y-%m-%d %H:%M:%S",
+                (AxisLabelLocale::EnUs, TimeLabelPattern::TimeMinute) => "%H:%M",
+                (AxisLabelLocale::EnUs, TimeLabelPattern::TimeSecond) => "%H:%M:%S",
                 (AxisLabelLocale::EsEs, TimeLabelPattern::Date) => "%d/%m/%Y",
                 (AxisLabelLocale::EsEs, TimeLabelPattern::DateMinute) => "%d/%m/%Y %H:%M",
                 (AxisLabelLocale::EsEs, TimeLabelPattern::DateSecond) => "%d/%m/%Y %H:%M:%S",
+                (AxisLabelLocale::EsEs, TimeLabelPattern::TimeMinute) => "%H:%M",
+                (AxisLabelLocale::EsEs, TimeLabelPattern::TimeSecond) => "%H:%M:%S",
             };
-            dt.format(pattern).to_string()
+            local_dt.format(pattern).to_string()
         }
+    }
+}
+
+fn resolve_session_time_label_pattern(
+    pattern: TimeLabelPattern,
+    session: Option<TimeAxisSessionConfig>,
+    local_dt: DateTime<FixedOffset>,
+) -> TimeLabelPattern {
+    let Some(session) = session else {
+        return pattern;
+    };
+
+    // Session mode keeps boundary timestamps explicit while reducing in-session
+    // noise to time-only labels for intraday readability.
+    let minute_of_day = (local_dt.hour() * 60 + local_dt.minute()) as u16;
+    if !session.contains_local_minute(minute_of_day) {
+        return pattern;
+    }
+    if session.is_boundary(minute_of_day, local_dt.second()) {
+        return pattern;
+    }
+
+    match pattern {
+        TimeLabelPattern::DateMinute => TimeLabelPattern::TimeMinute,
+        TimeLabelPattern::DateSecond => TimeLabelPattern::TimeSecond,
+        other => other,
     }
 }
 

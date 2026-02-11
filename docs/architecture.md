@@ -68,7 +68,8 @@ Tuning contracts:
 - `api` builds a deterministic `RenderFrame` containing backend-agnostic line/text primitives
 - axis tick density is selected from viewport size and filtered with deterministic spacing rules
 - time-axis labels are produced via policy+locale config with optional custom formatter injection
-- time-axis formatter supports zoom-aware adaptive detail and in-engine label caching
+- time-axis formatter supports zoom-aware adaptive detail, fixed-offset timezone alignment, and optional session-boundary semantics
+- in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract
 - `render` backends execute primitives only (no scale math or interaction decisions)
 - `cairo-backend` supports:

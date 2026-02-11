@@ -3,6 +3,7 @@ use std::sync::Arc;
 use chart_rs::ChartError;
 use chart_rs::api::{
     AxisLabelLocale, ChartEngine, ChartEngineConfig, TimeAxisLabelConfig, TimeAxisLabelPolicy,
+    TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::Viewport;
 use chart_rs::render::{NullRenderer, TextHAlign};
@@ -18,6 +19,7 @@ fn time_axis_decimal_locale_es_uses_comma_separator() {
         .set_time_axis_label_config(TimeAxisLabelConfig {
             locale: AxisLabelLocale::EsEs,
             policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 1 },
+            ..TimeAxisLabelConfig::default()
         })
         .expect("set label config");
 
@@ -46,6 +48,7 @@ fn time_axis_datetime_policy_formats_utc_labels() {
             policy: TimeAxisLabelPolicy::UtcDateTime {
                 show_seconds: false,
             },
+            ..TimeAxisLabelConfig::default()
         })
         .expect("set label config");
 
@@ -100,6 +103,7 @@ fn utc_adaptive_policy_changes_label_detail_with_zoom() {
         .set_time_axis_label_config(TimeAxisLabelConfig {
             locale: AxisLabelLocale::EnUs,
             policy: TimeAxisLabelPolicy::UtcAdaptive,
+            ..TimeAxisLabelConfig::default()
         })
         .expect("set adaptive policy");
 
@@ -146,6 +150,7 @@ fn time_label_cache_reports_hits_for_repeated_frame_builds() {
         .set_time_axis_label_config(TimeAxisLabelConfig {
             locale: AxisLabelLocale::EnUs,
             policy: TimeAxisLabelPolicy::UtcAdaptive,
+            ..TimeAxisLabelConfig::default()
         })
         .expect("set adaptive policy");
     engine.clear_time_label_cache();
@@ -171,7 +176,129 @@ fn invalid_time_axis_precision_is_rejected() {
         .set_time_axis_label_config(TimeAxisLabelConfig {
             locale: AxisLabelLocale::EnUs,
             policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 32 },
+            ..TimeAxisLabelConfig::default()
         })
         .expect_err("precision should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn utc_datetime_timezone_offset_aligns_label_output() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(820, 320), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 10.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: None,
+        })
+        .expect("set timezone policy");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let time_labels: Vec<&str> = frame
+        .texts
+        .iter()
+        .filter(|label| label.h_align == TextHAlign::Center)
+        .map(|label| label.text.as_str())
+        .collect();
+
+    assert!(!time_labels.is_empty());
+    assert!(
+        time_labels
+            .iter()
+            .all(|text| text.contains("2024-01-02 09:"))
+    );
+}
+
+#[test]
+fn session_boundary_keeps_date_context_while_intraday_labels_collapse_to_time() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 340), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 10.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session policy");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let time_labels: Vec<&str> = frame
+        .texts
+        .iter()
+        .filter(|label| label.h_align == TextHAlign::Center)
+        .map(|label| label.text.as_str())
+        .collect();
+
+    assert!(!time_labels.is_empty());
+    assert!(
+        time_labels
+            .iter()
+            .any(|text| text.contains("2024-01-02 09:30"))
+    );
+    assert!(
+        time_labels
+            .iter()
+            .any(|text| text.starts_with("09:") && !text.contains('-'))
+    );
+}
+
+#[test]
+fn invalid_time_axis_timezone_offset_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(640, 300), 10.0, 20.0).with_price_domain(0.0, 10.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let err = engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: 960 },
+            session: None,
+        })
+        .expect_err("timezone should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_time_axis_session_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(640, 300), 10.0, 20.0).with_price_domain(0.0, 10.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let err = engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcAdaptive,
+            timezone: TimeAxisTimeZone::Utc,
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 9,
+                end_minute: 30,
+            }),
+        })
+        .expect_err("session should fail");
     assert!(matches!(err, ChartError::InvalidData(_)));
 }
