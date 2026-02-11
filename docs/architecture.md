@@ -66,6 +66,7 @@ Tuning contracts:
 ## Render Strategy
 
 - `api` builds a deterministic `RenderFrame` containing backend-agnostic line/text primitives
+- axis tick density is selected from viewport size and filtered with deterministic spacing rules
 - `render` backends execute primitives only (no scale math or interaction decisions)
 - `cairo-backend` supports:
   - offscreen image-surface rendering

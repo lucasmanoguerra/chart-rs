@@ -913,6 +913,10 @@ impl<R: Renderer> ChartEngine<R> {
         let viewport_height = f64::from(self.viewport.height);
         let axis_color = Color::rgb(0.72, 0.75, 0.78);
         let label_color = Color::rgb(0.22, 0.25, 0.28);
+        let time_tick_count =
+            axis_tick_target_count(viewport_width, AXIS_TIME_TARGET_SPACING_PX, 2, 12);
+        let price_tick_count =
+            axis_tick_target_count(viewport_height, AXIS_PRICE_TARGET_SPACING_PX, 2, 16);
 
         // Axis baselines are rendered as simple primitives so they can be reused
         // unchanged by null, cairo, and future GPU backends.
@@ -933,8 +937,16 @@ impl<R: Renderer> ChartEngine<R> {
             axis_color,
         ));
 
-        for time in axis_ticks(self.time_scale.visible_range(), 5) {
+        let mut time_ticks = Vec::with_capacity(time_tick_count);
+        for time in axis_ticks(self.time_scale.visible_range(), time_tick_count) {
             let px = self.time_scale.time_to_pixel(time, self.viewport)?;
+            let clamped_px = px.clamp(0.0, viewport_width);
+            time_ticks.push((time, clamped_px));
+        }
+
+        // Resolve label collisions with deterministic spacing to keep axes legible
+        // in narrow viewports while preserving reproducible output.
+        for (time, px) in select_ticks_with_min_spacing(time_ticks, AXIS_TIME_MIN_SPACING_PX) {
             let text = format!("{time:.2}");
             frame = frame.with_text(TextPrimitive::new(
                 text,
@@ -954,8 +966,14 @@ impl<R: Renderer> ChartEngine<R> {
             ));
         }
 
-        for price in axis_ticks(self.price_scale.domain(), 5) {
+        let mut price_ticks = Vec::with_capacity(price_tick_count);
+        for price in axis_ticks(self.price_scale.domain(), price_tick_count) {
             let py = self.price_scale.price_to_pixel(price, self.viewport)?;
+            let clamped_py = py.clamp(0.0, viewport_height);
+            price_ticks.push((price, clamped_py));
+        }
+
+        for (price, py) in select_ticks_with_min_spacing(price_ticks, AXIS_PRICE_MIN_SPACING_PX) {
             let text = format!("{price:.2}");
             frame = frame.with_text(TextPrimitive::new(
                 text,
@@ -1130,6 +1148,68 @@ fn markers_in_time_window(markers: &[SeriesMarker], start: f64, end: f64) -> Vec
         .filter(|marker| marker.time >= min_t && marker.time <= max_t)
         .cloned()
         .collect()
+}
+
+const AXIS_TIME_TARGET_SPACING_PX: f64 = 72.0;
+const AXIS_TIME_MIN_SPACING_PX: f64 = 56.0;
+const AXIS_PRICE_TARGET_SPACING_PX: f64 = 26.0;
+const AXIS_PRICE_MIN_SPACING_PX: f64 = 22.0;
+
+fn axis_tick_target_count(
+    axis_span_px: f64,
+    target_spacing_px: f64,
+    min_ticks: usize,
+    max_ticks: usize,
+) -> usize {
+    if !axis_span_px.is_finite() || axis_span_px <= 0.0 {
+        return min_ticks;
+    }
+    if !target_spacing_px.is_finite() || target_spacing_px <= 0.0 {
+        return min_ticks;
+    }
+
+    let raw = (axis_span_px / target_spacing_px).floor() as usize + 1;
+    raw.clamp(min_ticks, max_ticks)
+}
+
+fn select_ticks_with_min_spacing(
+    mut ticks: Vec<(f64, f64)>,
+    min_spacing_px: f64,
+) -> Vec<(f64, f64)> {
+    if ticks.is_empty() {
+        return ticks;
+    }
+
+    ticks.sort_by(|left, right| left.1.total_cmp(&right.1));
+    if ticks.len() == 1 || !min_spacing_px.is_finite() || min_spacing_px <= 0.0 {
+        return ticks;
+    }
+
+    let mut selected = Vec::with_capacity(ticks.len());
+    selected.push(ticks[0]);
+
+    for tick in ticks.iter().copied().skip(1) {
+        if tick.1 - selected.last().expect("not empty").1 >= min_spacing_px {
+            selected.push(tick);
+        }
+    }
+
+    let last_tick = *ticks.last().expect("not empty");
+    let selected_last = *selected.last().expect("not empty");
+    if selected_last != last_tick {
+        if selected.len() == 1 {
+            // On very narrow axes a single label is clearer than overlapping pairs.
+            selected[0] = last_tick;
+        } else {
+            let penultimate = selected[selected.len() - 2];
+            if last_tick.1 - penultimate.1 >= min_spacing_px {
+                let last_index = selected.len() - 1;
+                selected[last_index] = last_tick;
+            }
+        }
+    }
+
+    selected
 }
 
 fn axis_ticks(range: (f64, f64), tick_count: usize) -> Vec<f64> {

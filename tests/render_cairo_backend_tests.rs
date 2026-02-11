@@ -23,13 +23,14 @@ fn cairo_renderer_renders_series_and_axis_primitives() {
         DataPoint::new(20.0, 20.0),
         DataPoint::new(40.0, 15.0),
     ]);
+    let frame = engine.build_render_frame().expect("build frame");
 
     engine.render().expect("render");
     let renderer = engine.into_renderer();
     let stats = renderer.last_stats();
 
-    assert!(stats.lines_drawn >= 14);
-    assert_eq!(stats.texts_drawn, 10);
+    assert_eq!(stats.lines_drawn, frame.lines.len());
+    assert_eq!(stats.texts_drawn, frame.texts.len());
 }
 
 #[test]
@@ -51,5 +52,5 @@ fn cairo_renderer_can_draw_on_external_context() {
         .expect("render on context");
 
     let renderer = engine.into_renderer();
-    assert!(renderer.last_stats().lines_drawn >= 14);
+    assert!(renderer.last_stats().lines_drawn >= 6);
 }

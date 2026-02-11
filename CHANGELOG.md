@@ -8,7 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Axis tick density/collision baseline (`R-002`) with deterministic spacing-aware label selection.
+- Render-frame axis label counts now adapt to viewport size while preserving deterministic output.
+- New axis-layout regression tests and benchmark coverage for narrow viewport behavior.
 
 ## [0.0.14-alpha.0] - 2026-02-11
 
