@@ -8,6 +8,11 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Nothing yet.
+
+## [0.0.12-alpha.0] - 2026-02-11
+
+### Added
 - Wheel zoom controller baseline (`C-013`) with deterministic notch-normalized zoom factors.
 - Public wheel zoom API anchored to pixel coordinates with strict input validation.
 - New integration/property tests for wheel zoom direction, no-op semantics, and anchor stability.
