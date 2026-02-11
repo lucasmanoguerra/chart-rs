@@ -25,5 +25,5 @@ Use this document to track parity progress.
 
 | ID | Area | Feature | Status | Acceptance Criteria | Test Evidence | Notes |
 |---|---|---|---|---|---|---|
-| E-001 | Markers | Advanced marker placement | not started | Marker collision and alignment match expected rules | TBD | |
+| E-001 | Markers | Advanced marker placement | done | Marker collision and alignment match expected rules | `tests/markers_tests.rs`, `tests/property_markers_tests.rs` | Deterministic marker placement with lane-based collision avoidance and visible-window projection is implemented. |
 | E-002 | Plugins | Custom extension hooks | not started | Extension points allow bounded custom logic without core coupling | TBD | |
