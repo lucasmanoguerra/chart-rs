@@ -10,6 +10,17 @@ and this project adheres to Semantic Versioning.
 ### Added
 - Nothing yet.
 
+## [0.0.5-alpha.0] - 2026-02-11
+
+### Added
+- Serializable chart bootstrap config and deterministic engine snapshot APIs.
+- Stable series metadata ordering for reproducible snapshot fixtures.
+- Optional telemetry bootstrap module (`telemetry` feature) backed by `tracing-subscriber`.
+- Optional parallel candle projection path (`parallel-projection` feature) backed by `rayon`.
+- Extended in-code documentation across core scaling/candlestick/data modules.
+- New snapshot regression tests and property-based tests for snapping/snapshot invariants.
+- New criterion benchmarks for large candle projection and snapshot JSON serialization paths.
+
 ## [0.0.4-alpha.0] - 2026-02-11
 
 ### Added
