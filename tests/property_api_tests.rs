@@ -27,9 +27,13 @@ proptest! {
 
         let crosshair = engine.crosshair_state();
         let snapped_x = crosshair.snapped_x.expect("snapped x");
+        let snapped_time = crosshair.snapped_time.expect("snapped time");
+        let snapped_price = crosshair.snapped_price.expect("snapped price");
         let expected_x = engine.map_x_to_pixel(t0).expect("expected x");
 
         prop_assert!((snapped_x - expected_x).abs() <= 1e-7);
+        prop_assert!((snapped_time - t0).abs() <= 1e-7);
+        prop_assert!((snapped_price - y0).abs() <= 1e-7);
     }
 
     #[test]
@@ -58,9 +62,13 @@ proptest! {
 
         let crosshair = engine.crosshair_state();
         let snapped_x = crosshair.snapped_x.expect("snapped x");
+        let snapped_time = crosshair.snapped_time.expect("snapped time");
+        let snapped_price = crosshair.snapped_price.expect("snapped price");
         let expected_x = engine.map_x_to_pixel(t1).expect("expected x");
 
         prop_assert!((snapped_x - expected_x).abs() <= 1e-7);
+        prop_assert!((snapped_time - t1).abs() <= 1e-7);
+        prop_assert!((snapped_price - close1).abs() <= 1e-7);
     }
 
     #[test]
