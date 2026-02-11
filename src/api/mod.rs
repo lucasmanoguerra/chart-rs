@@ -228,12 +228,18 @@ pub struct RenderStyle {
     pub major_grid_line_color: Color,
     pub axis_border_color: Color,
     pub axis_label_color: Color,
+    pub last_price_line_color: Color,
+    pub last_price_label_color: Color,
     pub grid_line_width: f64,
     pub major_grid_line_width: f64,
     pub axis_line_width: f64,
+    pub last_price_line_width: f64,
     pub major_time_label_font_size_px: f64,
+    pub last_price_label_font_size_px: f64,
     pub price_axis_width_px: f64,
     pub time_axis_height_px: f64,
+    pub show_last_price_line: bool,
+    pub show_last_price_label: bool,
 }
 
 impl Default for RenderStyle {
@@ -244,12 +250,18 @@ impl Default for RenderStyle {
             major_grid_line_color: Color::rgb(0.78, 0.83, 0.90),
             axis_border_color: Color::rgb(0.82, 0.84, 0.88),
             axis_label_color: Color::rgb(0.10, 0.12, 0.16),
+            last_price_line_color: Color::rgb(0.16, 0.38, 1.0),
+            last_price_label_color: Color::rgb(0.16, 0.38, 1.0),
             grid_line_width: 1.0,
             major_grid_line_width: 1.25,
             axis_line_width: 1.0,
+            last_price_line_width: 1.25,
             major_time_label_font_size_px: 12.0,
+            last_price_label_font_size_px: 11.0,
             price_axis_width_px: 72.0,
             time_axis_height_px: 24.0,
+            show_last_price_line: true,
+            show_last_price_label: true,
         }
     }
 }
@@ -774,6 +786,36 @@ impl<R: Renderer> ChartEngine<R> {
 
         let domain = self.price_scale.domain();
         if domain.0.is_finite() { domain.0 } else { 1.0 }
+    }
+
+    fn resolve_latest_price_value(&self) -> Option<f64> {
+        let mut candidate: Option<(f64, f64)> = None;
+
+        for point in &self.points {
+            if !point.x.is_finite() || !point.y.is_finite() {
+                continue;
+            }
+            candidate = match candidate {
+                Some((best_time, best_price)) if best_time >= point.x => {
+                    Some((best_time, best_price))
+                }
+                _ => Some((point.x, point.y)),
+            };
+        }
+
+        for candle in &self.candles {
+            if !candle.time.is_finite() || !candle.close.is_finite() {
+                continue;
+            }
+            candidate = match candidate {
+                Some((best_time, best_price)) if best_time >= candle.time => {
+                    Some((best_time, best_price))
+                }
+                _ => Some((candle.time, candle.close)),
+            };
+        }
+
+        candidate.map(|(_, price)| price)
     }
 
     fn resolve_time_label_cache_profile(&self, visible_span_abs: f64) -> TimeLabelCacheProfile {
@@ -1625,6 +1667,45 @@ impl<R: Renderer> ChartEngine<R> {
             ));
         }
 
+        if let Some(last_price) = self.resolve_latest_price_value() {
+            let py = self
+                .price_scale
+                .price_to_pixel(last_price, self.viewport)?
+                .clamp(0.0, plot_bottom);
+
+            if style.show_last_price_line {
+                frame = frame.with_line(LinePrimitive::new(
+                    0.0,
+                    py,
+                    plot_right,
+                    py,
+                    style.last_price_line_width,
+                    style.last_price_line_color,
+                ));
+            }
+
+            if style.show_last_price_label {
+                let display_price = map_price_to_display_value(
+                    last_price,
+                    self.price_axis_label_config.display_mode,
+                    fallback_display_base_price,
+                );
+                let text = self.format_price_axis_label(
+                    display_price,
+                    display_tick_step_abs,
+                    display_suffix,
+                );
+                frame = frame.with_text(TextPrimitive::new(
+                    text,
+                    viewport_width - 6.0,
+                    (py - style.last_price_label_font_size_px * 0.72).max(0.0),
+                    style.last_price_label_font_size_px,
+                    style.last_price_label_color,
+                    TextHAlign::Right,
+                ));
+            }
+        }
+
         frame.validate()?;
         Ok(frame)
     }
@@ -1879,14 +1960,21 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.major_grid_line_color.validate()?;
     style.axis_border_color.validate()?;
     style.axis_label_color.validate()?;
+    style.last_price_line_color.validate()?;
+    style.last_price_label_color.validate()?;
 
     for (name, value) in [
         ("grid_line_width", style.grid_line_width),
         ("major_grid_line_width", style.major_grid_line_width),
         ("axis_line_width", style.axis_line_width),
+        ("last_price_line_width", style.last_price_line_width),
         (
             "major_time_label_font_size_px",
             style.major_time_label_font_size_px,
+        ),
+        (
+            "last_price_label_font_size_px",
+            style.last_price_label_font_size_px,
         ),
         ("price_axis_width_px", style.price_axis_width_px),
         ("time_axis_height_px", style.time_axis_height_px),

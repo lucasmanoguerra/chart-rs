@@ -1,6 +1,6 @@
-use chart_rs::api::{ChartEngine, ChartEngineConfig};
+use chart_rs::api::{ChartEngine, ChartEngineConfig, RenderStyle};
 use chart_rs::core::{DataPoint, Viewport};
-use chart_rs::render::{NullRenderer, TextHAlign};
+use chart_rs::render::{Color, NullRenderer, TextHAlign};
 
 #[test]
 fn build_render_frame_includes_series_and_axis_primitives() {
@@ -51,4 +51,65 @@ fn null_renderer_receives_computed_frame_counts() {
 
     assert_eq!(renderer.last_line_count, frame.lines.len());
     assert_eq!(renderer.last_text_count, frame.texts.len());
+}
+
+#[test]
+fn last_price_marker_uses_latest_sample_value() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1.0, 12.0),
+        DataPoint::new(2.0, 16.0),
+        DataPoint::new(3.0, 15.0),
+    ]);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let style = engine.render_style();
+    let expected_y = engine.map_price_to_pixel(15.0).expect("map").clamp(
+        0.0,
+        f64::from(engine.viewport().height) - style.time_axis_height_px,
+    );
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.last_price_line_color
+            && line.stroke_width == style.last_price_line_width
+            && (line.y1 - expected_y).abs() <= 1e-9
+            && (line.y2 - expected_y).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.last_price_label_color
+            && text.h_align == TextHAlign::Right
+            && text.text == "15.00"
+    }));
+}
+
+#[test]
+fn last_price_marker_can_be_disabled() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 12.0), DataPoint::new(2.0, 16.0)]);
+
+    let custom_style = RenderStyle {
+        last_price_line_color: Color::rgb(1.0, 0.0, 0.0),
+        last_price_label_color: Color::rgb(1.0, 0.0, 0.0),
+        show_last_price_line: false,
+        show_last_price_label: false,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(custom_style)
+        .expect("set render style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == custom_style.last_price_line_color
+            && line.stroke_width == custom_style.last_price_line_width
+    }));
+    assert!(!frame.texts.iter().any(|text| {
+        text.color == custom_style.last_price_label_color && text.h_align == TextHAlign::Right
+    }));
 }

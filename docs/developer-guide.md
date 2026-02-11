@@ -101,6 +101,7 @@ Responsibilities:
 - price-axis formatter policy + display-mode + custom formatter injection
 - zoom-aware adaptive time-axis formatting and label-cache metrics
 - price-axis label-cache metrics for redraw hot paths (`price_label_cache_stats`)
+- latest-price marker controls (line/label style + visibility toggles)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -127,6 +128,7 @@ Render invariants:
 - log-mode price-axis ticks prefer deterministic 1/2/5 decade ladders with endpoint-preserving downsampling
 - repeated redraws reuse deterministic time-label cache entries (`time_label_cache_stats`)
 - repeated redraws reuse deterministic price-label cache entries (`price_label_cache_stats`)
+- render frame can include deterministic latest-price marker primitives from newest point/candle sample
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow
@@ -218,7 +220,7 @@ Where to add tests:
 - `tests/interaction_kinetic_pan_tests.rs`
   - deterministic wheel-pan and kinetic-pan stepping behavior
 - `tests/render_frame_tests.rs`
-  - deterministic render-frame construction and null-renderer command counts
+  - deterministic render-frame construction, latest-price marker behavior, and null-renderer command counts
 - `tests/render_cairo_backend_tests.rs`
   - cairo backend command execution and external-context rendering behavior
 - `tests/property_render_frame_tests.rs`
