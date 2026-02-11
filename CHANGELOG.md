@@ -8,6 +8,11 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- No changes yet.
+
+## [0.0.20-alpha.0] - 2026-02-11
+
+### Added
 - Price-axis formatter parity baseline (`R-008`) with fixed-decimal, adaptive, and min-move policies.
 - Deterministic min-move rounding with optional trailing-zero trimming and locale-aware rendering.
 - New price-axis formatter tests and benchmark coverage for min-move formatting path.
