@@ -83,6 +83,7 @@ Interaction invariants:
 - pointer leave clears visibility and snap state
 - `CrosshairMode::Magnet` snaps to nearest mapped data/candle candidate
 - `CrosshairMode::Normal` follows pointer coordinates without snapping
+- wheel delta is normalized to 120-step notches for deterministic zoom factors
 
 ### `src/api`
 Main public facade (`ChartEngine`, `ChartEngineConfig`).
@@ -108,7 +109,7 @@ Typical runtime flow:
 1. create engine with initial time/price domains
 2. push/update points and/or candles
 3. call fit/autoscale APIs to derive tuned domains
-4. pointer events update crosshair and snapping state
+4. pointer/wheel events update crosshair and visible-range interaction state
 5. renderer consumes immutable frame data
 
 ## 4) Scale Tuning Details
@@ -180,6 +181,8 @@ Where to add tests:
   - OHLC bar ordering/visibility invariants and finite-geometry properties
 - `tests/crosshair_tests.rs`
   - interaction-level crosshair snapping and mode-switch behavior
+- `tests/interaction_wheel_zoom_tests.rs`
+  - deterministic wheel-zoom direction, no-op, and anchor-stability behavior
 - `tests/decimal_time_tests.rs`
   - typed constructor conversions
 - `tests/api_tuning_tests.rs`

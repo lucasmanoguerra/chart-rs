@@ -221,4 +221,35 @@ proptest! {
         prop_assert!(crosshair.snapped_time.is_none());
         prop_assert!(crosshair.snapped_price.is_none());
     }
+
+    #[test]
+    fn wheel_zoom_keeps_anchor_stable(
+        time_start in -10_000.0f64..10_000.0,
+        time_span in 10.0f64..5_000.0,
+        anchor_ratio in 0.05f64..0.95,
+        delta_steps in -3i32..4i32,
+        zoom_step_ratio in 0.01f64..0.5
+    ) {
+        prop_assume!(delta_steps != 0);
+
+        let renderer = NullRenderer::default();
+        let time_end = time_start + time_span;
+        let config = ChartEngineConfig::new(
+            Viewport::new(1200, 700),
+            time_start,
+            time_end,
+        ).with_price_domain(0.0, 1000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+        let anchor_px = 1200.0 * anchor_ratio;
+        let anchor_time_before = engine.map_pixel_to_x(anchor_px).expect("anchor before");
+
+        let wheel_delta_y = 120.0 * f64::from(delta_steps);
+        let _ = engine
+            .wheel_zoom_time_visible(wheel_delta_y, anchor_px, zoom_step_ratio, 1e-6)
+            .expect("wheel zoom");
+
+        let anchor_time_after = engine.map_pixel_to_x(anchor_px).expect("anchor after");
+        prop_assert!((anchor_time_after - anchor_time_before).abs() <= 1e-6);
+    }
 }

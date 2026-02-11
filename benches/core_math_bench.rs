@@ -357,6 +357,35 @@ fn bench_crosshair_modes_pointer_move(c: &mut Criterion) {
     });
 }
 
+fn bench_wheel_zoom_step(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0).with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+
+    c.bench_function("wheel_zoom_step_pair", |b| {
+        b.iter(|| {
+            let _ = engine
+                .wheel_zoom_time_visible(
+                    black_box(-120.0),
+                    black_box(800.0),
+                    black_box(0.2),
+                    black_box(1e-6),
+                )
+                .expect("wheel zoom in");
+            let _ = engine
+                .wheel_zoom_time_visible(
+                    black_box(120.0),
+                    black_box(800.0),
+                    black_box(0.2),
+                    black_box(1e-6),
+                )
+                .expect("wheel zoom out");
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -370,6 +399,7 @@ criterion_group!(
     bench_marker_placement_5k,
     bench_plugin_dispatch_pointer_move,
     bench_crosshair_modes_pointer_move,
+    bench_wheel_zoom_step,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);
