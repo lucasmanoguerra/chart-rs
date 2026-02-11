@@ -2,9 +2,9 @@
 
 use cairo::{Context, Format, ImageSurface};
 use chart_rs::ChartError;
-use chart_rs::api::{ChartEngine, ChartEngineConfig};
+use chart_rs::api::{ChartEngine, ChartEngineConfig, RenderStyle};
 use chart_rs::core::{DataPoint, Viewport};
-use chart_rs::render::CairoRenderer;
+use chart_rs::render::{CairoRenderer, Color};
 
 #[test]
 fn cairo_renderer_rejects_invalid_surface_size() {
@@ -54,4 +54,35 @@ fn cairo_renderer_can_draw_on_external_context() {
 
     let renderer = engine.into_renderer();
     assert!(renderer.last_stats().lines_drawn >= 6);
+}
+
+#[test]
+fn cairo_renderer_draws_last_price_label_box_rectangles() {
+    let renderer = CairoRenderer::new(600, 320).expect("renderer");
+    let config =
+        ChartEngineConfig::new(Viewport::new(600, 320), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(0.0, 10.0),
+        DataPoint::new(30.0, 20.0),
+        DataPoint::new(60.0, 15.0),
+    ]);
+    engine
+        .set_render_style(RenderStyle {
+            show_last_price_label_box: true,
+            last_price_label_box_use_marker_color: false,
+            last_price_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+            last_price_label_box_auto_text_contrast: false,
+            last_price_label_box_text_color: Color::rgb(0.95, 0.95, 0.95),
+            last_price_label_box_border_width_px: 1.0,
+            last_price_label_box_border_color: Color::rgb(0.8, 0.8, 0.8),
+            last_price_label_box_corner_radius_px: 4.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    engine.render().expect("render");
+
+    let renderer = engine.into_renderer();
+    assert!(renderer.last_stats().rects_drawn >= 1);
 }

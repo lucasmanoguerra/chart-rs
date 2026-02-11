@@ -13,7 +13,7 @@ use chart_rs::extensions::{
     place_markers_on_candles,
 };
 use chart_rs::interaction::{CrosshairMode, KineticPanConfig};
-use chart_rs::render::NullRenderer;
+use chart_rs::render::{Color, NullRenderer};
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
 
@@ -852,6 +852,12 @@ fn bench_last_price_label_box_render(c: &mut Criterion) {
             show_last_price_line: true,
             show_last_price_label: true,
             show_last_price_label_box: true,
+            last_price_label_box_use_marker_color: false,
+            last_price_label_box_color: Color::rgb(0.14, 0.14, 0.14),
+            last_price_label_box_auto_text_contrast: true,
+            last_price_label_box_border_width_px: 1.0,
+            last_price_label_box_border_color: Color::rgb(0.85, 0.85, 0.85),
+            last_price_label_box_corner_radius_px: 4.0,
             ..engine.render_style()
         })
         .expect("set style");

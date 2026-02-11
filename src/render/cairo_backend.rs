@@ -1,5 +1,6 @@
 use cairo::{Context, Format, ImageSurface};
 use pango::FontDescription;
+use std::f64::consts::{FRAC_PI_2, PI};
 
 use crate::error::{ChartError, ChartResult};
 use crate::render::{Color, RenderFrame, Renderer, TextHAlign};
@@ -100,11 +101,22 @@ impl CairoRenderer {
         }
 
         for rect in &frame.rects {
+            append_rect_path(context, *rect);
             apply_color(context, rect.fill_color);
-            context.rectangle(rect.x, rect.y, rect.width, rect.height);
-            context
-                .fill()
-                .map_err(|err| map_backend_error("failed to fill rectangle", err))?;
+            if rect.border_width > 0.0 {
+                context
+                    .fill_preserve()
+                    .map_err(|err| map_backend_error("failed to fill rectangle", err))?;
+                apply_color(context, rect.border_color);
+                context.set_line_width(rect.border_width);
+                context
+                    .stroke()
+                    .map_err(|err| map_backend_error("failed to stroke rectangle border", err))?;
+            } else {
+                context
+                    .fill()
+                    .map_err(|err| map_backend_error("failed to fill rectangle", err))?;
+            }
             stats.rects_drawn += 1;
         }
 
@@ -153,6 +165,29 @@ impl CairoContextRenderer for CairoRenderer {
 
 fn apply_color(context: &Context, color: Color) {
     context.set_source_rgba(color.red, color.green, color.blue, color.alpha);
+}
+
+fn append_rect_path(context: &Context, rect: crate::render::RectPrimitive) {
+    if rect.corner_radius <= 0.0 {
+        context.rectangle(rect.x, rect.y, rect.width, rect.height);
+        return;
+    }
+
+    let radius = rect
+        .corner_radius
+        .min(rect.width * 0.5)
+        .min(rect.height * 0.5);
+    let left = rect.x;
+    let top = rect.y;
+    let right = rect.x + rect.width;
+    let bottom = rect.y + rect.height;
+
+    context.new_sub_path();
+    context.arc(right - radius, top + radius, radius, -FRAC_PI_2, 0.0);
+    context.arc(right - radius, bottom - radius, radius, 0.0, FRAC_PI_2);
+    context.arc(left + radius, bottom - radius, radius, FRAC_PI_2, PI);
+    context.arc(left + radius, top + radius, radius, PI, PI + FRAC_PI_2);
+    context.close_path();
 }
 
 fn map_backend_error(prefix: &str, err: cairo::Error) -> ChartError {

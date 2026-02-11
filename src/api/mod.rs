@@ -270,8 +270,16 @@ pub struct RenderStyle {
     pub last_price_label_box_color: Color,
     /// Text color used inside the last-price label box.
     pub last_price_label_box_text_color: Color,
+    /// When enabled, text color is derived from label-box fill luminance.
+    pub last_price_label_box_auto_text_contrast: bool,
     /// Vertical padding around last-price text when drawing label box.
     pub last_price_label_box_padding_y_px: f64,
+    /// Border width for last-price label box.
+    pub last_price_label_box_border_width_px: f64,
+    /// Border color for last-price label box.
+    pub last_price_label_box_border_color: Color,
+    /// Corner radius for last-price label box.
+    pub last_price_label_box_corner_radius_px: f64,
     pub last_price_label_exclusion_px: f64,
 }
 
@@ -304,7 +312,11 @@ impl Default for RenderStyle {
             last_price_label_box_use_marker_color: true,
             last_price_label_box_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_box_text_color: Color::rgb(1.0, 1.0, 1.0),
+            last_price_label_box_auto_text_contrast: true,
             last_price_label_box_padding_y_px: 2.5,
+            last_price_label_box_border_width_px: 0.0,
+            last_price_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
+            last_price_label_box_corner_radius_px: 0.0,
             last_price_label_exclusion_px: 22.0,
         }
     }
@@ -974,6 +986,30 @@ impl<R: Renderer> ChartEngine<R> {
             marker_label_color
         } else {
             style.last_price_label_box_color
+        }
+    }
+
+    fn resolve_last_price_label_box_text_color(
+        &self,
+        box_fill_color: Color,
+        marker_label_color: Color,
+    ) -> Color {
+        let style = self.render_style;
+        if !style.show_last_price_label_box {
+            return marker_label_color;
+        }
+        if !style.last_price_label_box_auto_text_contrast {
+            return style.last_price_label_box_text_color;
+        }
+
+        // WCAG-inspired luminance gate keeps axis text readable on dynamic marker fills.
+        let luminance = 0.2126 * box_fill_color.red
+            + 0.7152 * box_fill_color.green
+            + 0.0722 * box_fill_color.blue;
+        if luminance >= 0.56 {
+            Color::rgb(0.06, 0.08, 0.11)
+        } else {
+            Color::rgb(1.0, 1.0, 1.0)
         }
     }
 
@@ -1892,9 +1928,11 @@ impl<R: Renderer> ChartEngine<R> {
                     display_suffix,
                 );
                 let text_y = (py - style.last_price_label_font_size_px * 0.72).max(0.0);
+                let box_fill_color =
+                    self.resolve_last_price_label_box_fill_color(marker_label_color);
+                let label_text_color = self
+                    .resolve_last_price_label_box_text_color(box_fill_color, marker_label_color);
                 if style.show_last_price_label_box {
-                    let fill_color =
-                        self.resolve_last_price_label_box_fill_color(marker_label_color);
                     let box_left = plot_right;
                     let box_width = (viewport_width - box_left).max(0.0);
                     let box_top = (text_y - style.last_price_label_box_padding_y_px)
@@ -1905,9 +1943,27 @@ impl<R: Renderer> ChartEngine<R> {
                         .clamp(0.0, viewport_height);
                     let box_height = (box_bottom - box_top).max(0.0);
                     if box_width > 0.0 && box_height > 0.0 {
-                        frame = frame.with_rect(RectPrimitive::new(
-                            box_left, box_top, box_width, box_height, fill_color,
-                        ));
+                        let mut rect = RectPrimitive::new(
+                            box_left,
+                            box_top,
+                            box_width,
+                            box_height,
+                            box_fill_color,
+                        );
+                        if style.last_price_label_box_border_width_px > 0.0 {
+                            rect = rect.with_border(
+                                style.last_price_label_box_border_width_px,
+                                style.last_price_label_box_border_color,
+                            );
+                        }
+                        if style.last_price_label_box_corner_radius_px > 0.0 {
+                            let max_corner_radius = (box_width.min(box_height)) * 0.5;
+                            let clamped_corner_radius = style
+                                .last_price_label_box_corner_radius_px
+                                .min(max_corner_radius);
+                            rect = rect.with_corner_radius(clamped_corner_radius);
+                        }
+                        frame = frame.with_rect(rect);
                     }
                 }
                 frame = frame.with_text(TextPrimitive::new(
@@ -1915,11 +1971,7 @@ impl<R: Renderer> ChartEngine<R> {
                     viewport_width - 6.0,
                     text_y,
                     style.last_price_label_font_size_px,
-                    if style.show_last_price_label_box {
-                        style.last_price_label_box_text_color
-                    } else {
-                        marker_label_color
-                    },
+                    label_text_color,
                     TextHAlign::Right,
                 ));
             }
@@ -2186,6 +2238,7 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.last_price_neutral_color.validate()?;
     style.last_price_label_box_color.validate()?;
     style.last_price_label_box_text_color.validate()?;
+    style.last_price_label_box_border_color.validate()?;
 
     for (name, value) in [
         ("grid_line_width", style.grid_line_width),
@@ -2220,6 +2273,22 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `last_price_label_box_padding_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.last_price_label_box_border_width_px.is_finite()
+        || style.last_price_label_box_border_width_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `last_price_label_box_border_width_px` must be finite and >= 0"
+                .to_owned(),
+        ));
+    }
+    if !style.last_price_label_box_corner_radius_px.is_finite()
+        || style.last_price_label_box_corner_radius_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `last_price_label_box_corner_radius_px` must be finite and >= 0"
+                .to_owned(),
         ));
     }
     Ok(style)
