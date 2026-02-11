@@ -8,6 +8,11 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Nothing yet.
+
+## [0.0.11-alpha.0] - 2026-02-11
+
+### Added
 - Crosshair mode baseline (`C-012`) with explicit `Magnet` and `Normal` behavior in the public API.
 - New integration/property tests validating deterministic snap-on/snap-off crosshair behavior.
 - Criterion benchmarks comparing pointer-move cost for magnet vs normal crosshair modes.
