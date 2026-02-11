@@ -9,7 +9,7 @@ use crate::core::{
     TimeScaleTuning, Viewport, project_candles, project_line_segments,
 };
 use crate::error::{ChartError, ChartResult};
-use crate::interaction::{CrosshairState, InteractionMode, InteractionState};
+use crate::interaction::{CrosshairSnap, CrosshairState, InteractionMode, InteractionState};
 use crate::render::{RenderFrame, Renderer};
 
 /// Public engine bootstrap configuration.
@@ -369,8 +369,8 @@ impl<R: Renderer> ChartEngine<R> {
         self.renderer
     }
 
-    fn snap_at_x(&self, pointer_x: f64) -> Option<(f64, f64)> {
-        let mut candidates: SmallVec<[(OrderedFloat<f64>, f64, f64); 2]> = SmallVec::new();
+    fn snap_at_x(&self, pointer_x: f64) -> Option<CrosshairSnap> {
+        let mut candidates: SmallVec<[(OrderedFloat<f64>, CrosshairSnap); 2]> = SmallVec::new();
         if let Some(snap) = self.nearest_data_snap(pointer_x) {
             candidates.push(snap);
         }
@@ -381,11 +381,11 @@ impl<R: Renderer> ChartEngine<R> {
         candidates
             .into_iter()
             .min_by_key(|item| item.0)
-            .map(|(_, sx, sy)| (sx, sy))
+            .map(|(_, snap)| snap)
     }
 
-    fn nearest_data_snap(&self, pointer_x: f64) -> Option<(OrderedFloat<f64>, f64, f64)> {
-        let mut best: Option<(OrderedFloat<f64>, f64, f64)> = None;
+    fn nearest_data_snap(&self, pointer_x: f64) -> Option<(OrderedFloat<f64>, CrosshairSnap)> {
+        let mut best: Option<(OrderedFloat<f64>, CrosshairSnap)> = None;
         for point in &self.points {
             let x_px = match self.time_scale.time_to_pixel(point.x, self.viewport) {
                 Ok(v) => v,
@@ -397,15 +397,25 @@ impl<R: Renderer> ChartEngine<R> {
             };
             let dist = OrderedFloat((x_px - pointer_x).abs());
             match best {
-                Some((current, _, _)) if current <= dist => {}
-                _ => best = Some((dist, x_px, y_px)),
+                Some((current, _)) if current <= dist => {}
+                _ => {
+                    best = Some((
+                        dist,
+                        CrosshairSnap {
+                            x: x_px,
+                            y: y_px,
+                            time: point.x,
+                            price: point.y,
+                        },
+                    ))
+                }
             }
         }
         best
     }
 
-    fn nearest_candle_snap(&self, pointer_x: f64) -> Option<(OrderedFloat<f64>, f64, f64)> {
-        let mut best: Option<(OrderedFloat<f64>, f64, f64)> = None;
+    fn nearest_candle_snap(&self, pointer_x: f64) -> Option<(OrderedFloat<f64>, CrosshairSnap)> {
+        let mut best: Option<(OrderedFloat<f64>, CrosshairSnap)> = None;
         for candle in &self.candles {
             let x_px = match self.time_scale.time_to_pixel(candle.time, self.viewport) {
                 Ok(v) => v,
@@ -417,8 +427,18 @@ impl<R: Renderer> ChartEngine<R> {
             };
             let dist = OrderedFloat((x_px - pointer_x).abs());
             match best {
-                Some((current, _, _)) if current <= dist => {}
-                _ => best = Some((dist, x_px, y_px)),
+                Some((current, _)) if current <= dist => {}
+                _ => {
+                    best = Some((
+                        dist,
+                        CrosshairSnap {
+                            x: x_px,
+                            y: y_px,
+                            time: candle.time,
+                            price: candle.close,
+                        },
+                    ))
+                }
             }
         }
         best

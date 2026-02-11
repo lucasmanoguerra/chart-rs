@@ -19,12 +19,16 @@ fn crosshair_snaps_to_nearest_data_point() {
 
     let snapped_x = crosshair.snapped_x.expect("snapped x");
     let snapped_y = crosshair.snapped_y.expect("snapped y");
+    let snapped_time = crosshair.snapped_time.expect("snapped time");
+    let snapped_price = crosshair.snapped_price.expect("snapped price");
 
     let expected_x = engine.map_x_to_pixel(2.0).expect("expected x");
     let expected_y = engine.map_price_to_pixel(20.0).expect("expected y");
 
     assert!((snapped_x - expected_x).abs() <= 1e-9);
     assert!((snapped_y - expected_y).abs() <= 1e-9);
+    assert!((snapped_time - 2.0).abs() <= 1e-9);
+    assert!((snapped_price - 20.0).abs() <= 1e-9);
 }
 
 #[test]
@@ -45,12 +49,16 @@ fn crosshair_snaps_to_nearest_candle_close() {
     let crosshair = engine.crosshair_state();
     let snapped_x = crosshair.snapped_x.expect("snapped x");
     let snapped_y = crosshair.snapped_y.expect("snapped y");
+    let snapped_time = crosshair.snapped_time.expect("snapped time");
+    let snapped_price = crosshair.snapped_price.expect("snapped price");
 
     let expected_x = engine.map_x_to_pixel(7.0).expect("expected x");
     let expected_y = engine.map_price_to_pixel(75.0).expect("expected y");
 
     assert!((snapped_x - expected_x).abs() <= 1e-9);
     assert!((snapped_y - expected_y).abs() <= 1e-9);
+    assert!((snapped_time - 7.0).abs() <= 1e-9);
+    assert!((snapped_price - 75.0).abs() <= 1e-9);
 }
 
 #[test]
@@ -69,4 +77,6 @@ fn pointer_leave_hides_crosshair() {
     assert!(!crosshair.visible);
     assert!(crosshair.snapped_x.is_none());
     assert!(crosshair.snapped_y.is_none());
+    assert!(crosshair.snapped_time.is_none());
+    assert!(crosshair.snapped_price.is_none());
 }

@@ -6,6 +6,15 @@ pub enum InteractionMode {
     Panning,
 }
 
+/// Deterministic snap candidate used to drive crosshair visuals and labels.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct CrosshairSnap {
+    pub x: f64,
+    pub y: f64,
+    pub time: f64,
+    pub price: f64,
+}
+
 /// Public crosshair state exposed to host applications.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct CrosshairState {
@@ -14,6 +23,8 @@ pub struct CrosshairState {
     pub y: f64,
     pub snapped_x: Option<f64>,
     pub snapped_y: Option<f64>,
+    pub snapped_time: Option<f64>,
+    pub snapped_price: Option<f64>,
 }
 
 impl Default for CrosshairState {
@@ -24,6 +35,8 @@ impl Default for CrosshairState {
             y: 0.0,
             snapped_x: None,
             snapped_y: None,
+            snapped_time: None,
+            snapped_price: None,
         }
     }
 }
@@ -75,17 +88,23 @@ impl InteractionState {
         self.crosshair.visible = false;
         self.crosshair.snapped_x = None;
         self.crosshair.snapped_y = None;
+        self.crosshair.snapped_time = None;
+        self.crosshair.snapped_price = None;
     }
 
-    pub fn set_crosshair_snap(&mut self, snap: Option<(f64, f64)>) {
+    pub fn set_crosshair_snap(&mut self, snap: Option<CrosshairSnap>) {
         match snap {
-            Some((x, y)) => {
-                self.crosshair.snapped_x = Some(x);
-                self.crosshair.snapped_y = Some(y);
+            Some(snap) => {
+                self.crosshair.snapped_x = Some(snap.x);
+                self.crosshair.snapped_y = Some(snap.y);
+                self.crosshair.snapped_time = Some(snap.time);
+                self.crosshair.snapped_price = Some(snap.price);
             }
             None => {
                 self.crosshair.snapped_x = None;
                 self.crosshair.snapped_y = None;
+                self.crosshair.snapped_time = None;
+                self.crosshair.snapped_price = None;
             }
         }
     }
