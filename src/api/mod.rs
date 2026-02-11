@@ -6,7 +6,8 @@ use tracing::{debug, trace};
 
 use crate::core::{
     CandleGeometry, DataPoint, LineSegment, OhlcBar, PriceScale, PriceScaleTuning, TimeScale,
-    TimeScaleTuning, Viewport, project_candles, project_line_segments,
+    TimeScaleTuning, Viewport, candles_in_time_window, points_in_time_window, project_candles,
+    project_line_segments,
 };
 use crate::error::{ChartError, ChartResult};
 use crate::interaction::{CrosshairSnap, CrosshairState, InteractionMode, InteractionState};
@@ -209,6 +210,32 @@ impl<R: Renderer> ChartEngine<R> {
     #[must_use]
     pub fn time_full_range(&self) -> (f64, f64) {
         self.time_scale.full_range()
+    }
+
+    /// Returns point samples currently inside the visible time window.
+    #[must_use]
+    pub fn visible_points(&self) -> Vec<DataPoint> {
+        let (start, end) = self.time_scale.visible_range();
+        points_in_time_window(&self.points, start, end)
+    }
+
+    /// Returns candle samples currently inside the visible time window.
+    #[must_use]
+    pub fn visible_candles(&self) -> Vec<OhlcBar> {
+        let (start, end) = self.time_scale.visible_range();
+        candles_in_time_window(&self.candles, start, end)
+    }
+
+    /// Returns visible points with symmetric overscan around the visible window.
+    pub fn visible_points_with_overscan(&self, ratio: f64) -> ChartResult<Vec<DataPoint>> {
+        let (start, end) = expand_visible_window(self.time_scale.visible_range(), ratio)?;
+        Ok(points_in_time_window(&self.points, start, end))
+    }
+
+    /// Returns visible candles with symmetric overscan around the visible window.
+    pub fn visible_candles_with_overscan(&self, ratio: f64) -> ChartResult<Vec<OhlcBar>> {
+        let (start, end) = expand_visible_window(self.time_scale.visible_range(), ratio)?;
+        Ok(candles_in_time_window(&self.candles, start, end))
     }
 
     /// Overrides visible time range (zoom/pan style behavior).
@@ -443,4 +470,16 @@ impl<R: Renderer> ChartEngine<R> {
         }
         best
     }
+}
+
+fn expand_visible_window(range: (f64, f64), ratio: f64) -> ChartResult<(f64, f64)> {
+    if !ratio.is_finite() || ratio < 0.0 {
+        return Err(ChartError::InvalidData(
+            "overscan ratio must be finite and >= 0".to_owned(),
+        ));
+    }
+
+    let span = range.1 - range.0;
+    let padding = span * ratio;
+    Ok((range.0 - padding, range.1 + padding))
 }

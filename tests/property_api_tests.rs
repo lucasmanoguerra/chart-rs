@@ -147,4 +147,43 @@ proptest! {
         prop_assert!((start_after - (start_before + expected_delta)).abs() <= 1e-7);
         prop_assert!((end_after - (end_before + expected_delta)).abs() <= 1e-7);
     }
+
+    #[test]
+    fn visible_points_are_inside_visible_window(
+        time_start in -10_000.0f64..10_000.0,
+        time_span in 10.0f64..5_000.0,
+        visible_offset in 0.0f64..0.5,
+        visible_width_ratio in 0.2f64..0.8
+    ) {
+        let renderer = NullRenderer::default();
+        let time_end = time_start + time_span;
+        let config = ChartEngineConfig::new(
+            Viewport::new(1200, 700),
+            time_start,
+            time_end,
+        ).with_price_domain(0.0, 1000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+        let points = vec![
+            DataPoint::new(time_start, 10.0),
+            DataPoint::new(time_start + time_span * 0.25, 20.0),
+            DataPoint::new(time_start + time_span * 0.5, 30.0),
+            DataPoint::new(time_start + time_span * 0.75, 40.0),
+            DataPoint::new(time_end, 50.0),
+        ];
+        engine.set_data(points);
+
+        let visible_start = time_start + time_span * visible_offset;
+        let visible_end = visible_start + time_span * visible_width_ratio;
+        prop_assume!(visible_end <= time_end);
+        engine
+            .set_time_visible_range(visible_start, visible_end)
+            .expect("set visible range");
+
+        let visible = engine.visible_points();
+        for point in &visible {
+            prop_assert!(point.x >= visible_start);
+            prop_assert!(point.x <= visible_end);
+        }
+    }
 }
