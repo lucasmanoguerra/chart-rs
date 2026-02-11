@@ -8,7 +8,10 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- Nothing yet.
+- Wheel pan + kinetic pan interaction baseline (`C-014`) with deterministic step-based behavior.
+- Public APIs for notch-normalized wheel pan and tunable kinetic pan integration.
+- New integration/property tests for wheel-pan span invariants and kinetic-pan decay/stopping behavior.
+- Criterion benchmarks for wheel-pan and kinetic-pan interaction step cost.
 
 ## [0.0.12-alpha.0] - 2026-02-11
 

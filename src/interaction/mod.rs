@@ -14,6 +14,40 @@ pub enum CrosshairMode {
     Normal,
 }
 
+/// Tuning for deterministic kinetic pan stepping.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct KineticPanConfig {
+    /// Multiplicative velocity decay per second.
+    pub decay_per_second: f64,
+    /// Kinetic pan stops when `abs(velocity)` drops below this threshold.
+    pub stop_velocity_abs: f64,
+}
+
+impl Default for KineticPanConfig {
+    fn default() -> Self {
+        Self {
+            decay_per_second: 0.85,
+            stop_velocity_abs: 0.01,
+        }
+    }
+}
+
+/// Public kinetic pan runtime state.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct KineticPanState {
+    pub active: bool,
+    pub velocity_time_per_sec: f64,
+}
+
+impl Default for KineticPanState {
+    fn default() -> Self {
+        Self {
+            active: false,
+            velocity_time_per_sec: 0.0,
+        }
+    }
+}
+
 /// Deterministic snap candidate used to drive crosshair visuals and labels.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct CrosshairSnap {
@@ -53,6 +87,8 @@ impl Default for CrosshairState {
 pub struct InteractionState {
     mode: InteractionMode,
     crosshair_mode: CrosshairMode,
+    kinetic_pan_config: KineticPanConfig,
+    kinetic_pan: KineticPanState,
     cursor_x: f64,
     cursor_y: f64,
     crosshair: CrosshairState,
@@ -63,6 +99,8 @@ impl Default for InteractionState {
         Self {
             mode: InteractionMode::Idle,
             crosshair_mode: CrosshairMode::Magnet,
+            kinetic_pan_config: KineticPanConfig::default(),
+            kinetic_pan: KineticPanState::default(),
             cursor_x: 0.0,
             cursor_y: 0.0,
             crosshair: CrosshairState::default(),
@@ -83,6 +121,50 @@ impl InteractionState {
 
     pub fn set_crosshair_mode(&mut self, mode: CrosshairMode) {
         self.crosshair_mode = mode;
+    }
+
+    #[must_use]
+    pub fn kinetic_pan_config(self) -> KineticPanConfig {
+        self.kinetic_pan_config
+    }
+
+    pub fn set_kinetic_pan_config(&mut self, config: KineticPanConfig) {
+        self.kinetic_pan_config = config;
+    }
+
+    #[must_use]
+    pub fn kinetic_pan_state(self) -> KineticPanState {
+        self.kinetic_pan
+    }
+
+    pub fn start_kinetic_pan(&mut self, velocity_time_per_sec: f64) {
+        self.kinetic_pan.active = true;
+        self.kinetic_pan.velocity_time_per_sec = velocity_time_per_sec;
+    }
+
+    pub fn stop_kinetic_pan(&mut self) {
+        self.kinetic_pan.active = false;
+        self.kinetic_pan.velocity_time_per_sec = 0.0;
+    }
+
+    /// Advances kinetic pan and returns the time displacement to apply.
+    ///
+    /// Returns `None` when kinetic pan is not active.
+    pub fn step_kinetic_pan(&mut self, delta_seconds: f64) -> Option<f64> {
+        if !self.kinetic_pan.active {
+            return None;
+        }
+
+        let displacement = self.kinetic_pan.velocity_time_per_sec * delta_seconds;
+        let decay = self.kinetic_pan_config.decay_per_second.powf(delta_seconds);
+        self.kinetic_pan.velocity_time_per_sec *= decay;
+
+        if self.kinetic_pan.velocity_time_per_sec.abs() < self.kinetic_pan_config.stop_velocity_abs
+        {
+            self.stop_kinetic_pan();
+        }
+
+        Some(displacement)
     }
 
     #[must_use]

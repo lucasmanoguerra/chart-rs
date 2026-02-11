@@ -17,6 +17,7 @@ use crate::extensions::{
 };
 use crate::interaction::{
     CrosshairMode, CrosshairSnap, CrosshairState, InteractionMode, InteractionState,
+    KineticPanConfig, KineticPanState,
 };
 use crate::render::{RenderFrame, Renderer};
 
@@ -241,6 +242,45 @@ impl<R: Renderer> ChartEngine<R> {
     }
 
     #[must_use]
+    pub fn kinetic_pan_config(&self) -> KineticPanConfig {
+        self.interaction.kinetic_pan_config()
+    }
+
+    pub fn set_kinetic_pan_config(&mut self, config: KineticPanConfig) -> ChartResult<()> {
+        validate_kinetic_pan_config(config)?;
+        self.interaction.set_kinetic_pan_config(config);
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn kinetic_pan_state(&self) -> KineticPanState {
+        self.interaction.kinetic_pan_state()
+    }
+
+    /// Starts kinetic pan with signed velocity in time-units per second.
+    pub fn start_kinetic_pan(&mut self, velocity_time_per_sec: f64) -> ChartResult<()> {
+        if !velocity_time_per_sec.is_finite() {
+            return Err(ChartError::InvalidData(
+                "kinetic pan velocity must be finite".to_owned(),
+            ));
+        }
+        if velocity_time_per_sec == 0.0 {
+            self.stop_kinetic_pan();
+            return Ok(());
+        }
+        self.interaction.start_kinetic_pan(velocity_time_per_sec);
+        self.emit_plugin_event(PluginEvent::PanStarted);
+        Ok(())
+    }
+
+    pub fn stop_kinetic_pan(&mut self) {
+        if self.interaction.kinetic_pan_state().active {
+            self.interaction.stop_kinetic_pan();
+            self.emit_plugin_event(PluginEvent::PanEnded);
+        }
+    }
+
+    #[must_use]
     pub fn crosshair_state(&self) -> CrosshairState {
         self.interaction.crosshair()
     }
@@ -354,6 +394,40 @@ impl<R: Renderer> ChartEngine<R> {
         Ok(())
     }
 
+    /// Applies wheel-driven horizontal pan.
+    ///
+    /// Conventions:
+    /// - one wheel notch is normalized as `120` units
+    /// - `wheel_delta_x > 0` pans to later times
+    ///
+    /// Returns the applied time displacement.
+    pub fn wheel_pan_time_visible(
+        &mut self,
+        wheel_delta_x: f64,
+        pan_step_ratio: f64,
+    ) -> ChartResult<f64> {
+        if !wheel_delta_x.is_finite() {
+            return Err(ChartError::InvalidData(
+                "wheel pan delta must be finite".to_owned(),
+            ));
+        }
+        if !pan_step_ratio.is_finite() || pan_step_ratio <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "wheel pan step ratio must be finite and > 0".to_owned(),
+            ));
+        }
+        if wheel_delta_x == 0.0 {
+            return Ok(0.0);
+        }
+
+        let (start, end) = self.time_scale.visible_range();
+        let span = end - start;
+        let normalized_steps = wheel_delta_x / 120.0;
+        let delta_time = normalized_steps * span * pan_step_ratio;
+        self.pan_time_visible_by(delta_time)?;
+        Ok(delta_time)
+    }
+
     /// Zooms visible range around a logical time anchor.
     pub fn zoom_time_visible_around_time(
         &mut self,
@@ -421,6 +495,29 @@ impl<R: Renderer> ChartEngine<R> {
 
         self.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
         Ok(factor)
+    }
+
+    /// Advances kinetic pan by a deterministic simulation step.
+    ///
+    /// Returns `true` when a displacement was applied.
+    pub fn step_kinetic_pan(&mut self, delta_seconds: f64) -> ChartResult<bool> {
+        if !delta_seconds.is_finite() || delta_seconds <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "kinetic pan delta seconds must be finite and > 0".to_owned(),
+            ));
+        }
+
+        let was_active = self.interaction.kinetic_pan_state().active;
+        let Some(displacement) = self.interaction.step_kinetic_pan(delta_seconds) else {
+            return Ok(false);
+        };
+
+        self.pan_time_visible_by(displacement)?;
+
+        if was_active && !self.interaction.kinetic_pan_state().active {
+            self.emit_plugin_event(PluginEvent::PanEnded);
+        }
+        Ok(true)
     }
 
     /// Fits time scale against available point/candle data.
@@ -904,4 +1001,21 @@ fn markers_in_time_window(markers: &[SeriesMarker], start: f64, end: f64) -> Vec
         .filter(|marker| marker.time >= min_t && marker.time <= max_t)
         .cloned()
         .collect()
+}
+
+fn validate_kinetic_pan_config(config: KineticPanConfig) -> ChartResult<KineticPanConfig> {
+    if !config.decay_per_second.is_finite()
+        || config.decay_per_second <= 0.0
+        || config.decay_per_second >= 1.0
+    {
+        return Err(ChartError::InvalidData(
+            "kinetic pan decay_per_second must be finite and in (0, 1)".to_owned(),
+        ));
+    }
+    if !config.stop_velocity_abs.is_finite() || config.stop_velocity_abs <= 0.0 {
+        return Err(ChartError::InvalidData(
+            "kinetic pan stop_velocity_abs must be finite and > 0".to_owned(),
+        ));
+    }
+    Ok(config)
 }

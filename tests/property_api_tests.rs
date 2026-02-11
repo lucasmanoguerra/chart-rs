@@ -252,4 +252,37 @@ proptest! {
         let anchor_time_after = engine.map_pixel_to_x(anchor_px).expect("anchor after");
         prop_assert!((anchor_time_after - anchor_time_before).abs() <= 1e-6);
     }
+
+    #[test]
+    fn wheel_pan_preserves_span(
+        time_start in -10_000.0f64..10_000.0,
+        time_span in 10.0f64..5_000.0,
+        delta_steps in -5i32..6i32,
+        pan_step_ratio in 0.01f64..0.5
+    ) {
+        let renderer = NullRenderer::default();
+        let time_end = time_start + time_span;
+        let config = ChartEngineConfig::new(
+            Viewport::new(1200, 700),
+            time_start,
+            time_end,
+        ).with_price_domain(0.0, 1000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+        let (start_before, end_before) = engine.time_visible_range();
+        let span_before = end_before - start_before;
+
+        let wheel_delta = 120.0 * f64::from(delta_steps);
+        let delta_time = engine
+            .wheel_pan_time_visible(wheel_delta, pan_step_ratio)
+            .expect("wheel pan");
+        let (start_after, end_after) = engine.time_visible_range();
+        let span_after = end_after - start_after;
+
+        let expected_delta = f64::from(delta_steps) * span_before * pan_step_ratio;
+        prop_assert!((delta_time - expected_delta).abs() <= 1e-7);
+        prop_assert!((span_after - span_before).abs() <= 1e-7);
+        prop_assert!((start_after - (start_before + expected_delta)).abs() <= 1e-7);
+        prop_assert!((end_after - (end_before + expected_delta)).abs() <= 1e-7);
+    }
 }
