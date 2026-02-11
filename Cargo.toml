@@ -21,6 +21,10 @@ cairo-backend = ["dep:cairo", "dep:pango", "dep:pangocairo"]
 gtk4-adapter = ["cairo-backend", "dep:gtk4"]
 # Convenience feature for desktop consumers.
 desktop = ["gtk4-adapter"]
+# Optional parallel candle projection for large datasets.
+parallel-projection = ["dep:rayon"]
+# Optional helper to initialize a default tracing subscriber.
+telemetry = ["dep:tracing-subscriber"]
 
 [dependencies]
 cairo = { package = "cairo-rs", version = "0.21", optional = true }
@@ -31,10 +35,18 @@ thiserror = "2.0"
 chrono = "0.4"
 rust_decimal = "1.36"
 smallvec = "1.13"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"], optional = true }
+ordered-float = "4.5"
+indexmap = { version = "2.7", features = ["serde"] }
+rayon = { version = "1.10", optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.8", default-features = false }
 proptest = "1.6"
+approx = "0.5"
 
 [[bench]]
 name = "core_math_bench"

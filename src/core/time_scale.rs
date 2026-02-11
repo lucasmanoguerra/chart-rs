@@ -1,7 +1,9 @@
 use crate::core::{DataPoint, LinearScale, OhlcBar, Viewport};
 use crate::error::{ChartError, ChartResult};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// Tuning controls for visible time range fitting.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct TimeScaleTuning {
     pub left_padding_ratio: f64,
     pub right_padding_ratio: f64,
@@ -40,7 +42,11 @@ impl TimeScaleTuning {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// Time axis model with separate full and visible ranges.
+///
+/// `full_*` tracks the raw fitted data range.
+/// `visible_*` includes optional padding and user-driven range changes.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct TimeScale {
     full_start: f64,
     full_end: f64,
@@ -49,6 +55,7 @@ pub struct TimeScale {
 }
 
 impl TimeScale {
+    /// Creates a scale with matching full and visible ranges.
     pub fn new(time_start: f64, time_end: f64) -> ChartResult<Self> {
         let normalized = normalize_range(time_start, time_end, 1.0)?;
         Ok(Self {
@@ -63,10 +70,12 @@ impl TimeScale {
         Self::from_data_tuned(points, TimeScaleTuning::default())
     }
 
+    /// Fits full/visible ranges from XY data points using explicit tuning.
     pub fn from_data_tuned(points: &[DataPoint], tuning: TimeScaleTuning) -> ChartResult<Self> {
         Self::from_mixed_data_tuned(points, &[], tuning)
     }
 
+    /// Fits full/visible ranges from a mixed data source (points + candles).
     pub fn from_mixed_data_tuned(
         points: &[DataPoint],
         bars: &[OhlcBar],
@@ -131,6 +140,7 @@ impl TimeScale {
         (self.visible_start, self.visible_end)
     }
 
+    /// Overrides the visible range without modifying the full fitted range.
     pub fn set_visible_range(&mut self, start: f64, end: f64) -> ChartResult<()> {
         let normalized = normalize_range(start, end, 1e-9)?;
         self.visible_start = normalized.0;
@@ -143,6 +153,7 @@ impl TimeScale {
         self.visible_end = self.full_end;
     }
 
+    /// Re-fits the scale from mixed data and applies tuning.
     pub fn fit_to_mixed_data(
         &mut self,
         points: &[DataPoint],

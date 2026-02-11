@@ -1,7 +1,9 @@
 use crate::core::types::Viewport;
 use crate::error::{ChartError, ChartResult};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// Shared linear scaler used by time/price scale adapters.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct LinearScale {
     domain_start: f64,
     domain_end: f64,
