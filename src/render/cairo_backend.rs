@@ -7,6 +7,7 @@ use crate::render::{Color, RenderFrame, Renderer, TextHAlign};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CairoRenderStats {
     pub lines_drawn: usize,
+    pub rects_drawn: usize,
     pub texts_drawn: usize,
 }
 
@@ -96,6 +97,15 @@ impl CairoRenderer {
                 .stroke()
                 .map_err(|err| map_backend_error("failed to stroke line", err))?;
             stats.lines_drawn += 1;
+        }
+
+        for rect in &frame.rects {
+            apply_color(context, rect.fill_color);
+            context.rectangle(rect.x, rect.y, rect.width, rect.height);
+            context
+                .fill()
+                .map_err(|err| map_backend_error("failed to fill rectangle", err))?;
+            stats.rects_drawn += 1;
         }
 
         for text in &frame.texts {

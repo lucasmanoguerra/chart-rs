@@ -8,6 +8,7 @@ use crate::render::{RenderFrame, Renderer};
 #[derive(Debug, Default)]
 pub struct NullRenderer {
     pub last_line_count: usize,
+    pub last_rect_count: usize,
     pub last_text_count: usize,
 }
 
@@ -15,6 +16,7 @@ impl Renderer for NullRenderer {
     fn render(&mut self, frame: &RenderFrame) -> ChartResult<()> {
         frame.validate()?;
         self.last_line_count = frame.lines.len();
+        self.last_rect_count = frame.rects.len();
         self.last_text_count = frame.texts.len();
         Ok(())
     }

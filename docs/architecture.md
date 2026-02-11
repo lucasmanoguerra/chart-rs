@@ -68,7 +68,7 @@ Tuning contracts:
 
 ## Render Strategy
 
-- `api` builds a deterministic `RenderFrame` containing backend-agnostic line/text primitives
+- `api` builds a deterministic `RenderFrame` containing backend-agnostic line/rect/text primitives
 - axis tick density is selected from viewport size and filtered with deterministic spacing rules
 - time-axis labels are produced via policy+locale config with optional custom formatter injection
 - time-axis formatter supports zoom-aware adaptive detail, fixed-offset timezone alignment, and optional session-boundary semantics
@@ -78,6 +78,7 @@ Tuning contracts:
 - price-axis label selection can exclude deterministic overlap zones around the last-price marker
 - last-price marker can optionally resolve deterministic up/down/neutral colors from latest vs previous sample
 - last-price marker source policy can switch between full-series latest sample and newest visible-range sample
+- latest-price axis label can optionally render as a deterministic filled price-box on the axis panel
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract

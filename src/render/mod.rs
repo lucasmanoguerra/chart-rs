@@ -4,7 +4,7 @@ mod primitives;
 
 pub use frame::RenderFrame;
 pub use null_renderer::NullRenderer;
-pub use primitives::{Color, LinePrimitive, TextHAlign, TextPrimitive};
+pub use primitives::{Color, LinePrimitive, RectPrimitive, TextHAlign, TextPrimitive};
 
 use crate::error::ChartResult;
 

@@ -50,6 +50,7 @@ fn null_renderer_receives_computed_frame_counts() {
     let renderer = engine.into_renderer();
 
     assert_eq!(renderer.last_line_count, frame.lines.len());
+    assert_eq!(renderer.last_rect_count, frame.rects.len());
     assert_eq!(renderer.last_text_count, frame.texts.len());
 }
 
@@ -361,5 +362,71 @@ fn last_price_source_mode_latest_visible_hides_marker_for_empty_visible_window()
     }));
     assert!(!frame.texts.iter().any(|text| {
         text.h_align == TextHAlign::Right && text.color == style.last_price_label_color
+    }));
+}
+
+#[test]
+fn last_price_label_box_draws_axis_rect_and_uses_box_text_color() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        last_price_line_color: Color::rgb(0.1, 0.4, 1.0),
+        last_price_label_color: Color::rgb(0.1, 0.4, 1.0),
+        show_last_price_label_box: true,
+        last_price_label_box_use_marker_color: true,
+        last_price_label_box_text_color: Color::rgb(1.0, 1.0, 1.0),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    let frame = engine.build_render_frame().expect("build frame");
+    let plot_right = (f64::from(engine.viewport().width) - style.price_axis_width_px)
+        .clamp(0.0, f64::from(engine.viewport().width));
+
+    assert!(frame.rects.iter().any(|rect| {
+        rect.fill_color == style.last_price_label_color
+            && (rect.x - plot_right).abs() <= 1e-9
+            && rect.width > 0.0
+            && rect.height > 0.0
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.text == "20.00"
+            && text.color == style.last_price_label_box_text_color
+    }));
+}
+
+#[test]
+fn last_price_label_box_can_use_custom_fill_color() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        last_price_label_color: Color::rgb(0.0, 0.9, 0.0),
+        show_last_price_label_box: true,
+        last_price_label_box_use_marker_color: false,
+        last_price_label_box_color: Color::rgb(0.15, 0.15, 0.15),
+        last_price_label_box_text_color: Color::rgb(0.95, 0.95, 0.95),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(
+        frame
+            .rects
+            .iter()
+            .any(|rect| rect.fill_color == style.last_price_label_box_color)
+    );
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.text == "20.00"
+            && text.color == style.last_price_label_box_text_color
     }));
 }

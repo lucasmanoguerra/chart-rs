@@ -30,6 +30,7 @@ fn cairo_renderer_renders_series_and_axis_primitives() {
     let stats = renderer.last_stats();
 
     assert_eq!(stats.lines_drawn, frame.lines.len());
+    assert_eq!(stats.rects_drawn, frame.rects.len());
     assert_eq!(stats.texts_drawn, frame.texts.len());
 }
 

@@ -1,12 +1,13 @@
 use crate::core::Viewport;
 use crate::error::{ChartError, ChartResult};
-use crate::render::{LinePrimitive, TextPrimitive};
+use crate::render::{LinePrimitive, RectPrimitive, TextPrimitive};
 
 /// Backend-agnostic scene for one chart draw pass.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RenderFrame {
     pub viewport: Viewport,
     pub lines: Vec<LinePrimitive>,
+    pub rects: Vec<RectPrimitive>,
     pub texts: Vec<TextPrimitive>,
 }
 
@@ -16,6 +17,7 @@ impl RenderFrame {
         Self {
             viewport,
             lines: Vec::new(),
+            rects: Vec::new(),
             texts: Vec::new(),
         }
     }
@@ -32,6 +34,12 @@ impl RenderFrame {
         self
     }
 
+    #[must_use]
+    pub fn with_rect(mut self, rect: RectPrimitive) -> Self {
+        self.rects.push(rect);
+        self
+    }
+
     pub fn validate(&self) -> ChartResult<()> {
         if !self.viewport.is_valid() {
             return Err(ChartError::InvalidViewport {
@@ -42,6 +50,9 @@ impl RenderFrame {
 
         for line in &self.lines {
             line.validate()?;
+        }
+        for rect in &self.rects {
+            rect.validate()?;
         }
         for text in &self.texts {
             text.validate()?;
