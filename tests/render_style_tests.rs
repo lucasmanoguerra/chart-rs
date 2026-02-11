@@ -46,6 +46,9 @@ fn custom_render_style_is_applied_to_frame() {
         axis_label_color: Color::rgb(0.0, 0.0, 0.0),
         last_price_line_color: Color::rgb(0.2, 0.2, 0.8),
         last_price_label_color: Color::rgb(0.2, 0.2, 0.8),
+        last_price_up_color: Color::rgb(0.1, 0.7, 0.3),
+        last_price_down_color: Color::rgb(0.9, 0.2, 0.2),
+        last_price_neutral_color: Color::rgb(0.2, 0.2, 0.8),
         grid_line_width: 2.0,
         major_grid_line_width: 3.0,
         axis_line_width: 1.5,
@@ -56,6 +59,7 @@ fn custom_render_style_is_applied_to_frame() {
         time_axis_height_px: 28.0,
         show_last_price_line: true,
         show_last_price_label: true,
+        last_price_use_trend_color: true,
         last_price_label_exclusion_px: 24.0,
     };
     engine
@@ -132,6 +136,22 @@ fn invalid_last_price_label_exclusion_is_rejected() {
 
     let mut style = engine.render_style();
     style.last_price_label_exclusion_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_last_price_trend_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.last_price_up_color = Color::rgb(1.2, 0.2, 0.2);
 
     let err = engine
         .set_render_style(style)

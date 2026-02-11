@@ -170,3 +170,120 @@ fn last_price_label_exclusion_filters_overlapping_axis_labels() {
             && text.color == strong_exclusion_style.last_price_label_color
     }));
 }
+
+#[test]
+fn last_price_trend_color_uses_up_color() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 12.0), DataPoint::new(2.0, 15.0)]);
+    let trend_style = RenderStyle {
+        last_price_line_color: Color::rgb(0.0, 0.0, 0.0),
+        last_price_label_color: Color::rgb(0.0, 0.0, 0.0),
+        last_price_up_color: Color::rgb(0.0, 0.8, 0.0),
+        last_price_down_color: Color::rgb(0.8, 0.0, 0.0),
+        last_price_neutral_color: Color::rgb(0.0, 0.0, 0.8),
+        last_price_use_trend_color: true,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(trend_style)
+        .expect("set trend style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let expected_y = engine.map_price_to_pixel(15.0).expect("map").clamp(
+        0.0,
+        f64::from(engine.viewport().height) - trend_style.time_axis_height_px,
+    );
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == trend_style.last_price_up_color
+            && line.stroke_width == trend_style.last_price_line_width
+            && (line.y1 - expected_y).abs() <= 1e-9
+            && (line.y2 - expected_y).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.text == "15.00"
+            && text.color == trend_style.last_price_up_color
+    }));
+}
+
+#[test]
+fn last_price_trend_color_uses_down_color() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 15.0), DataPoint::new(2.0, 12.0)]);
+    let trend_style = RenderStyle {
+        last_price_line_color: Color::rgb(0.0, 0.0, 0.0),
+        last_price_label_color: Color::rgb(0.0, 0.0, 0.0),
+        last_price_up_color: Color::rgb(0.0, 0.8, 0.0),
+        last_price_down_color: Color::rgb(0.8, 0.0, 0.0),
+        last_price_neutral_color: Color::rgb(0.0, 0.0, 0.8),
+        last_price_use_trend_color: true,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(trend_style)
+        .expect("set trend style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let expected_y = engine.map_price_to_pixel(12.0).expect("map").clamp(
+        0.0,
+        f64::from(engine.viewport().height) - trend_style.time_axis_height_px,
+    );
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == trend_style.last_price_down_color
+            && line.stroke_width == trend_style.last_price_line_width
+            && (line.y1 - expected_y).abs() <= 1e-9
+            && (line.y2 - expected_y).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.text == "12.00"
+            && text.color == trend_style.last_price_down_color
+    }));
+}
+
+#[test]
+fn last_price_trend_color_uses_neutral_without_previous_sample() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 14.0)]);
+    let trend_style = RenderStyle {
+        last_price_line_color: Color::rgb(0.0, 0.0, 0.0),
+        last_price_label_color: Color::rgb(0.0, 0.0, 0.0),
+        last_price_up_color: Color::rgb(0.0, 0.8, 0.0),
+        last_price_down_color: Color::rgb(0.8, 0.0, 0.0),
+        last_price_neutral_color: Color::rgb(0.0, 0.0, 0.8),
+        last_price_use_trend_color: true,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(trend_style)
+        .expect("set trend style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let expected_y = engine.map_price_to_pixel(14.0).expect("map").clamp(
+        0.0,
+        f64::from(engine.viewport().height) - trend_style.time_axis_height_px,
+    );
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == trend_style.last_price_neutral_color
+            && line.stroke_width == trend_style.last_price_line_width
+            && (line.y1 - expected_y).abs() <= 1e-9
+            && (line.y2 - expected_y).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.text == "14.00"
+            && text.color == trend_style.last_price_neutral_color
+    }));
+}
