@@ -1,5 +1,6 @@
 use chart_rs::api::{
     AxisLabelLocale, ChartEngine, ChartEngineConfig, TimeAxisLabelConfig, TimeAxisLabelPolicy,
+    TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{
     DataPoint, LinearScale, OhlcBar, PriceScale, TimeScale, Viewport, points_in_time_window,
@@ -492,6 +493,7 @@ fn bench_time_axis_datetime_formatter(c: &mut Criterion) {
             policy: TimeAxisLabelPolicy::UtcDateTime {
                 show_seconds: false,
             },
+            ..TimeAxisLabelConfig::default()
         })
         .expect("set formatter policy");
 
@@ -517,12 +519,43 @@ fn bench_time_axis_label_cache_hot(c: &mut Criterion) {
         .set_time_axis_label_config(TimeAxisLabelConfig {
             locale: AxisLabelLocale::EnUs,
             policy: TimeAxisLabelPolicy::UtcAdaptive,
+            ..TimeAxisLabelConfig::default()
         })
         .expect("set adaptive policy");
     engine.clear_time_label_cache();
     let _ = engine.build_render_frame().expect("warm cache");
 
     c.bench_function("time_axis_label_cache_hot", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_time_axis_session_timezone_formatter(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 1_704_205_800.0, 1_704_206_100.0)
+            .with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session+timezone policy");
+
+    c.bench_function("time_axis_session_timezone_formatter", |b| {
         b.iter(|| {
             let _ = engine.build_render_frame().expect("build render frame");
         })
@@ -549,6 +582,7 @@ criterion_group!(
     bench_render_axis_layout_narrow,
     bench_time_axis_datetime_formatter,
     bench_time_axis_label_cache_hot,
+    bench_time_axis_session_timezone_formatter,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);

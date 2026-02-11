@@ -97,6 +97,7 @@ Responsibilities:
 - crosshair snapping behavior
 - time-axis formatter policy + locale/custom formatter injection
 - zoom-aware adaptive time-axis formatting and label-cache metrics
+- timezone/session-aware time-axis labeling for trading-hour style charts
 - render style contract for grid/axis parity tuning
 
 ### `src/render`
@@ -114,6 +115,7 @@ Render invariants:
 - axis labels use spacing-aware collision filtering
 - label density scales with viewport size within fixed min/max bounds
 - time-axis labels support built-in policy+locale and explicit custom formatter injection
+- time-axis UTC policies can align to fixed-offset local timezones and optional session windows
 - repeated redraws reuse deterministic time-label cache entries (`time_label_cache_stats`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 

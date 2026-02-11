@@ -8,7 +8,10 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Time-axis session/timezone parity baseline (`R-006`) with fixed-offset timezone alignment for UTC-based label policies.
+- Optional trading-session envelope that preserves explicit session-boundary labels while collapsing in-session intraday labels to time-only output.
+- Additional formatter validation coverage for invalid session/timezone inputs.
+- New benchmark coverage for session+timezone formatter throughput.
 
 ## [0.0.17-alpha.0] - 2026-02-11
 
