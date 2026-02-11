@@ -266,6 +266,10 @@ pub struct RenderStyle {
     pub last_price_label_font_size_px: f64,
     pub price_axis_width_px: f64,
     pub time_axis_height_px: f64,
+    /// Horizontal inset from right edge used by price-axis labels.
+    pub price_axis_label_padding_right_px: f64,
+    /// Length of short axis tick marks extending into the price-axis panel.
+    pub price_axis_tick_mark_length_px: f64,
     pub show_last_price_line: bool,
     pub show_last_price_label: bool,
     /// When enabled, last-price line/label colors are derived from price direction.
@@ -320,6 +324,8 @@ impl Default for RenderStyle {
             last_price_label_font_size_px: 11.0,
             price_axis_width_px: 72.0,
             time_axis_height_px: 24.0,
+            price_axis_label_padding_right_px: 6.0,
+            price_axis_tick_mark_length_px: 6.0,
             show_last_price_line: true,
             show_last_price_label: true,
             last_price_use_trend_color: false,
@@ -1772,6 +1778,10 @@ impl<R: Renderer> ChartEngine<R> {
         let viewport_height = f64::from(self.viewport.height);
         let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
         let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+        let price_axis_label_anchor_x = (viewport_width - style.price_axis_label_padding_right_px)
+            .clamp(plot_right, viewport_width);
+        let price_axis_tick_mark_end_x =
+            (plot_right + style.price_axis_tick_mark_length_px).clamp(plot_right, viewport_width);
         let axis_color = style.axis_border_color;
         let label_color = style.axis_label_color;
         let time_tick_count =
@@ -1913,7 +1923,7 @@ impl<R: Renderer> ChartEngine<R> {
                 self.format_price_axis_label(display_price, display_tick_step_abs, display_suffix);
             frame = frame.with_text(TextPrimitive::new(
                 text,
-                viewport_width - 6.0,
+                price_axis_label_anchor_x,
                 (py - 8.0).max(0.0),
                 11.0,
                 label_color,
@@ -1930,7 +1940,7 @@ impl<R: Renderer> ChartEngine<R> {
             frame = frame.with_line(LinePrimitive::new(
                 plot_right,
                 py,
-                (plot_right + 6.0).min(viewport_width),
+                price_axis_tick_mark_end_x,
                 py,
                 style.axis_line_width,
                 axis_color,
@@ -1967,7 +1977,7 @@ impl<R: Renderer> ChartEngine<R> {
                     .resolve_last_price_label_box_text_color(box_fill_color, marker_label_color);
                 let axis_panel_left = plot_right;
                 let axis_panel_width = (viewport_width - axis_panel_left).max(0.0);
-                let default_text_anchor_x = viewport_width - 6.0;
+                let default_text_anchor_x = price_axis_label_anchor_x;
                 let mut label_text_anchor_x = default_text_anchor_x;
                 if style.show_last_price_label_box {
                     let estimated_text_width = Self::estimate_label_text_width_px(
@@ -2317,6 +2327,20 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
                 "render style `{name}` must be finite and > 0"
             )));
         }
+    }
+    if !style.price_axis_label_padding_right_px.is_finite()
+        || style.price_axis_label_padding_right_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `price_axis_label_padding_right_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.price_axis_tick_mark_length_px.is_finite()
+        || style.price_axis_tick_mark_length_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `price_axis_tick_mark_length_px` must be finite and >= 0".to_owned(),
+        ));
     }
     if !style.last_price_label_exclusion_px.is_finite() || style.last_price_label_exclusion_px < 0.0
     {

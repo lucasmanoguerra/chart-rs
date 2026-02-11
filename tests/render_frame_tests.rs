@@ -118,6 +118,49 @@ fn last_price_marker_can_be_disabled() {
 }
 
 #[test]
+fn price_axis_insets_apply_to_labels_and_tick_marks() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        price_axis_label_padding_right_px: 14.0,
+        price_axis_tick_mark_length_px: 9.0,
+        show_last_price_label_box: false,
+        last_price_label_color: Color::rgb(0.0, 1.0, 0.0),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let expected_label_x = viewport_width - style.price_axis_label_padding_right_px;
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let expected_tick_mark_end_x =
+        (plot_right + style.price_axis_tick_mark_length_px).min(viewport_width);
+
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.color == style.axis_label_color
+            && (text.x - expected_label_x).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.color == style.last_price_label_color
+            && text.text == "20.00"
+            && (text.x - expected_label_x).abs() <= 1e-9
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.axis_border_color
+            && (line.y1 - line.y2).abs() <= 1e-9
+            && (line.x1 - plot_right).abs() <= 1e-9
+            && (line.x2 - expected_tick_mark_end_x).abs() <= 1e-9
+    }));
+}
+
+#[test]
 fn last_price_label_exclusion_filters_overlapping_axis_labels() {
     let renderer = NullRenderer::default();
     let config =

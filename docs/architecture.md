@@ -81,6 +81,7 @@ Tuning contracts:
 - latest-price axis label can optionally render as a deterministic filled price-box on the axis panel
 - latest-price price-box can apply deterministic border/radius styling and auto-contrast text color policy
 - latest-price price-box width policy supports deterministic full-axis or fit-text modes with explicit horizontal padding/min-width guards
+- price-axis label right inset and axis tick-mark extension length are deterministic style-level controls
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract
