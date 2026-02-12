@@ -2199,6 +2199,42 @@ fn crosshair_axis_label_box_clip_margin_is_independent_per_axis() {
 }
 
 #[test]
+fn crosshair_axis_label_box_stabilization_step_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_label_box_stabilization_step_px: 0.0,
+        crosshair_time_label_box_stabilization_step_px: 4.0,
+        crosshair_price_label_box_stabilization_step_px: 3.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(263.3, 217.4);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let time_text = frame
+        .texts
+        .iter()
+        .find(|text| text.h_align == TextHAlign::Center)
+        .expect("time text present");
+    let price_text = frame
+        .texts
+        .iter()
+        .find(|text| text.h_align == TextHAlign::Right)
+        .expect("price text present");
+
+    let time_units = time_text.x / style.crosshair_time_label_box_stabilization_step_px;
+    let price_units = price_text.y / style.crosshair_price_label_box_stabilization_step_px;
+    assert!((time_units - time_units.round()).abs() <= 1e-9);
+    assert!((price_units - price_units.round()).abs() <= 1e-9);
+}
+
+#[test]
 fn crosshair_axis_label_box_vertical_anchor_is_independent_per_axis() {
     let renderer = NullRenderer::default();
     let config =

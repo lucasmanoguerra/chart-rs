@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box per-axis jitter-stabilization parity baseline (`R-066`) with deterministic independent position-quantization controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_stabilization_step_px`, `crosshair_time_label_box_stabilization_step_px`, and `crosshair_price_label_box_stabilization_step_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis jitter-stabilization behavior.
 - Crosshair axis-label box per-axis clipping-margin parity baseline (`R-065`) with deterministic independent clip-inset controls for time and price label boxes under `ClipToAxis`.
 - New render-style knobs: `crosshair_label_box_clip_margin_px`, `crosshair_time_label_box_clip_margin_px`, and `crosshair_price_label_box_clip_margin_px`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis clipping-margin behavior.

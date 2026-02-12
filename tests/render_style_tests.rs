@@ -130,6 +130,9 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_price_label_box_visibility_priority: Some(
             chart_rs::api::CrosshairLabelBoxVisibilityPriority::PreferPrice,
         ),
+        crosshair_label_box_stabilization_step_px: 0.0,
+        crosshair_time_label_box_stabilization_step_px: 4.0,
+        crosshair_price_label_box_stabilization_step_px: 3.0,
         crosshair_label_box_min_width_px: 20.0,
         crosshair_time_label_box_min_width_px: 40.0,
         crosshair_price_label_box_min_width_px: 24.0,
@@ -883,6 +886,54 @@ fn invalid_crosshair_price_label_box_clip_margin_is_rejected() {
 
     let mut style = engine.render_style();
     style.crosshair_price_label_box_clip_margin_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_label_box_stabilization_step_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_label_box_stabilization_step_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_time_label_box_stabilization_step_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_time_label_box_stabilization_step_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_price_label_box_stabilization_step_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_price_label_box_stabilization_step_px = -1.0;
 
     let err = engine
         .set_render_style(style)

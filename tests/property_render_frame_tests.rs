@@ -537,6 +537,36 @@ proptest! {
     }
 
     #[test]
+    fn crosshair_axis_label_box_stabilization_step_is_deterministic_per_axis(
+        time_step in 0.0f64..8.0f64,
+        price_step in 0.0f64..8.0f64,
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let style = RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            crosshair_time_label_box_stabilization_step_px: time_step,
+            crosshair_price_label_box_stabilization_step_px: price_step,
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        engine.pointer_move(1275.0, 715.0);
+
+        let first = engine.build_render_frame().expect("first frame");
+        let second = engine.build_render_frame().expect("second frame");
+        prop_assert_eq!(first, second);
+    }
+
+    #[test]
     fn crosshair_axis_label_box_fill_color_is_deterministic_per_axis(
         time_fill_g in 0.0f64..1.0f64,
         price_fill_b in 0.0f64..1.0f64,

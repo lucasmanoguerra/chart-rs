@@ -362,6 +362,9 @@ pub struct RenderStyle {
     pub crosshair_label_box_visibility_priority: CrosshairLabelBoxVisibilityPriority,
     pub crosshair_time_label_box_visibility_priority: Option<CrosshairLabelBoxVisibilityPriority>,
     pub crosshair_price_label_box_visibility_priority: Option<CrosshairLabelBoxVisibilityPriority>,
+    pub crosshair_label_box_stabilization_step_px: f64,
+    pub crosshair_time_label_box_stabilization_step_px: f64,
+    pub crosshair_price_label_box_stabilization_step_px: f64,
     pub crosshair_label_box_min_width_px: f64,
     pub crosshair_time_label_box_min_width_px: f64,
     pub crosshair_price_label_box_min_width_px: f64,
@@ -539,6 +542,9 @@ impl Default for RenderStyle {
             crosshair_label_box_visibility_priority: CrosshairLabelBoxVisibilityPriority::KeepBoth,
             crosshair_time_label_box_visibility_priority: None,
             crosshair_price_label_box_visibility_priority: None,
+            crosshair_label_box_stabilization_step_px: 0.0,
+            crosshair_time_label_box_stabilization_step_px: 0.0,
+            crosshair_price_label_box_stabilization_step_px: 0.0,
             crosshair_label_box_min_width_px: 0.0,
             crosshair_time_label_box_min_width_px: 0.0,
             crosshair_price_label_box_min_width_px: 0.0,
@@ -1334,6 +1340,14 @@ impl<R: Renderer> ChartEngine<R> {
             }
         });
         (units * font_size_px).max(font_size_px)
+    }
+
+    fn stabilize_position(value: f64, step_px: f64) -> f64 {
+        if step_px > 0.0 {
+            (value / step_px).round() * step_px
+        } else {
+            value
+        }
     }
 
     fn resolve_crosshair_box_vertical_layout(
@@ -2472,6 +2486,18 @@ impl<R: Renderer> ChartEngine<R> {
                     time_label_padding_x,
                     (plot_right - time_label_padding_x).max(time_label_padding_x),
                 );
+                let time_stabilization_step =
+                    if style.crosshair_time_label_box_stabilization_step_px > 0.0 {
+                        style.crosshair_time_label_box_stabilization_step_px
+                    } else {
+                        style.crosshair_label_box_stabilization_step_px
+                    };
+                let crosshair_time_label_x =
+                    Self::stabilize_position(crosshair_time_label_x, time_stabilization_step)
+                        .clamp(
+                            time_label_padding_x,
+                            (plot_right - time_label_padding_x).max(time_label_padding_x),
+                        );
                 let mut time_text_x = crosshair_time_label_x;
                 let mut time_text_h_align = TextHAlign::Center;
                 let text = self.format_time_axis_label(crosshair_time, visible_span_abs);
@@ -2665,6 +2691,15 @@ impl<R: Renderer> ChartEngine<R> {
                 );
                 let price_label_anchor_y =
                     (crosshair_y - style.crosshair_price_label_offset_y_px).max(0.0);
+                let price_stabilization_step =
+                    if style.crosshair_price_label_box_stabilization_step_px > 0.0 {
+                        style.crosshair_price_label_box_stabilization_step_px
+                    } else {
+                        style.crosshair_label_box_stabilization_step_px
+                    };
+                let price_label_anchor_y =
+                    Self::stabilize_position(price_label_anchor_y, price_stabilization_step)
+                        .max(0.0);
                 let mut text_y = price_label_anchor_y;
                 let price_label_text_color = if style.show_crosshair_price_label_box {
                     self.resolve_crosshair_label_box_text_color(
@@ -3339,6 +3374,34 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `crosshair_price_label_box_clip_margin_px` must be finite and >= 0"
+                .to_owned(),
+        ));
+    }
+    if !style.crosshair_label_box_stabilization_step_px.is_finite()
+        || style.crosshair_label_box_stabilization_step_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_label_box_stabilization_step_px` must be finite and >= 0"
+                .to_owned(),
+        ));
+    }
+    if !style
+        .crosshair_time_label_box_stabilization_step_px
+        .is_finite()
+        || style.crosshair_time_label_box_stabilization_step_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_time_label_box_stabilization_step_px` must be finite and >= 0"
+                .to_owned(),
+        ));
+    }
+    if !style
+        .crosshair_price_label_box_stabilization_step_px
+        .is_finite()
+        || style.crosshair_price_label_box_stabilization_step_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_price_label_box_stabilization_step_px` must be finite and >= 0"
                 .to_owned(),
         ));
     }
