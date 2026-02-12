@@ -82,6 +82,8 @@ proptest! {
         let style = RenderStyle {
             crosshair_line_color: Color::rgb(0.93, 0.21, 0.17),
             crosshair_line_width: 2.0,
+        crosshair_horizontal_line_width: None,
+        crosshair_vertical_line_width: None,
             show_crosshair_horizontal_line: show_horizontal,
             show_crosshair_vertical_line: show_vertical,
             ..engine.render_style()
@@ -166,6 +168,46 @@ proptest! {
             },
             crosshair_vertical_line_color: if vertical_override {
                 Some(Color::rgb(0.17, 0.39, 0.85))
+            } else {
+                None
+            },
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        engine.pointer_move(640.0, 360.0);
+
+        let first = engine.build_render_frame().expect("first frame");
+        let second = engine.build_render_frame().expect("second frame");
+        prop_assert_eq!(first, second);
+    }
+
+    #[test]
+    fn crosshair_line_width_is_deterministic_per_axis(
+        horizontal_override in any::<bool>(),
+        vertical_override in any::<bool>(),
+        base_width in 1.0f64..4.0f64,
+        horizontal_width in 1.0f64..5.0f64,
+        vertical_width in 1.0f64..5.0f64,
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let style = RenderStyle {
+            crosshair_line_width: base_width,
+            crosshair_horizontal_line_width: if horizontal_override {
+                Some(horizontal_width)
+            } else {
+                None
+            },
+            crosshair_vertical_line_width: if vertical_override {
+                Some(vertical_width)
             } else {
                 None
             },

@@ -203,6 +203,20 @@ pub(super) fn validate_render_style(style: RenderStyle) -> ChartResult<RenderSty
             )));
         }
     }
+    if let Some(width) = style.crosshair_horizontal_line_width {
+        if !width.is_finite() || width <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "render style `crosshair_horizontal_line_width` must be finite and > 0".to_owned(),
+            ));
+        }
+    }
+    if let Some(width) = style.crosshair_vertical_line_width {
+        if !width.is_finite() || width <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "render style `crosshair_vertical_line_width` must be finite and > 0".to_owned(),
+            ));
+        }
+    }
     if !style.price_axis_label_padding_right_px.is_finite()
         || style.price_axis_label_padding_right_px < 0.0
     {

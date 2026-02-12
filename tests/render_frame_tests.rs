@@ -1427,6 +1427,8 @@ fn crosshair_lines_follow_pointer_in_normal_mode() {
     let style = RenderStyle {
         crosshair_line_color: Color::rgb(0.93, 0.28, 0.17),
         crosshair_line_width: 2.5,
+        crosshair_horizontal_line_width: None,
+        crosshair_vertical_line_width: None,
         ..engine.render_style()
     };
     engine.set_render_style(style).expect("set style");
@@ -1472,6 +1474,8 @@ fn crosshair_lines_use_snapped_coordinates_in_magnet_mode() {
     let style = RenderStyle {
         crosshair_line_color: Color::rgb(0.24, 0.44, 0.89),
         crosshair_line_width: 1.75,
+        crosshair_horizontal_line_width: None,
+        crosshair_vertical_line_width: None,
         ..engine.render_style()
     };
     engine.set_render_style(style).expect("set style");
@@ -1514,6 +1518,8 @@ fn crosshair_line_visibility_toggles_are_independent() {
     let style = RenderStyle {
         crosshair_line_color: Color::rgb(0.88, 0.21, 0.29),
         crosshair_line_width: 2.0,
+        crosshair_horizontal_line_width: None,
+        crosshair_vertical_line_width: None,
         show_crosshair_horizontal_line: true,
         show_crosshair_vertical_line: false,
         ..engine.render_style()
@@ -1595,6 +1601,69 @@ fn crosshair_line_style_shared_policy_applies_without_per_axis_overrides() {
         .expect("horizontal crosshair line");
     assert_eq!(vertical.stroke_style, LineStrokeStyle::Dashed);
     assert_eq!(horizontal.stroke_style, LineStrokeStyle::Dashed);
+}
+
+#[test]
+fn crosshair_line_width_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_width: 1.0,
+        crosshair_horizontal_line_width: Some(3.0),
+        crosshair_vertical_line_width: Some(2.0),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let vertical = frame
+        .lines
+        .iter()
+        .find(|line| (line.x1 - line.x2).abs() <= 1e-9)
+        .expect("vertical crosshair line");
+    assert!((vertical.stroke_width - 2.0).abs() <= 1e-9);
+
+    let horizontal = frame
+        .lines
+        .iter()
+        .find(|line| (line.y1 - line.y2).abs() <= 1e-9)
+        .expect("horizontal crosshair line");
+    assert!((horizontal.stroke_width - 3.0).abs() <= 1e-9);
+}
+
+#[test]
+fn crosshair_line_width_shared_policy_applies_without_per_axis_overrides() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_width: 2.5,
+        crosshair_horizontal_line_width: None,
+        crosshair_vertical_line_width: None,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let vertical = frame
+        .lines
+        .iter()
+        .find(|line| (line.x1 - line.x2).abs() <= 1e-9)
+        .expect("vertical crosshair line");
+    let horizontal = frame
+        .lines
+        .iter()
+        .find(|line| (line.y1 - line.y2).abs() <= 1e-9)
+        .expect("horizontal crosshair line");
+    assert!((vertical.stroke_width - 2.5).abs() <= 1e-9);
+    assert!((horizontal.stroke_width - 2.5).abs() <= 1e-9);
 }
 
 #[test]

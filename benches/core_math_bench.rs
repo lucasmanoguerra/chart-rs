@@ -383,6 +383,8 @@ fn bench_crosshair_render_lines(c: &mut Criterion) {
         .set_render_style(RenderStyle {
             crosshair_line_color: Color::rgb(0.88, 0.27, 0.19),
             crosshair_line_width: 2.0,
+            crosshair_horizontal_line_width: None,
+            crosshair_vertical_line_width: None,
             show_crosshair_horizontal_line: true,
             show_crosshair_vertical_line: true,
             ..engine.render_style()
@@ -459,6 +461,40 @@ fn bench_crosshair_render_line_color_per_axis(c: &mut Criterion) {
     engine.pointer_move(800.0, 320.0);
 
     c.bench_function("crosshair_render_line_color_per_axis", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_render_line_width_per_axis(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_line_width: 1.0,
+            crosshair_horizontal_line_width: Some(2.5),
+            crosshair_vertical_line_width: Some(1.5),
+            show_crosshair_horizontal_line: true,
+            show_crosshair_vertical_line: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_render_line_width_per_axis", |b| {
         b.iter(|| {
             let _ = engine.build_render_frame().expect("build render frame");
         })
@@ -2644,6 +2680,7 @@ criterion_group!(
     bench_crosshair_render_lines,
     bench_crosshair_render_line_style_per_axis,
     bench_crosshair_render_line_color_per_axis,
+    bench_crosshair_render_line_width_per_axis,
     bench_crosshair_axis_labels_render,
     bench_crosshair_axis_label_boxes_render,
     bench_crosshair_axis_label_boxes_border_radius_render,

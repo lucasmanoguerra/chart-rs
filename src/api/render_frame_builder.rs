@@ -439,13 +439,16 @@ impl<R: Renderer> ChartEngine<R> {
                 let vertical_line_color = style
                     .crosshair_vertical_line_color
                     .unwrap_or(style.crosshair_line_color);
+                let vertical_line_width = style
+                    .crosshair_vertical_line_width
+                    .unwrap_or(style.crosshair_line_width);
                 frame = frame.with_line(
                     LinePrimitive::new(
                         crosshair_x,
                         0.0,
                         crosshair_x,
                         plot_bottom,
-                        style.crosshair_line_width,
+                        vertical_line_width,
                         vertical_line_color,
                     )
                     .with_stroke_style(
@@ -459,13 +462,16 @@ impl<R: Renderer> ChartEngine<R> {
                 let horizontal_line_color = style
                     .crosshair_horizontal_line_color
                     .unwrap_or(style.crosshair_line_color);
+                let horizontal_line_width = style
+                    .crosshair_horizontal_line_width
+                    .unwrap_or(style.crosshair_line_width);
                 frame = frame.with_line(
                     LinePrimitive::new(
                         0.0,
                         crosshair_y,
                         plot_right,
                         crosshair_y,
-                        style.crosshair_line_width,
+                        horizontal_line_width,
                         horizontal_line_color,
                     )
                     .with_stroke_style(

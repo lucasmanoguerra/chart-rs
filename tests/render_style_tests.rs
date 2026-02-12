@@ -84,6 +84,8 @@ fn custom_render_style_is_applied_to_frame() {
         time_axis_tick_mark_width: 2.25,
         major_time_tick_mark_width: 2.75,
         crosshair_line_width: 1.35,
+        crosshair_horizontal_line_width: None,
+        crosshair_vertical_line_width: None,
         crosshair_line_style: LineStrokeStyle::Dashed,
         crosshair_horizontal_line_style: Some(LineStrokeStyle::Dotted),
         crosshair_vertical_line_style: Some(LineStrokeStyle::Solid),
@@ -499,6 +501,38 @@ fn invalid_crosshair_line_width_is_rejected() {
 
     let mut style = engine.render_style();
     style.crosshair_line_width = 0.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_horizontal_line_width_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_horizontal_line_width = Some(0.0);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_vertical_line_width_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_vertical_line_width = Some(f64::NAN);
 
     let err = engine
         .set_render_style(style)

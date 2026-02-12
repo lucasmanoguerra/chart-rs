@@ -184,6 +184,7 @@ Responsibilities:
 - configurable crosshair axis-label box z-order policy per axis (`PriceAboveTime`/`TimeAbovePrice`) with shared fallback
 - configurable crosshair guide-line stroke-style policy per axis (`Solid`/`Dashed`/`Dotted`) with shared fallback
 - configurable crosshair guide-line color policy per axis (independent horizontal/vertical colors with shared fallback to `crosshair_line_color`)
+- configurable crosshair guide-line width policy per axis (independent horizontal/vertical widths with shared fallback to `crosshair_line_width`)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -265,6 +266,7 @@ Render invariants:
 - crosshair axis-label box z-order is deterministic per axis (`crosshair_label_box_z_order_policy`, `crosshair_time_label_box_z_order_policy`, `crosshair_price_label_box_z_order_policy`)
 - crosshair guide-line stroke style is deterministic per axis (`crosshair_line_style`, `crosshair_horizontal_line_style`, `crosshair_vertical_line_style`)
 - crosshair guide-line color is deterministic per axis (`crosshair_line_color`, `crosshair_horizontal_line_color`, `crosshair_vertical_line_color`)
+- crosshair guide-line width is deterministic per axis (`crosshair_line_width`, `crosshair_horizontal_line_width`, `crosshair_vertical_line_width`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow
