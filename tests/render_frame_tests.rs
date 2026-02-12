@@ -122,6 +122,42 @@ fn time_axis_labels_use_configured_typography_offset_and_tick_length() {
 }
 
 #[test]
+fn time_axis_labels_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+
+    assert!(
+        !frame
+            .texts
+            .iter()
+            .any(|text| text.h_align == TextHAlign::Center)
+    );
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.grid_line_color
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - 0.0).abs() <= 1e-9
+            && (line.y2 - plot_bottom).abs() <= 1e-9
+    }));
+}
+
+#[test]
 fn last_price_marker_uses_latest_sample_value() {
     let renderer = NullRenderer::default();
     let config =

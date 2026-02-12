@@ -72,6 +72,7 @@ fn custom_render_style_is_applied_to_frame() {
         show_price_axis_tick_marks: true,
         show_price_axis_grid_lines: true,
         show_price_axis_labels: true,
+        show_time_axis_labels: true,
         price_axis_label_padding_right_px: 7.0,
         price_axis_tick_mark_length_px: 8.0,
         show_last_price_line: true,
@@ -547,5 +548,29 @@ fn session_boundary_uses_major_tick_styling() {
             .iter()
             .any(|text| text.text == "2024-01-02 09:30"
                 && text.font_size_px == custom_style.major_time_label_font_size_px)
+    );
+}
+
+#[test]
+fn time_axis_labels_visibility_toggle_is_applied() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let custom_style = RenderStyle {
+        show_time_axis_labels: false,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(custom_style)
+        .expect("set custom render style");
+
+    let frame = engine.build_render_frame().expect("frame");
+    assert!(
+        !frame
+            .texts
+            .iter()
+            .any(|text| text.h_align == chart_rs::render::TextHAlign::Center)
     );
 }

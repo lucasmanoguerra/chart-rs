@@ -32,6 +32,9 @@ and this project adheres to Semantic Versioning.
 - Time-axis regular-label typography parity baseline (`R-029`) with deterministic configurable label font size, vertical offset, and short tick-mark length.
 - New render-style knobs: `time_axis_label_font_size_px`, `time_axis_label_offset_y_px`, and `time_axis_tick_mark_length_px`.
 - New render-frame/style tests and criterion benchmark coverage for time-axis regular-label typography behavior.
+- Time-axis regular-label visibility parity baseline (`R-030`) with deterministic show/hide behavior.
+- New render-style knob: `show_time_axis_labels`.
+- New render-frame tests and criterion benchmark coverage for time-axis label visibility behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 
