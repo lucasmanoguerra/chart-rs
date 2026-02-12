@@ -108,6 +108,7 @@ Key files:
 - `plugin_dispatch.rs` (plugin event context/build + dispatch helpers)
 - `interaction_controller.rs` (public crosshair/pan/kinetic interaction controller methods)
 - `scale_access.rs` (public time-scale mapping/range accessor methods)
+- `visible_window_access.rs` (public visible-window point/candle accessor methods)
 
 Responsibilities:
 - orchestration between core + interaction + renderer
