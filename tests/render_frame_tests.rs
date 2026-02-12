@@ -1,6 +1,7 @@
 use chart_rs::api::{
-    ChartEngine, ChartEngineConfig, LastPriceLabelBoxWidthMode, LastPriceSourceMode, RenderStyle,
-    TimeAxisLabelConfig, TimeAxisLabelPolicy,
+    AxisLabelLocale, ChartEngine, ChartEngineConfig, LastPriceLabelBoxWidthMode,
+    LastPriceSourceMode, RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy,
+    TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, NullRenderer, TextHAlign};
@@ -186,6 +187,61 @@ fn time_axis_labels_use_dedicated_color() {
         frame.texts.iter().any(|text| {
             text.h_align == TextHAlign::Right && text.color == style.axis_label_color
         })
+    );
+}
+
+#[test]
+fn major_time_axis_labels_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1_704_205_800.0, 10.0),
+        DataPoint::new(1_704_205_860.0, 11.0),
+        DataPoint::new(1_704_205_920.0, 12.0),
+        DataPoint::new(1_704_205_980.0, 13.0),
+        DataPoint::new(1_704_206_040.0, 12.5),
+        DataPoint::new(1_704_206_100.0, 12.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let style = RenderStyle {
+        show_time_axis_labels: true,
+        show_major_time_labels: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let center_labels: Vec<_> = frame
+        .texts
+        .iter()
+        .filter(|text| text.h_align == TextHAlign::Center)
+        .collect();
+
+    assert!(
+        !center_labels.is_empty(),
+        "expected regular time labels to remain"
+    );
+    assert!(
+        !center_labels
+            .iter()
+            .any(|text| text.text == "2024-01-02 09:30")
     );
 }
 

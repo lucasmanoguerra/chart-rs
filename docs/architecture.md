@@ -95,6 +95,7 @@ Tuning contracts:
 - time-axis short tick-mark visibility is a deterministic style-level control
 - time-axis short tick-mark color/width are deterministic style-level controls independent from axis-border styling
 - time-axis label color is a deterministic style-level control independent from price-axis label color
+- major time-axis label visibility is a deterministic style-level control independent from regular time labels
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract

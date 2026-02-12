@@ -65,6 +65,7 @@ Use this document to track parity progress.
 | R-031 | Time Axis | Tick-mark visibility policy | done | Time-axis short tick marks can be deterministically enabled/disabled while grid lines and labels remain independent | `tests/render_frame_tests.rs`, `tests/render_style_tests.rs`, `benches/core_math_bench.rs` | Added render-style knob `show_time_axis_tick_marks` for visibility control of short time-axis tick marks. |
 | R-032 | Time Axis | Dedicated tick-mark style policy | done | Time-axis short tick marks support deterministic dedicated color/width styling independent from axis-border style | `tests/render_frame_tests.rs`, `tests/render_style_tests.rs`, `benches/core_math_bench.rs` | Added render-style knobs `time_axis_tick_mark_color` and `time_axis_tick_mark_width` for short time-axis tick styling. |
 | R-033 | Time Axis | Dedicated label color policy | done | Time-axis labels support deterministic dedicated color styling independent from price-axis label color | `tests/render_frame_tests.rs`, `tests/render_style_tests.rs`, `benches/core_math_bench.rs` | Added render-style knob `time_axis_label_color` for time-axis label color control. |
+| R-034 | Time Axis | Major-label visibility policy | done | Major time-axis labels can be deterministically enabled/disabled without affecting regular time labels | `tests/render_frame_tests.rs`, `tests/render_style_tests.rs`, `benches/core_math_bench.rs` | Added render-style knob `show_major_time_labels` for visibility control of major time-axis labels. |
 
 ## Extensions
 

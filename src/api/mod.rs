@@ -290,6 +290,7 @@ pub struct RenderStyle {
     pub show_price_axis_grid_lines: bool,
     pub show_price_axis_labels: bool,
     pub show_time_axis_labels: bool,
+    pub show_major_time_labels: bool,
     pub show_time_axis_tick_marks: bool,
     /// Horizontal inset from right edge used by price-axis labels.
     pub price_axis_label_padding_right_px: f64,
@@ -367,6 +368,7 @@ impl Default for RenderStyle {
             show_price_axis_grid_lines: true,
             show_price_axis_labels: true,
             show_time_axis_labels: true,
+            show_major_time_labels: true,
             show_time_axis_tick_marks: true,
             price_axis_label_padding_right_px: 6.0,
             price_axis_tick_mark_length_px: 6.0,
@@ -1881,7 +1883,7 @@ impl<R: Renderer> ChartEngine<R> {
             let time_label_y = (plot_bottom + style.time_axis_label_offset_y_px)
                 .min((viewport_height - label_font_size_px).max(0.0));
             let text = self.format_time_axis_label(time, visible_span_abs);
-            if style.show_time_axis_labels {
+            if style.show_time_axis_labels && (!is_major_tick || style.show_major_time_labels) {
                 frame = frame.with_text(TextPrimitive::new(
                     text,
                     px,

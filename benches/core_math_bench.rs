@@ -1257,6 +1257,51 @@ fn bench_time_axis_labels_hidden_render(c: &mut Criterion) {
     });
 }
 
+fn bench_major_time_axis_labels_hidden_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 1_704_205_800.0, 1_704_206_100.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..6)
+        .map(|i| {
+            let t = 1_704_205_800.0 + f64::from(i * 60);
+            let y = 100.0 + f64::from(i);
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis label config");
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: true,
+            show_major_time_labels: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("major_time_axis_labels_hidden_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 fn bench_time_axis_tick_marks_hidden_render(c: &mut Criterion) {
     let mut engine = ChartEngine::new(
         NullRenderer::default(),
@@ -1368,6 +1413,7 @@ criterion_group!(
     bench_time_axis_label_cache_hot,
     bench_time_axis_label_typography_render,
     bench_time_axis_labels_hidden_render,
+    bench_major_time_axis_labels_hidden_render,
     bench_time_axis_tick_marks_hidden_render,
     bench_time_axis_tick_mark_style_render,
     bench_time_axis_label_color_render,

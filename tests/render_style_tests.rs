@@ -76,6 +76,7 @@ fn custom_render_style_is_applied_to_frame() {
         show_price_axis_grid_lines: true,
         show_price_axis_labels: true,
         show_time_axis_labels: true,
+        show_major_time_labels: true,
         show_time_axis_tick_marks: true,
         price_axis_label_padding_right_px: 7.0,
         price_axis_tick_mark_length_px: 8.0,
@@ -614,6 +615,55 @@ fn session_boundary_uses_major_tick_styling() {
             .iter()
             .any(|text| text.text == "2024-01-02 09:30"
                 && text.font_size_px == custom_style.major_time_label_font_size_px)
+    );
+}
+
+#[test]
+fn major_time_labels_visibility_toggle_is_applied() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let custom_style = RenderStyle {
+        show_time_axis_labels: true,
+        show_major_time_labels: false,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(custom_style)
+        .expect("set custom render style");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let frame = engine.build_render_frame().expect("frame");
+    let center_labels: Vec<_> = frame
+        .texts
+        .iter()
+        .filter(|text| text.h_align == chart_rs::render::TextHAlign::Center)
+        .collect();
+
+    assert!(
+        !center_labels.is_empty(),
+        "expected regular time-axis labels to remain visible"
+    );
+    assert!(
+        !center_labels
+            .iter()
+            .any(|text| text.text == "2024-01-02 09:30")
     );
 }
 

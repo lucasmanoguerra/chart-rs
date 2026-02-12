@@ -44,6 +44,9 @@ and this project adheres to Semantic Versioning.
 - Time-axis label color parity baseline (`R-033`) with deterministic dedicated color control independent from price-axis labels.
 - New render-style knob: `time_axis_label_color`.
 - New render-frame/style tests and criterion benchmark coverage for time-axis label color behavior.
+- Major time-axis label visibility parity baseline (`R-034`) with deterministic show/hide behavior independent from regular time labels.
+- New render-style knob: `show_major_time_labels`.
+- New render-frame/style tests and criterion benchmark coverage for major-label visibility behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 
