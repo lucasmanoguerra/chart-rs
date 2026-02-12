@@ -289,6 +289,8 @@ pub struct RenderStyle {
     pub time_axis_tick_mark_width: f64,
     pub major_time_tick_mark_width: f64,
     pub crosshair_line_width: f64,
+    pub crosshair_time_label_font_size_px: f64,
+    pub crosshair_price_label_font_size_px: f64,
     pub crosshair_axis_label_font_size_px: f64,
     pub crosshair_label_box_padding_x_px: f64,
     pub crosshair_label_box_padding_y_px: f64,
@@ -425,6 +427,8 @@ impl Default for RenderStyle {
             time_axis_tick_mark_width: 1.0,
             major_time_tick_mark_width: 1.0,
             crosshair_line_width: 1.0,
+            crosshair_time_label_font_size_px: 11.0,
+            crosshair_price_label_font_size_px: 11.0,
             crosshair_axis_label_font_size_px: 11.0,
             crosshair_label_box_padding_x_px: 5.0,
             crosshair_label_box_padding_y_px: 2.0,
@@ -2290,7 +2294,7 @@ impl<R: Renderer> ChartEngine<R> {
                 );
                 let text = self.format_time_axis_label(crosshair_time, visible_span_abs);
                 let time_label_y = (plot_bottom + style.crosshair_time_label_offset_y_px)
-                    .min((viewport_height - style.crosshair_axis_label_font_size_px).max(0.0));
+                    .min((viewport_height - style.crosshair_time_label_font_size_px).max(0.0));
                 let time_label_text_color = if style.show_crosshair_time_label_box {
                     self.resolve_crosshair_label_box_text_color(style.crosshair_time_label_color)
                 } else {
@@ -2299,7 +2303,7 @@ impl<R: Renderer> ChartEngine<R> {
                 if style.show_crosshair_time_label_box {
                     let estimated_text_width = Self::estimate_label_text_width_px(
                         &text,
-                        style.crosshair_axis_label_font_size_px,
+                        style.crosshair_time_label_font_size_px,
                     );
                     let requested_box_width = match style.crosshair_label_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => plot_right,
@@ -2313,7 +2317,7 @@ impl<R: Renderer> ChartEngine<R> {
                     let box_top = (time_label_y - style.crosshair_label_box_padding_y_px)
                         .clamp(plot_bottom, viewport_height);
                     let box_bottom = (time_label_y
-                        + style.crosshair_axis_label_font_size_px
+                        + style.crosshair_time_label_font_size_px
                         + style.crosshair_label_box_padding_y_px)
                         .clamp(plot_bottom, viewport_height);
                     let box_height = (box_bottom - box_top).max(0.0);
@@ -2347,7 +2351,7 @@ impl<R: Renderer> ChartEngine<R> {
                     text,
                     crosshair_time_label_x,
                     time_label_y,
-                    style.crosshair_axis_label_font_size_px,
+                    style.crosshair_time_label_font_size_px,
                     time_label_text_color,
                     TextHAlign::Center,
                 ));
@@ -2382,7 +2386,7 @@ impl<R: Renderer> ChartEngine<R> {
                     let axis_panel_width = (viewport_width - axis_panel_left).max(0.0);
                     let estimated_text_width = Self::estimate_label_text_width_px(
                         &text,
-                        style.crosshair_axis_label_font_size_px,
+                        style.crosshair_price_label_font_size_px,
                     );
                     let requested_box_width = match style.crosshair_label_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => axis_panel_width,
@@ -2395,7 +2399,7 @@ impl<R: Renderer> ChartEngine<R> {
                     let box_top = (text_y - style.crosshair_label_box_padding_y_px)
                         .clamp(0.0, viewport_height);
                     let box_bottom = (text_y
-                        + style.crosshair_axis_label_font_size_px
+                        + style.crosshair_price_label_font_size_px
                         + style.crosshair_label_box_padding_y_px)
                         .clamp(0.0, viewport_height);
                     let box_height = (box_bottom - box_top).max(0.0);
@@ -2431,7 +2435,7 @@ impl<R: Renderer> ChartEngine<R> {
                     text,
                     text_x,
                     text_y,
-                    style.crosshair_axis_label_font_size_px,
+                    style.crosshair_price_label_font_size_px,
                     price_label_text_color,
                     TextHAlign::Right,
                 ));
@@ -2731,6 +2735,14 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
             style.major_time_tick_mark_width,
         ),
         ("crosshair_line_width", style.crosshair_line_width),
+        (
+            "crosshair_time_label_font_size_px",
+            style.crosshair_time_label_font_size_px,
+        ),
+        (
+            "crosshair_price_label_font_size_px",
+            style.crosshair_price_label_font_size_px,
+        ),
         (
             "crosshair_axis_label_font_size_px",
             style.crosshair_axis_label_font_size_px,
