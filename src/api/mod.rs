@@ -77,6 +77,7 @@ mod cache_profile;
 mod interaction_controller;
 mod plugin_dispatch;
 mod price_resolver;
+mod scale_access;
 mod snap_resolver;
 
 #[cfg(feature = "cairo-backend")]
@@ -455,24 +456,6 @@ impl<R: Renderer> ChartEngine<R> {
             .borrow_mut()
             .insert(key, text.clone());
         text
-    }
-
-    pub fn map_x_to_pixel(&self, x: f64) -> ChartResult<f64> {
-        self.time_scale.time_to_pixel(x, self.viewport)
-    }
-
-    pub fn map_pixel_to_x(&self, pixel: f64) -> ChartResult<f64> {
-        self.time_scale.pixel_to_time(pixel, self.viewport)
-    }
-
-    #[must_use]
-    pub fn time_visible_range(&self) -> (f64, f64) {
-        self.time_scale.visible_range()
-    }
-
-    #[must_use]
-    pub fn time_full_range(&self) -> (f64, f64) {
-        self.time_scale.full_range()
     }
 
     /// Returns point samples currently inside the visible time window.

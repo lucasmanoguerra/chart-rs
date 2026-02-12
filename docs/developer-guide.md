@@ -107,6 +107,7 @@ Key files:
 - `cache_profile.rs` (time/price label cache-profile resolution helpers)
 - `plugin_dispatch.rs` (plugin event context/build + dispatch helpers)
 - `interaction_controller.rs` (public crosshair/pan/kinetic interaction controller methods)
+- `scale_access.rs` (public time-scale mapping/range accessor methods)
 
 Responsibilities:
 - orchestration between core + interaction + renderer
