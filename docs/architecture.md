@@ -118,6 +118,7 @@ Tuning contracts:
 - engine snapshots export deterministic crosshair formatter lifecycle state (per-axis override mode + generation counters) for regression/debug tooling
 - formatter lifecycle introspection is exposed via explicit API accessors so host adapters can observe mode/generation without touching internals
 - property-level lifecycle tests cover formatter mode transitions, context invalidation boundaries, and snapshot export determinism
+- GTK4/Relm4 adapter flows should treat crosshair formatter updates as explicit message-driven state transitions (pointer/mode/range events) to preserve deterministic redraw behavior
 - crosshair time/price axis-label boxes support deterministic fit-text sizing with style-level fill/padding and independent per-axis visibility controls
 - crosshair axis-label boxes support deterministic border/radius styling with clamped corner geometry for backend-stable output
 - crosshair axis-label boxes support deterministic manual or auto-contrast text-color resolution without backend-specific text-measurement dependencies

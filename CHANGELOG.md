@@ -8,6 +8,8 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- GTK4/Relm4 integration docs parity baseline (`R-082`) with practical context-aware crosshair formatter wiring guidance for host applications.
+- New integration document: `docs/gtk-relm4-crosshair-formatters.md`.
 - Crosshair formatter lifecycle property-coverage parity baseline (`R-081`) with deterministic mixed-transition scenarios for legacy/context overrides, invalidation triggers, and snapshot export roundtrip.
 - New property-test coverage for crosshair formatter lifecycle and snapshot parity (`tests/property_api_tests.rs`).
 - Crosshair axis-label formatter API hardening parity baseline (`R-080`) with deterministic override-mode and generation introspection per axis.
