@@ -277,6 +277,7 @@ pub struct RenderStyle {
     pub time_axis_height_px: f64,
     pub show_price_axis_tick_marks: bool,
     pub show_price_axis_grid_lines: bool,
+    pub show_price_axis_labels: bool,
     /// Horizontal inset from right edge used by price-axis labels.
     pub price_axis_label_padding_right_px: f64,
     /// Length of short axis tick marks extending into the price-axis panel.
@@ -343,6 +344,7 @@ impl Default for RenderStyle {
             time_axis_height_px: 24.0,
             show_price_axis_tick_marks: true,
             show_price_axis_grid_lines: true,
+            show_price_axis_labels: true,
             price_axis_label_padding_right_px: 6.0,
             price_axis_tick_mark_length_px: 6.0,
             show_last_price_line: true,
@@ -1942,14 +1944,16 @@ impl<R: Renderer> ChartEngine<R> {
             );
             let text =
                 self.format_price_axis_label(display_price, display_tick_step_abs, display_suffix);
-            frame = frame.with_text(TextPrimitive::new(
-                text,
-                price_axis_label_anchor_x,
-                (py - style.price_axis_label_offset_y_px).max(0.0),
-                style.price_axis_label_font_size_px,
-                label_color,
-                TextHAlign::Right,
-            ));
+            if style.show_price_axis_labels {
+                frame = frame.with_text(TextPrimitive::new(
+                    text,
+                    price_axis_label_anchor_x,
+                    (py - style.price_axis_label_offset_y_px).max(0.0),
+                    style.price_axis_label_font_size_px,
+                    label_color,
+                    TextHAlign::Right,
+                ));
+            }
             if style.show_price_axis_grid_lines {
                 frame = frame.with_line(LinePrimitive::new(
                     0.0,

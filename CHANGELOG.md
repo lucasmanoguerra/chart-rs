@@ -23,6 +23,9 @@ and this project adheres to Semantic Versioning.
 - Price-axis horizontal grid-line visibility parity baseline (`R-026`) with deterministic show/hide behavior.
 - New render-style knob: `show_price_axis_grid_lines`.
 - New render-frame/style tests and criterion benchmark coverage for horizontal grid-line visibility behavior.
+- Price-axis regular-label visibility parity baseline (`R-027`) with deterministic show/hide behavior.
+- New render-style knob: `show_price_axis_labels`.
+- New render-frame/style tests and criterion benchmark coverage for regular-label visibility behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 

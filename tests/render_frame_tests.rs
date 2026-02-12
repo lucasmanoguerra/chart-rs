@@ -256,6 +256,36 @@ fn price_axis_grid_lines_can_be_hidden() {
 }
 
 #[test]
+fn price_axis_labels_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        show_price_axis_labels: false,
+        show_last_price_label: true,
+        last_price_label_color: Color::rgb(0.12, 0.72, 0.31),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(
+        !frame.texts.iter().any(|text| {
+            text.h_align == TextHAlign::Right && text.color == style.axis_label_color
+        })
+    );
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.color == style.last_price_label_color
+            && text.text == "20.00"
+    }));
+}
+
+#[test]
 fn last_price_label_padding_right_is_independent_from_axis_label_padding() {
     let renderer = NullRenderer::default();
     let config =
