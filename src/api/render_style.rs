@@ -92,6 +92,18 @@ pub struct RenderStyle {
     pub crosshair_vertical_line_color: Option<Color>,
     pub crosshair_time_label_color: Color,
     pub crosshair_price_label_color: Color,
+    /// Shared prefix prepended to crosshair axis-label text when per-axis override is absent.
+    pub crosshair_label_prefix: &'static str,
+    /// Shared suffix appended to crosshair axis-label text when per-axis override is absent.
+    pub crosshair_label_suffix: &'static str,
+    /// Optional dedicated prefix for crosshair time-axis label text.
+    pub crosshair_time_label_prefix: Option<&'static str>,
+    /// Optional dedicated suffix for crosshair time-axis label text.
+    pub crosshair_time_label_suffix: Option<&'static str>,
+    /// Optional dedicated prefix for crosshair price-axis label text.
+    pub crosshair_price_label_prefix: Option<&'static str>,
+    /// Optional dedicated suffix for crosshair price-axis label text.
+    pub crosshair_price_label_suffix: Option<&'static str>,
     pub crosshair_label_box_color: Color,
     pub crosshair_time_label_box_color: Option<Color>,
     pub crosshair_price_label_box_color: Option<Color>,
@@ -287,6 +299,12 @@ impl Default for RenderStyle {
             crosshair_vertical_line_color: None,
             crosshair_time_label_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_price_label_color: Color::rgb(0.10, 0.12, 0.16),
+            crosshair_label_prefix: "",
+            crosshair_label_suffix: "",
+            crosshair_time_label_prefix: None,
+            crosshair_time_label_suffix: None,
+            crosshair_price_label_prefix: None,
+            crosshair_price_label_suffix: None,
             crosshair_label_box_color: Color::rgb(0.94, 0.96, 0.99),
             crosshair_time_label_box_color: None,
             crosshair_price_label_box_color: None,

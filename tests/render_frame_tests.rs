@@ -1925,6 +1925,84 @@ fn clearing_crosshair_formatter_overrides_falls_back_to_default_policy() {
 }
 
 #[test]
+fn crosshair_axis_label_text_transform_supports_shared_fallback() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.18),
+        crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+        crosshair_label_prefix: "[[",
+        crosshair_label_suffix: "]]",
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let time_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    let price_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_price_label_color)
+        .expect("crosshair price label");
+
+    assert!(time_label.text.starts_with("[[") && time_label.text.ends_with("]]"));
+    assert!(price_label.text.starts_with("[[") && price_label.text.ends_with("]]"));
+}
+
+#[test]
+fn crosshair_axis_label_text_transform_supports_per_axis_overrides() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.18),
+        crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+        crosshair_label_prefix: "S:",
+        crosshair_label_suffix: ":S",
+        crosshair_time_label_prefix: Some("T:"),
+        crosshair_time_label_suffix: Some(":T"),
+        crosshair_price_label_prefix: Some("P:"),
+        crosshair_price_label_suffix: Some(":P"),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let time_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    let price_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_price_label_color)
+        .expect("crosshair price label");
+
+    assert!(time_label.text.starts_with("T:") && time_label.text.ends_with(":T"));
+    assert!(price_label.text.starts_with("P:") && price_label.text.ends_with(":P"));
+}
+
+#[test]
 fn crosshair_time_formatter_override_uses_dedicated_cache_stats() {
     let renderer = NullRenderer::default();
     let config =

@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label text transform parity baseline (`R-074`) with deterministic shared prefix/suffix fallback plus independent per-axis overrides for time/price crosshair labels.
+- New render-style knobs: `crosshair_label_prefix`, `crosshair_label_suffix`, `crosshair_time_label_prefix`, `crosshair_time_label_suffix`, `crosshair_price_label_prefix`, and `crosshair_price_label_suffix`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label text-transform behavior.
 - Crosshair axis-label formatter fallback/cache parity baseline (`R-073`) with deterministic per-axis cache policy for formatter overrides.
 - New API methods: `crosshair_time_label_cache_stats`, `clear_crosshair_time_label_cache`, `crosshair_price_label_cache_stats`, and `clear_crosshair_price_label_cache`.
 - New render-frame/property tests and criterion benchmark coverage for crosshair formatter override cache-hot behavior.

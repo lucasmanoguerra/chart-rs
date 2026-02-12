@@ -26,6 +26,17 @@ use super::{
 };
 
 impl<R: Renderer> ChartEngine<R> {
+    fn apply_crosshair_label_text_transform(text: String, prefix: &str, suffix: &str) -> String {
+        if prefix.is_empty() && suffix.is_empty() {
+            return text;
+        }
+        let mut transformed = String::with_capacity(prefix.len() + text.len() + suffix.len());
+        transformed.push_str(prefix);
+        transformed.push_str(&text);
+        transformed.push_str(suffix);
+        transformed
+    }
+
     fn format_time_axis_label(&self, logical_time: f64, visible_span_abs: f64) -> String {
         let profile = self.resolve_time_label_cache_profile(visible_span_abs);
         let key = TimeLabelCacheKey {
@@ -560,7 +571,15 @@ impl<R: Renderer> ChartEngine<R> {
                     );
                 let mut time_text_x = crosshair_time_label_x;
                 let mut time_text_h_align = TextHAlign::Center;
-                let text = self.format_crosshair_time_axis_label(crosshair_time, visible_span_abs);
+                let text = Self::apply_crosshair_label_text_transform(
+                    self.format_crosshair_time_axis_label(crosshair_time, visible_span_abs),
+                    style
+                        .crosshair_time_label_prefix
+                        .unwrap_or(style.crosshair_label_prefix),
+                    style
+                        .crosshair_time_label_suffix
+                        .unwrap_or(style.crosshair_label_suffix),
+                );
                 let time_label_anchor_y = (plot_bottom + style.crosshair_time_label_offset_y_px)
                     .min((viewport_height - style.crosshair_time_label_font_size_px).max(0.0));
                 let mut time_label_y = time_label_anchor_y;
@@ -744,10 +763,18 @@ impl<R: Renderer> ChartEngine<R> {
                     self.price_axis_label_config.display_mode,
                     fallback_display_base_price,
                 );
-                let text = self.format_crosshair_price_axis_label(
-                    display_price,
-                    display_tick_step_abs,
-                    display_suffix,
+                let text = Self::apply_crosshair_label_text_transform(
+                    self.format_crosshair_price_axis_label(
+                        display_price,
+                        display_tick_step_abs,
+                        display_suffix,
+                    ),
+                    style
+                        .crosshair_price_label_prefix
+                        .unwrap_or(style.crosshair_label_prefix),
+                    style
+                        .crosshair_price_label_suffix
+                        .unwrap_or(style.crosshair_label_suffix),
                 );
                 let price_label_anchor_y =
                     (crosshair_y - style.crosshair_price_label_offset_y_px).max(0.0);

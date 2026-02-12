@@ -263,6 +263,70 @@ proptest! {
     }
 
     #[test]
+    fn crosshair_axis_label_text_transform_is_deterministic_per_axis(
+        override_time in any::<bool>(),
+        override_price in any::<bool>(),
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let style = RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            crosshair_time_label_color: Color::rgb(0.88, 0.22, 0.19),
+            crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+            crosshair_label_prefix: "S:",
+            crosshair_label_suffix: ":S",
+            crosshair_time_label_prefix: if override_time { Some("T:") } else { None },
+            crosshair_time_label_suffix: if override_time { Some(":T") } else { None },
+            crosshair_price_label_prefix: if override_price { Some("P:") } else { None },
+            crosshair_price_label_suffix: if override_price { Some(":P") } else { None },
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        engine.pointer_move(640.0, 360.0);
+
+        let first = engine.build_render_frame().expect("first frame");
+        let second = engine.build_render_frame().expect("second frame");
+        prop_assert_eq!(first, second);
+
+        let time_text = first
+            .texts
+            .iter()
+            .find(|text| text.color == style.crosshair_time_label_color)
+            .expect("crosshair time text")
+            .text
+            .as_str();
+        let price_text = first
+            .texts
+            .iter()
+            .find(|text| text.color == style.crosshair_price_label_color)
+            .expect("crosshair price text")
+            .text
+            .as_str();
+
+        if override_time {
+            prop_assert!(time_text.starts_with("T:") && time_text.ends_with(":T"));
+        } else {
+            prop_assert!(time_text.starts_with("S:") && time_text.ends_with(":S"));
+        }
+        if override_price {
+            prop_assert!(price_text.starts_with("P:") && price_text.ends_with(":P"));
+        } else {
+            prop_assert!(price_text.starts_with("S:") && price_text.ends_with(":S"));
+        }
+    }
+
+    #[test]
     fn crosshair_axis_labels_are_deterministic_and_toggleable(
         x in 0.0f64..1280.0f64,
         y in 0.0f64..720.0f64,
