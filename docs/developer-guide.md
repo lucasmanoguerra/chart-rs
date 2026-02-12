@@ -109,6 +109,7 @@ Key files:
 - `interaction_controller.rs` (public crosshair/pan/kinetic interaction controller methods)
 - `scale_access.rs` (public time-scale mapping/range accessor methods)
 - `time_scale_controller.rs` (public time-scale range/pan/zoom/fit controller methods)
+- `series_projection.rs` (public series geometry/markers projection methods)
 - `visible_window_access.rs` (public visible-window point/candle accessor methods)
 - `price_scale_access.rs` (public price-scale map/domain/mode/autoscale methods)
 

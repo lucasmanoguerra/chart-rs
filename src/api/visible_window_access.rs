@@ -2,7 +2,8 @@ use crate::core::{DataPoint, OhlcBar, candles_in_time_window, points_in_time_win
 use crate::error::ChartResult;
 use crate::render::Renderer;
 
-use super::{ChartEngine, expand_visible_window};
+use super::ChartEngine;
+use super::data_window::expand_visible_window;
 
 impl<R: Renderer> ChartEngine<R> {
     /// Returns point samples currently inside the visible time window.
