@@ -117,6 +117,7 @@ Tuning contracts:
 - context-aware crosshair formatter caches are invalidated on crosshair-mode and visible-range lifecycle transitions to keep cache state bounded and deterministic
 - engine snapshots export deterministic crosshair formatter lifecycle state (per-axis override mode + generation counters) for regression/debug tooling
 - formatter lifecycle introspection is exposed via explicit API accessors so host adapters can observe mode/generation without touching internals
+- a consolidated diagnostics surface exposes per-axis formatter mode/generation/cache state for host debug and health probes
 - property-level lifecycle tests cover formatter mode transitions, context invalidation boundaries, and snapshot export determinism
 - GTK4/Relm4 adapter flows should treat crosshair formatter updates as explicit message-driven state transitions (pointer/mode/range events) to preserve deterministic redraw behavior
 - crosshair time/price axis-label boxes support deterministic fit-text sizing with style-level fill/padding and independent per-axis visibility controls

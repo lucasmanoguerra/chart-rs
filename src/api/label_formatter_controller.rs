@@ -1,9 +1,9 @@
 use crate::render::Renderer;
 
 use super::{
-    ChartEngine, CrosshairFormatterOverrideMode, CrosshairPriceLabelFormatterWithContextFn,
-    CrosshairTimeLabelFormatterWithContextFn, PriceLabelCacheStats, PriceLabelFormatterFn,
-    TimeLabelCacheStats, TimeLabelFormatterFn,
+    ChartEngine, CrosshairFormatterDiagnostics, CrosshairFormatterOverrideMode,
+    CrosshairPriceLabelFormatterWithContextFn, CrosshairTimeLabelFormatterWithContextFn,
+    PriceLabelCacheStats, PriceLabelFormatterFn, TimeLabelCacheStats, TimeLabelFormatterFn,
 };
 
 impl<R: Renderer> ChartEngine<R> {
@@ -156,6 +156,25 @@ impl<R: Renderer> ChartEngine<R> {
             self.crosshair_time_label_formatter_generation,
             self.crosshair_price_label_formatter_generation,
         )
+    }
+
+    #[must_use]
+    pub fn crosshair_formatter_diagnostics(&self) -> CrosshairFormatterDiagnostics {
+        let (time_formatter_generation, price_formatter_generation) =
+            self.crosshair_label_formatter_generations();
+        CrosshairFormatterDiagnostics {
+            time_override_mode: self.crosshair_time_label_formatter_override_mode(),
+            price_override_mode: self.crosshair_price_label_formatter_override_mode(),
+            time_formatter_generation,
+            price_formatter_generation,
+            time_cache: self.crosshair_time_label_cache_stats(),
+            price_cache: self.crosshair_price_label_cache_stats(),
+        }
+    }
+
+    pub fn clear_crosshair_formatter_caches(&self) {
+        self.crosshair_time_label_cache.borrow_mut().clear();
+        self.crosshair_price_label_cache.borrow_mut().clear();
     }
 
     #[must_use]

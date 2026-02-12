@@ -140,3 +140,49 @@ fn crosshair_formatter_override_mode_accessors_follow_contract() {
     assert!(generations_after.0 > generations_before.0);
     assert!(generations_after.1 > generations_before.1);
 }
+
+#[test]
+fn crosshair_formatter_diagnostics_exposes_modes_generations_and_cache_stats() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(640, 480), 0.0, 5.0).with_price_domain(1.0, 10.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let initial = engine.crosshair_formatter_diagnostics();
+    assert_eq!(
+        initial.time_override_mode,
+        CrosshairFormatterOverrideMode::None
+    );
+    assert_eq!(
+        initial.price_override_mode,
+        CrosshairFormatterOverrideMode::None
+    );
+    assert_eq!(initial.time_cache.size, 0);
+    assert_eq!(initial.price_cache.size, 0);
+
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, _| {
+        format!("TC:{value:.2}")
+    }));
+    engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("PL:{value:.2}")));
+    engine.pointer_move(100.0, 100.0);
+    let _ = engine.build_render_frame().expect("build frame");
+
+    let after_render = engine.crosshair_formatter_diagnostics();
+    assert_eq!(
+        after_render.time_override_mode,
+        CrosshairFormatterOverrideMode::Context
+    );
+    assert_eq!(
+        after_render.price_override_mode,
+        CrosshairFormatterOverrideMode::Legacy
+    );
+    assert!(after_render.time_formatter_generation >= 1);
+    assert!(after_render.price_formatter_generation >= 1);
+    assert!(after_render.time_cache.misses >= 1);
+    assert!(after_render.price_cache.misses >= 1);
+
+    engine.clear_crosshair_formatter_caches();
+    let cleared = engine.crosshair_formatter_diagnostics();
+    assert_eq!(cleared.time_cache.size, 0);
+    assert_eq!(cleared.price_cache.size, 0);
+}
