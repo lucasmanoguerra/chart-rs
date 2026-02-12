@@ -108,6 +108,7 @@ Responsibilities:
 - optional last-price axis label box (filled price-box) with configurable fill/text colors, border/radius, and contrast policy
 - configurable last-price label-box width policy (`FullAxis` / `FitText`) with deterministic text-width estimation, horizontal padding, and minimum width guardrails
 - configurable price-axis inset policy for right-side label padding and tick-mark extension length
+- configurable price-axis tick-mark style policy (dedicated color/width separate from axis border)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -142,6 +143,7 @@ Render invariants:
 - price-box labels support deterministic border width/color, corner radius, and optional auto-contrast text color resolution
 - price-box width is deterministic: either full-axis panel width or fit-text width computed from estimator + horizontal padding and clamped to axis bounds
 - price-axis label anchor and tick-mark extension are deterministic style knobs (`price_axis_label_padding_right_px`, `price_axis_tick_mark_length_px`)
+- price-axis tick-mark stroke can be tuned independently from axis border styling (`price_axis_tick_mark_color`, `price_axis_tick_mark_width`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

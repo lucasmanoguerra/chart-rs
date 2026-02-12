@@ -128,6 +128,8 @@ fn price_axis_insets_apply_to_labels_and_tick_marks() {
     let style = RenderStyle {
         price_axis_label_padding_right_px: 14.0,
         price_axis_tick_mark_length_px: 9.0,
+        price_axis_tick_mark_color: Color::rgb(0.9, 0.3, 0.2),
+        price_axis_tick_mark_width: 2.25,
         show_last_price_label_box: false,
         last_price_label_color: Color::rgb(0.0, 1.0, 0.0),
         ..engine.render_style()
@@ -153,7 +155,8 @@ fn price_axis_insets_apply_to_labels_and_tick_marks() {
             && (text.x - expected_label_x).abs() <= 1e-9
     }));
     assert!(frame.lines.iter().any(|line| {
-        line.color == style.axis_border_color
+        line.color == style.price_axis_tick_mark_color
+            && line.stroke_width == style.price_axis_tick_mark_width
             && (line.y1 - line.y2).abs() <= 1e-9
             && (line.x1 - plot_right).abs() <= 1e-9
             && (line.x2 - expected_tick_mark_end_x).abs() <= 1e-9

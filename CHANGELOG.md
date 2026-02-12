@@ -8,7 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Price-axis tick-mark style parity baseline (`R-021`) with deterministic dedicated color/width controls.
+- New render-style knobs: `price_axis_tick_mark_color` and `price_axis_tick_mark_width`.
+- New render-frame/style tests and criterion benchmark coverage for dedicated tick-mark styling behavior.
 
 ## [0.0.32-alpha.0] - 2026-02-12
 
