@@ -356,6 +356,9 @@ pub struct RenderStyle {
     pub crosshair_label_box_overflow_policy: Option<CrosshairLabelBoxOverflowPolicy>,
     pub crosshair_time_label_box_overflow_policy: Option<CrosshairLabelBoxOverflowPolicy>,
     pub crosshair_price_label_box_overflow_policy: Option<CrosshairLabelBoxOverflowPolicy>,
+    pub crosshair_label_box_clip_margin_px: f64,
+    pub crosshair_time_label_box_clip_margin_px: f64,
+    pub crosshair_price_label_box_clip_margin_px: f64,
     pub crosshair_label_box_visibility_priority: CrosshairLabelBoxVisibilityPriority,
     pub crosshair_time_label_box_visibility_priority: Option<CrosshairLabelBoxVisibilityPriority>,
     pub crosshair_price_label_box_visibility_priority: Option<CrosshairLabelBoxVisibilityPriority>,
@@ -530,6 +533,9 @@ impl Default for RenderStyle {
             crosshair_label_box_overflow_policy: None,
             crosshair_time_label_box_overflow_policy: None,
             crosshair_price_label_box_overflow_policy: None,
+            crosshair_label_box_clip_margin_px: 0.0,
+            crosshair_time_label_box_clip_margin_px: 0.0,
+            crosshair_price_label_box_clip_margin_px: 0.0,
             crosshair_label_box_visibility_priority: CrosshairLabelBoxVisibilityPriority::KeepBoth,
             crosshair_time_label_box_visibility_priority: None,
             crosshair_price_label_box_visibility_priority: None,
@@ -2506,20 +2512,56 @@ impl<R: Renderer> ChartEngine<R> {
                         .crosshair_time_label_box_overflow_policy
                         .or(style.crosshair_label_box_overflow_policy)
                         .unwrap_or(CrosshairLabelBoxOverflowPolicy::ClipToAxis);
+                    let time_box_clip_margin =
+                        if style.crosshair_time_label_box_clip_margin_px > 0.0 {
+                            style.crosshair_time_label_box_clip_margin_px
+                        } else {
+                            style.crosshair_label_box_clip_margin_px
+                        };
+                    let time_clip_min_x = if time_box_overflow_policy
+                        == CrosshairLabelBoxOverflowPolicy::ClipToAxis
+                    {
+                        time_box_clip_margin.min(plot_right * 0.5)
+                    } else {
+                        0.0
+                    };
+                    let time_clip_max_x = if time_box_overflow_policy
+                        == CrosshairLabelBoxOverflowPolicy::ClipToAxis
+                    {
+                        (plot_right - time_box_clip_margin).max(time_clip_min_x)
+                    } else {
+                        plot_right
+                    };
+                    let time_clip_min_y = if time_box_overflow_policy
+                        == CrosshairLabelBoxOverflowPolicy::ClipToAxis
+                    {
+                        let axis_height = (viewport_height - plot_bottom).max(0.0);
+                        plot_bottom + time_box_clip_margin.min(axis_height * 0.5)
+                    } else {
+                        plot_bottom
+                    };
+                    let time_clip_max_y = if time_box_overflow_policy
+                        == CrosshairLabelBoxOverflowPolicy::ClipToAxis
+                    {
+                        (viewport_height - time_box_clip_margin).max(time_clip_min_y)
+                    } else {
+                        viewport_height
+                    };
                     let requested_box_width = match time_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => plot_right,
                         CrosshairLabelBoxWidthMode::FitText => {
                             estimated_text_width + 2.0 * style.crosshair_time_label_box_padding_x_px
                         }
                     };
+                    let time_max_box_width = (time_clip_max_x - time_clip_min_x).max(0.0);
                     let box_width = requested_box_width
                         .max(time_box_min_width)
-                        .clamp(0.0, plot_right);
+                        .clamp(0.0, time_max_box_width);
                     let time_box_horizontal_anchor = style
                         .crosshair_time_label_box_horizontal_anchor
                         .or(style.crosshair_label_box_horizontal_anchor)
                         .unwrap_or(CrosshairLabelBoxHorizontalAnchor::Center);
-                    let max_left = (plot_right - box_width).max(0.0);
+                    let max_left = (time_clip_max_x - box_width).max(time_clip_min_x);
                     let requested_left = match time_box_horizontal_anchor {
                         CrosshairLabelBoxHorizontalAnchor::Left => crosshair_time_label_x,
                         CrosshairLabelBoxHorizontalAnchor::Center => {
@@ -2532,7 +2574,7 @@ impl<R: Renderer> ChartEngine<R> {
                     let box_left = if time_box_overflow_policy
                         == CrosshairLabelBoxOverflowPolicy::ClipToAxis
                     {
-                        requested_left.clamp(0.0, max_left)
+                        requested_left.clamp(time_clip_min_x, max_left)
                     } else {
                         requested_left
                     };
@@ -2541,8 +2583,8 @@ impl<R: Renderer> ChartEngine<R> {
                             time_label_anchor_y,
                             style.crosshair_time_label_font_size_px,
                             style.crosshair_time_label_box_padding_y_px,
-                            plot_bottom,
-                            viewport_height,
+                            time_clip_min_y,
+                            time_clip_max_y,
                             time_box_vertical_anchor,
                             time_box_overflow_policy == CrosshairLabelBoxOverflowPolicy::ClipToAxis,
                         );
@@ -2666,6 +2708,40 @@ impl<R: Renderer> ChartEngine<R> {
                         .crosshair_price_label_box_overflow_policy
                         .or(style.crosshair_label_box_overflow_policy)
                         .unwrap_or(CrosshairLabelBoxOverflowPolicy::ClipToAxis);
+                    let price_box_clip_margin =
+                        if style.crosshair_price_label_box_clip_margin_px > 0.0 {
+                            style.crosshair_price_label_box_clip_margin_px
+                        } else {
+                            style.crosshair_label_box_clip_margin_px
+                        };
+                    let price_clip_min_x = if price_box_overflow_policy
+                        == CrosshairLabelBoxOverflowPolicy::ClipToAxis
+                    {
+                        axis_panel_left + price_box_clip_margin.min(axis_panel_width * 0.5)
+                    } else {
+                        axis_panel_left
+                    };
+                    let price_clip_max_x = if price_box_overflow_policy
+                        == CrosshairLabelBoxOverflowPolicy::ClipToAxis
+                    {
+                        (viewport_width - price_box_clip_margin).max(price_clip_min_x)
+                    } else {
+                        viewport_width
+                    };
+                    let price_clip_min_y = if price_box_overflow_policy
+                        == CrosshairLabelBoxOverflowPolicy::ClipToAxis
+                    {
+                        price_box_clip_margin.min(viewport_height * 0.5)
+                    } else {
+                        0.0
+                    };
+                    let price_clip_max_y = if price_box_overflow_policy
+                        == CrosshairLabelBoxOverflowPolicy::ClipToAxis
+                    {
+                        (viewport_height - price_box_clip_margin).max(price_clip_min_y)
+                    } else {
+                        viewport_height
+                    };
                     let requested_box_width = match price_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => axis_panel_width,
                         CrosshairLabelBoxWidthMode::FitText => {
@@ -2673,9 +2749,10 @@ impl<R: Renderer> ChartEngine<R> {
                                 + 2.0 * style.crosshair_price_label_box_padding_x_px
                         }
                     };
+                    let price_max_box_width = (price_clip_max_x - price_clip_min_x).max(0.0);
                     let box_width = requested_box_width
                         .max(price_box_min_width)
-                        .clamp(0.0, axis_panel_width);
+                        .clamp(0.0, price_max_box_width);
                     let price_box_horizontal_anchor = style
                         .crosshair_price_label_box_horizontal_anchor
                         .or(style.crosshair_label_box_horizontal_anchor)
@@ -2690,7 +2767,10 @@ impl<R: Renderer> ChartEngine<R> {
                     let box_left = if price_box_overflow_policy
                         == CrosshairLabelBoxOverflowPolicy::ClipToAxis
                     {
-                        requested_left.clamp(axis_panel_left, viewport_width - box_width)
+                        requested_left.clamp(
+                            price_clip_min_x,
+                            (price_clip_max_x - box_width).max(price_clip_min_x),
+                        )
                     } else {
                         requested_left
                     };
@@ -2699,8 +2779,8 @@ impl<R: Renderer> ChartEngine<R> {
                             price_label_anchor_y,
                             style.crosshair_price_label_font_size_px,
                             style.crosshair_price_label_box_padding_y_px,
-                            0.0,
-                            viewport_height,
+                            price_clip_min_y,
+                            price_clip_max_y,
                             price_box_vertical_anchor,
                             price_box_overflow_policy
                                 == CrosshairLabelBoxOverflowPolicy::ClipToAxis,
@@ -3236,6 +3316,29 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `crosshair_price_label_box_min_width_px` must be finite and >= 0"
+                .to_owned(),
+        ));
+    }
+    if !style.crosshair_label_box_clip_margin_px.is_finite()
+        || style.crosshair_label_box_clip_margin_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_label_box_clip_margin_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.crosshair_time_label_box_clip_margin_px.is_finite()
+        || style.crosshair_time_label_box_clip_margin_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_time_label_box_clip_margin_px` must be finite and >= 0"
+                .to_owned(),
+        ));
+    }
+    if !style.crosshair_price_label_box_clip_margin_px.is_finite()
+        || style.crosshair_price_label_box_clip_margin_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_price_label_box_clip_margin_px` must be finite and >= 0"
                 .to_owned(),
         ));
     }

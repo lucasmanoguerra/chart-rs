@@ -119,6 +119,9 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_price_label_box_overflow_policy: Some(
             chart_rs::api::CrosshairLabelBoxOverflowPolicy::ClipToAxis,
         ),
+        crosshair_label_box_clip_margin_px: 2.0,
+        crosshair_time_label_box_clip_margin_px: 3.0,
+        crosshair_price_label_box_clip_margin_px: 1.0,
         crosshair_label_box_visibility_priority:
             chart_rs::api::CrosshairLabelBoxVisibilityPriority::KeepBoth,
         crosshair_time_label_box_visibility_priority: Some(
@@ -832,6 +835,54 @@ fn invalid_crosshair_price_label_box_min_width_is_rejected() {
 
     let mut style = engine.render_style();
     style.crosshair_price_label_box_min_width_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_label_box_clip_margin_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_label_box_clip_margin_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_time_label_box_clip_margin_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_time_label_box_clip_margin_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_price_label_box_clip_margin_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_price_label_box_clip_margin_px = -1.0;
 
     let err = engine
         .set_render_style(style)

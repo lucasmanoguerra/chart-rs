@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box per-axis clipping-margin parity baseline (`R-065`) with deterministic independent clip-inset controls for time and price label boxes under `ClipToAxis`.
+- New render-style knobs: `crosshair_label_box_clip_margin_px`, `crosshair_time_label_box_clip_margin_px`, and `crosshair_price_label_box_clip_margin_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis clipping-margin behavior.
 - Crosshair axis-label box per-axis visibility-priority parity baseline (`R-064`) with deterministic overlap resolution controls for time and price label boxes.
 - New render-style knobs: `crosshair_label_box_visibility_priority`, `crosshair_time_label_box_visibility_priority`, and `crosshair_price_label_box_visibility_priority`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis visibility-priority behavior.
