@@ -47,6 +47,7 @@ fn custom_render_style_is_applied_to_frame() {
         axis_border_color: Color::rgb(0.2, 0.2, 0.2),
         price_axis_tick_mark_color: Color::rgb(0.7, 0.2, 0.5),
         time_axis_tick_mark_color: Color::rgb(0.2, 0.6, 0.85),
+        major_time_tick_mark_color: Color::rgb(0.89, 0.34, 0.18),
         time_axis_label_color: Color::rgb(0.85, 0.24, 0.20),
         major_time_label_color: Color::rgb(0.93, 0.42, 0.18),
         axis_label_color: Color::rgb(0.0, 0.0, 0.0),
@@ -61,6 +62,7 @@ fn custom_render_style_is_applied_to_frame() {
         axis_line_width: 1.5,
         price_axis_tick_mark_width: 1.25,
         time_axis_tick_mark_width: 2.25,
+        major_time_tick_mark_width: 2.75,
         last_price_line_width: 1.75,
         major_time_label_font_size_px: 13.0,
         time_axis_label_font_size_px: 11.5,
@@ -228,6 +230,22 @@ fn invalid_time_axis_tick_mark_color_is_rejected() {
 
     let mut style = engine.render_style();
     style.time_axis_tick_mark_color = Color::rgb(1.1, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_major_time_tick_mark_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.major_time_tick_mark_color = Color::rgb(1.1, 0.2, 0.2);
 
     let err = engine
         .set_render_style(style)
@@ -460,6 +478,22 @@ fn invalid_time_axis_tick_mark_width_is_rejected() {
 }
 
 #[test]
+fn invalid_major_time_tick_mark_width_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.major_time_tick_mark_width = 0.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
 fn invalid_last_price_label_offset_y_is_rejected() {
     let renderer = NullRenderer::default();
     let config =
@@ -597,6 +631,8 @@ fn session_boundary_uses_major_tick_styling() {
     let custom_style = RenderStyle {
         major_grid_line_color: Color::rgb(0.75, 0.35, 0.12),
         major_grid_line_width: 2.5,
+        major_time_tick_mark_color: Color::rgb(0.89, 0.31, 0.19),
+        major_time_tick_mark_width: 2.25,
         major_time_label_font_size_px: 14.0,
         major_time_label_color: Color::rgb(0.90, 0.33, 0.14),
         ..engine.render_style()
@@ -628,6 +664,16 @@ fn session_boundary_uses_major_tick_styling() {
             .any(|line| line.color == custom_style.major_grid_line_color
                 && line.stroke_width == custom_style.major_grid_line_width)
     );
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom =
+        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
+    assert!(frame.lines.iter().any(|line| {
+        line.color == custom_style.major_time_tick_mark_color
+            && line.stroke_width == custom_style.major_time_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
     assert!(
         frame
             .texts

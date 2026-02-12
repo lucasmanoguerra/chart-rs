@@ -296,6 +296,64 @@ fn major_time_axis_labels_use_dedicated_color() {
 }
 
 #[test]
+fn major_time_axis_tick_marks_use_dedicated_style() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1_704_205_800.0, 10.0),
+        DataPoint::new(1_704_205_860.0, 11.0),
+        DataPoint::new(1_704_205_920.0, 12.0),
+        DataPoint::new(1_704_205_980.0, 13.0),
+        DataPoint::new(1_704_206_040.0, 12.5),
+        DataPoint::new(1_704_206_100.0, 12.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let style = RenderStyle {
+        time_axis_tick_mark_color: Color::rgb(0.16, 0.28, 0.43),
+        time_axis_tick_mark_width: 1.5,
+        major_time_tick_mark_color: Color::rgb(0.87, 0.30, 0.20),
+        major_time_tick_mark_width: 2.75,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.major_time_tick_mark_color
+            && line.stroke_width == style.major_time_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.time_axis_tick_mark_color
+            && line.stroke_width == style.time_axis_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
+}
+
+#[test]
 fn major_time_axis_grid_lines_can_be_hidden() {
     let renderer = NullRenderer::default();
     let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
