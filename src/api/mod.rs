@@ -273,6 +273,8 @@ pub struct RenderStyle {
     pub crosshair_label_box_text_color: Color,
     pub crosshair_label_box_auto_text_contrast: bool,
     pub crosshair_label_box_border_color: Color,
+    pub crosshair_time_label_box_border_color: Color,
+    pub crosshair_price_label_box_border_color: Color,
     pub last_price_line_color: Color,
     pub last_price_label_color: Color,
     /// Applied when trend coloring is enabled and latest sample is above previous.
@@ -300,6 +302,8 @@ pub struct RenderStyle {
     pub crosshair_price_label_box_padding_y_px: f64,
     pub crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode,
     pub crosshair_label_box_border_width_px: f64,
+    pub crosshair_time_label_box_border_width_px: f64,
+    pub crosshair_price_label_box_border_width_px: f64,
     pub crosshair_label_box_corner_radius_px: f64,
     pub last_price_line_width: f64,
     pub major_time_label_font_size_px: f64,
@@ -418,6 +422,8 @@ impl Default for RenderStyle {
             crosshair_label_box_text_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_label_box_auto_text_contrast: false,
             crosshair_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
+            crosshair_time_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
+            crosshair_price_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
             last_price_line_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_up_color: Color::rgb(0.06, 0.62, 0.35),
@@ -442,6 +448,8 @@ impl Default for RenderStyle {
             crosshair_price_label_box_padding_y_px: 2.0,
             crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
             crosshair_label_box_border_width_px: 0.0,
+            crosshair_time_label_box_border_width_px: 0.0,
+            crosshair_price_label_box_border_width_px: 0.0,
             crosshair_label_box_corner_radius_px: 0.0,
             last_price_line_width: 1.25,
             major_time_label_font_size_px: 12.0,
@@ -2337,13 +2345,20 @@ impl<R: Renderer> ChartEngine<R> {
                             box_height,
                             style.crosshair_label_box_color,
                         );
-                        if style.show_crosshair_time_label_box_border
-                            && style.crosshair_label_box_border_width_px > 0.0
-                        {
-                            rect = rect.with_border(
-                                style.crosshair_label_box_border_width_px,
-                                style.crosshair_label_box_border_color,
-                            );
+                        let time_border_width =
+                            if style.crosshair_time_label_box_border_width_px > 0.0 {
+                                style.crosshair_time_label_box_border_width_px
+                            } else {
+                                style.crosshair_label_box_border_width_px
+                            };
+                        let time_border_color =
+                            if style.crosshair_time_label_box_border_width_px > 0.0 {
+                                style.crosshair_time_label_box_border_color
+                            } else {
+                                style.crosshair_label_box_border_color
+                            };
+                        if style.show_crosshair_time_label_box_border && time_border_width > 0.0 {
+                            rect = rect.with_border(time_border_width, time_border_color);
                         }
                         if style.crosshair_label_box_corner_radius_px > 0.0 {
                             let max_corner_radius = (box_width.min(box_height)) * 0.5;
@@ -2422,13 +2437,20 @@ impl<R: Renderer> ChartEngine<R> {
                             box_height,
                             style.crosshair_label_box_color,
                         );
-                        if style.show_crosshair_price_label_box_border
-                            && style.crosshair_label_box_border_width_px > 0.0
-                        {
-                            rect = rect.with_border(
-                                style.crosshair_label_box_border_width_px,
-                                style.crosshair_label_box_border_color,
-                            );
+                        let price_border_width =
+                            if style.crosshair_price_label_box_border_width_px > 0.0 {
+                                style.crosshair_price_label_box_border_width_px
+                            } else {
+                                style.crosshair_label_box_border_width_px
+                            };
+                        let price_border_color =
+                            if style.crosshair_price_label_box_border_width_px > 0.0 {
+                                style.crosshair_price_label_box_border_color
+                            } else {
+                                style.crosshair_label_box_border_color
+                            };
+                        if style.show_crosshair_price_label_box_border && price_border_width > 0.0 {
+                            rect = rect.with_border(price_border_width, price_border_color);
                         }
                         if style.crosshair_label_box_corner_radius_px > 0.0 {
                             let max_corner_radius = (box_width.min(box_height)) * 0.5;
@@ -2717,6 +2739,8 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.crosshair_label_box_color.validate()?;
     style.crosshair_label_box_text_color.validate()?;
     style.crosshair_label_box_border_color.validate()?;
+    style.crosshair_time_label_box_border_color.validate()?;
+    style.crosshair_price_label_box_border_color.validate()?;
     style.last_price_line_color.validate()?;
     style.last_price_label_color.validate()?;
     style.last_price_up_color.validate()?;
@@ -2856,6 +2880,22 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `crosshair_label_box_border_width_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.crosshair_time_label_box_border_width_px.is_finite()
+        || style.crosshair_time_label_box_border_width_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_time_label_box_border_width_px` must be finite and >= 0"
+                .to_owned(),
+        ));
+    }
+    if !style.crosshair_price_label_box_border_width_px.is_finite()
+        || style.crosshair_price_label_box_border_width_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_price_label_box_border_width_px` must be finite and >= 0"
+                .to_owned(),
         ));
     }
     if !style.crosshair_label_box_corner_radius_px.is_finite()
