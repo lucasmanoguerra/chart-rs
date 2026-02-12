@@ -6,7 +6,7 @@ use chart_rs::api::{
     TimeAxisLabelConfig, TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{DataPoint, Viewport};
-use chart_rs::render::{Color, NullRenderer, TextHAlign};
+use chart_rs::render::{Color, LineStrokeStyle, NullRenderer, TextHAlign};
 
 #[test]
 fn build_render_frame_includes_series_and_axis_primitives() {
@@ -1532,6 +1532,69 @@ fn crosshair_line_visibility_toggles_are_independent() {
             && line.stroke_width == style.crosshair_line_width
             && (line.x1 - line.x2).abs() <= 1e-9
     }));
+}
+
+#[test]
+fn crosshair_line_style_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_style: LineStrokeStyle::Solid,
+        crosshair_horizontal_line_style: Some(LineStrokeStyle::Dotted),
+        crosshair_vertical_line_style: Some(LineStrokeStyle::Dashed),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let vertical = frame
+        .lines
+        .iter()
+        .find(|line| (line.x1 - line.x2).abs() <= 1e-9)
+        .expect("vertical crosshair line");
+    assert_eq!(vertical.stroke_style, LineStrokeStyle::Dashed);
+
+    let horizontal = frame
+        .lines
+        .iter()
+        .find(|line| (line.y1 - line.y2).abs() <= 1e-9)
+        .expect("horizontal crosshair line");
+    assert_eq!(horizontal.stroke_style, LineStrokeStyle::Dotted);
+}
+
+#[test]
+fn crosshair_line_style_shared_policy_applies_without_per_axis_overrides() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_style: LineStrokeStyle::Dashed,
+        crosshair_horizontal_line_style: None,
+        crosshair_vertical_line_style: None,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let vertical = frame
+        .lines
+        .iter()
+        .find(|line| (line.x1 - line.x2).abs() <= 1e-9)
+        .expect("vertical crosshair line");
+    let horizontal = frame
+        .lines
+        .iter()
+        .find(|line| (line.y1 - line.y2).abs() <= 1e-9)
+        .expect("horizontal crosshair line");
+    assert_eq!(vertical.stroke_style, LineStrokeStyle::Dashed);
+    assert_eq!(horizontal.stroke_style, LineStrokeStyle::Dashed);
 }
 
 #[test]

@@ -25,7 +25,8 @@ use crate::interaction::{
     KineticPanConfig, KineticPanState,
 };
 use crate::render::{
-    Color, LinePrimitive, RectPrimitive, RenderFrame, Renderer, TextHAlign, TextPrimitive,
+    Color, LinePrimitive, LineStrokeStyle, RectPrimitive, RenderFrame, Renderer, TextHAlign,
+    TextPrimitive,
 };
 
 #[cfg(feature = "cairo-backend")]
@@ -343,6 +344,9 @@ pub struct RenderStyle {
     pub time_axis_tick_mark_width: f64,
     pub major_time_tick_mark_width: f64,
     pub crosshair_line_width: f64,
+    pub crosshair_line_style: LineStrokeStyle,
+    pub crosshair_horizontal_line_style: Option<LineStrokeStyle>,
+    pub crosshair_vertical_line_style: Option<LineStrokeStyle>,
     pub crosshair_time_label_font_size_px: f64,
     pub crosshair_price_label_font_size_px: f64,
     pub crosshair_axis_label_font_size_px: f64,
@@ -526,6 +530,9 @@ impl Default for RenderStyle {
             time_axis_tick_mark_width: 1.0,
             major_time_tick_mark_width: 1.0,
             crosshair_line_width: 1.0,
+            crosshair_line_style: LineStrokeStyle::Solid,
+            crosshair_horizontal_line_style: None,
+            crosshair_vertical_line_style: None,
             crosshair_time_label_font_size_px: 11.0,
             crosshair_price_label_font_size_px: 11.0,
             crosshair_axis_label_font_size_px: 11.0,
@@ -2467,24 +2474,38 @@ impl<R: Renderer> ChartEngine<R> {
             let mut price_box_rect: Option<RectPrimitive> = None;
             let mut price_box_text: Option<TextPrimitive> = None;
             if style.show_crosshair_vertical_line {
-                frame = frame.with_line(LinePrimitive::new(
-                    crosshair_x,
-                    0.0,
-                    crosshair_x,
-                    plot_bottom,
-                    style.crosshair_line_width,
-                    style.crosshair_line_color,
-                ));
+                frame = frame.with_line(
+                    LinePrimitive::new(
+                        crosshair_x,
+                        0.0,
+                        crosshair_x,
+                        plot_bottom,
+                        style.crosshair_line_width,
+                        style.crosshair_line_color,
+                    )
+                    .with_stroke_style(
+                        style
+                            .crosshair_vertical_line_style
+                            .unwrap_or(style.crosshair_line_style),
+                    ),
+                );
             }
             if style.show_crosshair_horizontal_line {
-                frame = frame.with_line(LinePrimitive::new(
-                    0.0,
-                    crosshair_y,
-                    plot_right,
-                    crosshair_y,
-                    style.crosshair_line_width,
-                    style.crosshair_line_color,
-                ));
+                frame = frame.with_line(
+                    LinePrimitive::new(
+                        0.0,
+                        crosshair_y,
+                        plot_right,
+                        crosshair_y,
+                        style.crosshair_line_width,
+                        style.crosshair_line_color,
+                    )
+                    .with_stroke_style(
+                        style
+                            .crosshair_horizontal_line_style
+                            .unwrap_or(style.crosshair_line_style),
+                    ),
+                );
             }
             if style.show_crosshair_time_label {
                 let time_box_fill_color = style

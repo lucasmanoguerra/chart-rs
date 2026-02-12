@@ -5,7 +5,7 @@ use chart_rs::api::{
     TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::Viewport;
-use chart_rs::render::{Color, NullRenderer, TextHAlign};
+use chart_rs::render::{Color, LineStrokeStyle, NullRenderer, TextHAlign};
 
 #[test]
 fn default_render_style_produces_grid_and_axis_lines() {
@@ -82,6 +82,9 @@ fn custom_render_style_is_applied_to_frame() {
         time_axis_tick_mark_width: 2.25,
         major_time_tick_mark_width: 2.75,
         crosshair_line_width: 1.35,
+        crosshair_line_style: LineStrokeStyle::Dashed,
+        crosshair_horizontal_line_style: Some(LineStrokeStyle::Dotted),
+        crosshair_vertical_line_style: Some(LineStrokeStyle::Solid),
         crosshair_time_label_font_size_px: 12.0,
         crosshair_price_label_font_size_px: 12.0,
         crosshair_axis_label_font_size_px: 12.0,
