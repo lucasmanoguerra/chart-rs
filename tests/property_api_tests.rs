@@ -3,6 +3,7 @@ use chart_rs::core::{DataPoint, OhlcBar, Viewport};
 use chart_rs::interaction::CrosshairMode;
 use chart_rs::render::NullRenderer;
 use proptest::prelude::*;
+use std::sync::Arc;
 
 proptest! {
     #[test]
@@ -284,5 +285,89 @@ proptest! {
         prop_assert!((span_after - span_before).abs() <= 1e-7);
         prop_assert!((start_after - (start_before + expected_delta)).abs() <= 1e-7);
         prop_assert!((end_after - (end_before + expected_delta)).abs() <= 1e-7);
+    }
+
+    #[test]
+    fn crosshair_formatter_lifecycle_snapshot_is_deterministic_and_roundtrips(
+        set_time_legacy in any::<bool>(),
+        set_time_context in any::<bool>(),
+        clear_time in any::<bool>(),
+        set_price_legacy in any::<bool>(),
+        set_price_context in any::<bool>(),
+        clear_price in any::<bool>(),
+        switch_crosshair_mode in any::<bool>(),
+        change_visible_range in any::<bool>(),
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1200, 700), 0.0, 100.0)
+            .with_price_domain(-2_000.0, 2_000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+        if set_time_legacy {
+            engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("TL:{value:.2}")));
+        }
+        if set_time_context {
+            engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+                format!("TC:{value:.2}:{:.1}", context.visible_span_abs)
+            }));
+        }
+        if clear_time {
+            if engine.crosshair_time_label_formatter_override_mode()
+                == chart_rs::api::CrosshairFormatterOverrideMode::Context
+            {
+                engine.clear_crosshair_time_label_formatter_with_context();
+            } else {
+                engine.clear_crosshair_time_label_formatter();
+            }
+        }
+
+        if set_price_legacy {
+            engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("PL:{value:.2}")));
+        }
+        if set_price_context {
+            engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+                format!("PC:{value:.2}:{:.1}", context.visible_span_abs)
+            }));
+        }
+        if clear_price {
+            if engine.crosshair_price_label_formatter_override_mode()
+                == chart_rs::api::CrosshairFormatterOverrideMode::Context
+            {
+                engine.clear_crosshair_price_label_formatter_with_context();
+            } else {
+                engine.clear_crosshair_price_label_formatter();
+            }
+        }
+
+        if switch_crosshair_mode {
+            engine.set_crosshair_mode(CrosshairMode::Normal);
+        } else {
+            engine.set_crosshair_mode(CrosshairMode::Magnet);
+        }
+        if change_visible_range {
+            engine
+                .set_time_visible_range(10.0, 80.0)
+                .expect("set visible range");
+        }
+
+        let first = engine.snapshot(6.0).expect("first snapshot");
+        let second = engine.snapshot(6.0).expect("second snapshot");
+        prop_assert_eq!(first, second);
+
+        prop_assert_eq!(
+            first.crosshair_formatter.time_override_mode,
+            engine.crosshair_time_label_formatter_override_mode()
+        );
+        prop_assert_eq!(
+            first.crosshair_formatter.price_override_mode,
+            engine.crosshair_price_label_formatter_override_mode()
+        );
+        let (time_gen, price_gen) = engine.crosshair_label_formatter_generations();
+        prop_assert_eq!(first.crosshair_formatter.time_formatter_generation, time_gen);
+        prop_assert_eq!(first.crosshair_formatter.price_formatter_generation, price_gen);
+
+        let json = engine.snapshot_json_pretty(6.0).expect("snapshot json");
+        let restored: EngineSnapshot = serde_json::from_str(&json).expect("snapshot roundtrip");
+        prop_assert_eq!(restored.crosshair_formatter, first.crosshair_formatter);
     }
 }

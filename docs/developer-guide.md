@@ -170,6 +170,7 @@ Responsibilities:
 - configurable crosshair axis-label formatter context invalidation lifecycle (context-aware formatter caches clear on crosshair-mode and visible-range transitions)
 - snapshot/export parity for crosshair formatter lifecycle state (override mode per axis and formatter generations)
 - hardened crosshair formatter lifecycle introspection API (`crosshair_*_label_formatter_override_mode`, `crosshair_label_formatter_generations`) for host-side state diagnostics
+- property-based lifecycle coverage for crosshair formatter transitions (legacy/context set/clear, context invalidation triggers, snapshot parity)
 - configurable crosshair axis-label box policy (deterministic fit-text boxes with dedicated fill, padding, and independent time/price visibility toggles)
 - configurable crosshair axis-label box border/radius policy (deterministic border width/color and corner-radius styling)
 - configurable crosshair axis-label box text policy (manual text color or automatic contrast from box fill luminance)

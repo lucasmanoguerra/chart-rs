@@ -8,6 +8,8 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair formatter lifecycle property-coverage parity baseline (`R-081`) with deterministic mixed-transition scenarios for legacy/context overrides, invalidation triggers, and snapshot export roundtrip.
+- New property-test coverage for crosshair formatter lifecycle and snapshot parity (`tests/property_api_tests.rs`).
 - Crosshair axis-label formatter API hardening parity baseline (`R-080`) with deterministic override-mode and generation introspection per axis.
 - New API methods: `crosshair_time_label_formatter_override_mode`, `crosshair_price_label_formatter_override_mode`, and `crosshair_label_formatter_generations`.
 - Crosshair axis-label formatter snapshot/export parity baseline (`R-079`) with deterministic snapshot fields for per-axis override mode and formatter generations.
