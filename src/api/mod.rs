@@ -2,7 +2,6 @@ use std::cell::RefCell;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, trace};
 
 use crate::core::{
     CandleGeometry, DataPoint, OhlcBar, PriceScale, PriceScaleMode, TimeScale, Viewport,
@@ -68,13 +67,16 @@ use layout_helpers::{
 };
 
 mod cache_profile;
+mod data_controller;
 mod interaction_controller;
 mod plugin_dispatch;
+mod plugin_registry;
 mod price_resolver;
 mod price_scale_access;
 mod scale_access;
 mod series_projection;
 mod snap_resolver;
+mod snapshot_controller;
 mod time_scale_controller;
 mod visible_window_access;
 
@@ -204,87 +206,11 @@ impl<R: Renderer> ChartEngine<R> {
         })
     }
 
-    /// Replaces line/point data series.
-    pub fn set_data(&mut self, points: Vec<DataPoint>) {
-        debug!(count = points.len(), "set data points");
-        self.points = points;
-        self.emit_plugin_event(PluginEvent::DataUpdated {
-            points_len: self.points.len(),
-        });
-    }
-
-    /// Appends a single line/point sample.
-    pub fn append_point(&mut self, point: DataPoint) {
-        self.points.push(point);
-        trace!(count = self.points.len(), "append data point");
-        self.emit_plugin_event(PluginEvent::DataUpdated {
-            points_len: self.points.len(),
-        });
-    }
-
-    /// Replaces candlestick series.
-    pub fn set_candles(&mut self, candles: Vec<OhlcBar>) {
-        debug!(count = candles.len(), "set candles");
-        self.candles = candles;
-        self.emit_plugin_event(PluginEvent::CandlesUpdated {
-            candles_len: self.candles.len(),
-        });
-    }
-
-    /// Appends a single OHLC bar.
-    pub fn append_candle(&mut self, candle: OhlcBar) {
-        self.candles.push(candle);
-        trace!(count = self.candles.len(), "append candle");
-        self.emit_plugin_event(PluginEvent::CandlesUpdated {
-            candles_len: self.candles.len(),
-        });
-    }
-
     /// Sets or updates deterministic series metadata.
     ///
     /// `IndexMap` is used to preserve insertion order for stable snapshots.
     pub fn set_series_metadata(&mut self, key: impl Into<String>, value: impl Into<String>) {
         self.series_metadata.insert(key.into(), value.into());
-    }
-
-    /// Registers a plugin with unique identifier.
-    pub fn register_plugin(&mut self, plugin: Box<dyn ChartPlugin>) -> ChartResult<()> {
-        let plugin_id = plugin.id().to_owned();
-        if plugin_id.is_empty() {
-            return Err(ChartError::InvalidData(
-                "plugin id must not be empty".to_owned(),
-            ));
-        }
-        if self.plugins.iter().any(|entry| entry.id() == plugin_id) {
-            return Err(ChartError::InvalidData(format!(
-                "plugin with id `{plugin_id}` is already registered"
-            )));
-        }
-        self.plugins.push(plugin);
-        Ok(())
-    }
-
-    /// Unregisters a plugin by id. Returns `true` when removed.
-    pub fn unregister_plugin(&mut self, plugin_id: &str) -> bool {
-        if let Some(position) = self
-            .plugins
-            .iter()
-            .position(|entry| entry.id() == plugin_id)
-        {
-            self.plugins.remove(position);
-            return true;
-        }
-        false
-    }
-
-    #[must_use]
-    pub fn plugin_count(&self) -> usize {
-        self.plugins.len()
-    }
-
-    #[must_use]
-    pub fn has_plugin(&self, plugin_id: &str) -> bool {
-        self.plugins.iter().any(|plugin| plugin.id() == plugin_id)
     }
 
     #[must_use]
@@ -454,27 +380,6 @@ impl<R: Renderer> ChartEngine<R> {
             .borrow_mut()
             .insert(key, text.clone());
         text
-    }
-
-    /// Builds a deterministic snapshot useful for regression tests.
-    pub fn snapshot(&self, body_width_px: f64) -> ChartResult<EngineSnapshot> {
-        Ok(EngineSnapshot {
-            viewport: self.viewport,
-            time_full_range: self.time_scale.full_range(),
-            time_visible_range: self.time_scale.visible_range(),
-            price_domain: self.price_scale.domain(),
-            crosshair: self.interaction.crosshair(),
-            points: self.points.clone(),
-            candle_geometry: self.project_candles(body_width_px)?,
-            series_metadata: self.series_metadata.clone(),
-        })
-    }
-
-    /// Serializes snapshot as pretty JSON for fixture-based regression checks.
-    pub fn snapshot_json_pretty(&self, body_width_px: f64) -> ChartResult<String> {
-        let snapshot = self.snapshot(body_width_px)?;
-        serde_json::to_string_pretty(&snapshot)
-            .map_err(|e| ChartError::InvalidData(format!("failed to serialize snapshot: {e}")))
     }
 
     /// Materializes backend-agnostic primitives for one draw pass.
