@@ -251,6 +251,7 @@ pub struct RenderStyle {
     pub major_grid_line_color: Color,
     pub axis_border_color: Color,
     pub price_axis_tick_mark_color: Color,
+    pub time_axis_tick_mark_color: Color,
     pub axis_label_color: Color,
     pub last_price_line_color: Color,
     pub last_price_label_color: Color,
@@ -265,6 +266,7 @@ pub struct RenderStyle {
     pub major_grid_line_width: f64,
     pub axis_line_width: f64,
     pub price_axis_tick_mark_width: f64,
+    pub time_axis_tick_mark_width: f64,
     pub last_price_line_width: f64,
     pub major_time_label_font_size_px: f64,
     /// Font size used by regular (non-major) time-axis labels.
@@ -334,6 +336,7 @@ impl Default for RenderStyle {
             major_grid_line_color: Color::rgb(0.78, 0.83, 0.90),
             axis_border_color: Color::rgb(0.82, 0.84, 0.88),
             price_axis_tick_mark_color: Color::rgb(0.82, 0.84, 0.88),
+            time_axis_tick_mark_color: Color::rgb(0.82, 0.84, 0.88),
             axis_label_color: Color::rgb(0.10, 0.12, 0.16),
             last_price_line_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_color: Color::rgb(0.16, 0.38, 1.0),
@@ -345,6 +348,7 @@ impl Default for RenderStyle {
             major_grid_line_width: 1.25,
             axis_line_width: 1.0,
             price_axis_tick_mark_width: 1.0,
+            time_axis_tick_mark_width: 1.0,
             last_price_line_width: 1.25,
             major_time_label_font_size_px: 12.0,
             time_axis_label_font_size_px: 11.0,
@@ -1898,8 +1902,8 @@ impl<R: Renderer> ChartEngine<R> {
                     plot_bottom,
                     px,
                     (plot_bottom + style.time_axis_tick_mark_length_px).min(viewport_height),
-                    style.axis_line_width,
-                    axis_color,
+                    style.time_axis_tick_mark_width,
+                    style.time_axis_tick_mark_color,
                 ));
             }
         }
@@ -2354,6 +2358,7 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.major_grid_line_color.validate()?;
     style.axis_border_color.validate()?;
     style.price_axis_tick_mark_color.validate()?;
+    style.time_axis_tick_mark_color.validate()?;
     style.axis_label_color.validate()?;
     style.last_price_line_color.validate()?;
     style.last_price_label_color.validate()?;
@@ -2376,6 +2381,7 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
             "price_axis_tick_mark_width",
             style.price_axis_tick_mark_width,
         ),
+        ("time_axis_tick_mark_width", style.time_axis_tick_mark_width),
         ("last_price_line_width", style.last_price_line_width),
         (
             "major_time_label_font_size_px",

@@ -79,6 +79,8 @@ fn time_axis_labels_use_configured_typography_offset_and_tick_length() {
         time_axis_label_font_size_px: 13.0,
         time_axis_label_offset_y_px: 7.0,
         time_axis_tick_mark_length_px: 9.0,
+        time_axis_tick_mark_color: Color::rgb(0.89, 0.24, 0.16),
+        time_axis_tick_mark_width: 2.25,
         ..engine.render_style()
     };
     engine.set_render_style(style).expect("set style");
@@ -106,8 +108,8 @@ fn time_axis_labels_use_configured_typography_offset_and_tick_length() {
         .lines
         .iter()
         .filter(|line| {
-            line.color == style.axis_border_color
-                && line.stroke_width == style.axis_line_width
+            line.color == style.time_axis_tick_mark_color
+                && line.stroke_width == style.time_axis_tick_mark_width
                 && (line.x1 - line.x2).abs() <= 1e-9
                 && (line.y1 - plot_bottom).abs() <= 1e-9
                 && line.y2 > line.y1
@@ -170,6 +172,8 @@ fn time_axis_tick_marks_can_be_hidden() {
     ]);
 
     let style = RenderStyle {
+        time_axis_tick_mark_color: Color::rgb(0.92, 0.31, 0.19),
+        time_axis_tick_mark_width: 2.0,
         show_time_axis_tick_marks: false,
         ..engine.render_style()
     };
@@ -180,8 +184,8 @@ fn time_axis_tick_marks_can_be_hidden() {
     let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
 
     assert!(!frame.lines.iter().any(|line| {
-        line.color == style.axis_border_color
-            && line.stroke_width == style.axis_line_width
+        line.color == style.time_axis_tick_mark_color
+            && line.stroke_width == style.time_axis_tick_mark_width
             && (line.x1 - line.x2).abs() <= 1e-9
             && (line.y1 - plot_bottom).abs() <= 1e-9
             && line.y2 > line.y1
@@ -191,6 +195,47 @@ fn time_axis_tick_marks_can_be_hidden() {
             && (line.x1 - line.x2).abs() <= 1e-9
             && (line.y1 - 0.0).abs() <= 1e-9
             && (line.y2 - plot_bottom).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn time_axis_tick_marks_use_dedicated_style() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+
+    let style = RenderStyle {
+        axis_border_color: Color::rgb(0.12, 0.14, 0.18),
+        axis_line_width: 1.0,
+        time_axis_tick_mark_color: Color::rgb(0.86, 0.26, 0.22),
+        time_axis_tick_mark_width: 2.5,
+        show_time_axis_tick_marks: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.axis_border_color
+            && line.stroke_width == style.axis_line_width
+            && (line.y1 - line.y2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.time_axis_tick_mark_color
+            && line.stroke_width == style.time_axis_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
     }));
 }
 

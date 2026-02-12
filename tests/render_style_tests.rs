@@ -46,6 +46,7 @@ fn custom_render_style_is_applied_to_frame() {
         major_grid_line_color: Color::rgb(0.8, 0.4, 0.1),
         axis_border_color: Color::rgb(0.2, 0.2, 0.2),
         price_axis_tick_mark_color: Color::rgb(0.7, 0.2, 0.5),
+        time_axis_tick_mark_color: Color::rgb(0.2, 0.6, 0.85),
         axis_label_color: Color::rgb(0.0, 0.0, 0.0),
         last_price_line_color: Color::rgb(0.2, 0.2, 0.8),
         last_price_label_color: Color::rgb(0.2, 0.2, 0.8),
@@ -57,6 +58,7 @@ fn custom_render_style_is_applied_to_frame() {
         major_grid_line_width: 3.0,
         axis_line_width: 1.5,
         price_axis_tick_mark_width: 1.25,
+        time_axis_tick_mark_width: 2.25,
         last_price_line_width: 1.75,
         major_time_label_font_size_px: 13.0,
         time_axis_label_font_size_px: 11.5,
@@ -133,6 +135,16 @@ fn custom_render_style_is_applied_to_frame() {
         line.color == custom_style.price_axis_tick_mark_color
             && line.stroke_width == custom_style.price_axis_tick_mark_width
     }));
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom =
+        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
+    assert!(frame.lines.iter().any(|line| {
+        line.color == custom_style.time_axis_tick_mark_color
+            && line.stroke_width == custom_style.time_axis_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
 }
 
 #[test]
@@ -192,6 +204,22 @@ fn invalid_price_axis_tick_mark_color_is_rejected() {
 
     let mut style = engine.render_style();
     style.price_axis_tick_mark_color = Color::rgb(1.1, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_time_axis_tick_mark_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_tick_mark_color = Color::rgb(1.1, 0.2, 0.2);
 
     let err = engine
         .set_render_style(style)
@@ -368,6 +396,22 @@ fn invalid_time_axis_tick_mark_length_is_rejected() {
 
     let mut style = engine.render_style();
     style.time_axis_tick_mark_length_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_time_axis_tick_mark_width_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_tick_mark_width = 0.0;
 
     let err = engine
         .set_render_style(style)
@@ -584,6 +628,8 @@ fn time_axis_tick_marks_visibility_toggle_is_applied() {
     let mut engine = ChartEngine::new(renderer, config).expect("engine init");
 
     let custom_style = RenderStyle {
+        time_axis_tick_mark_color: Color::rgb(0.91, 0.33, 0.16),
+        time_axis_tick_mark_width: 2.0,
         show_time_axis_tick_marks: false,
         ..engine.render_style()
     };
@@ -596,8 +642,8 @@ fn time_axis_tick_marks_visibility_toggle_is_applied() {
     let plot_bottom =
         (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
     assert!(!frame.lines.iter().any(|line| {
-        line.color == custom_style.axis_border_color
-            && line.stroke_width == custom_style.axis_line_width
+        line.color == custom_style.time_axis_tick_mark_color
+            && line.stroke_width == custom_style.time_axis_tick_mark_width
             && (line.x1 - line.x2).abs() <= 1e-9
             && (line.y1 - plot_bottom).abs() <= 1e-9
             && line.y2 > line.y1

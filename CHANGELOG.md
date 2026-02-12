@@ -38,6 +38,9 @@ and this project adheres to Semantic Versioning.
 - Time-axis tick-mark visibility parity baseline (`R-031`) with deterministic show/hide behavior.
 - New render-style knob: `show_time_axis_tick_marks`.
 - New render-frame/style tests and criterion benchmark coverage for time-axis tick-mark visibility behavior.
+- Time-axis tick-mark style parity baseline (`R-032`) with deterministic dedicated color/width controls.
+- New render-style knobs: `time_axis_tick_mark_color` and `time_axis_tick_mark_width`.
+- New render-frame/style tests and criterion benchmark coverage for time-axis tick-mark style behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 
