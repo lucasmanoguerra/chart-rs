@@ -66,3 +66,16 @@ See:
 - `CHANGELOG.md`
 - `CONTRIBUTING.md`
 - `AGENTS.md`
+
+## Automation Script
+
+To automate the full feature-to-release alpha flow (checks, PRs, merge, release PR, prerelease):
+
+```bash
+scripts/ship_alpha.sh \
+  --feature-branch feat/r0xx-your-feature \
+  --feature-commit "feat(render): add R-0xx your feature" \
+  --feature-pr-title "feat(render): add R-0xx your feature"
+```
+
+The script retries transient `gh` API connectivity errors and waits for GitHub checks automatically.
