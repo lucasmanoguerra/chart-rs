@@ -1582,18 +1582,34 @@ fn crosshair_line_style_is_independent_per_axis() {
     engine.set_render_style(style).expect("set style");
     engine.pointer_move(260.0, 210.0);
     let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
 
     let vertical = frame
         .lines
         .iter()
-        .find(|line| (line.x1 - line.x2).abs() <= 1e-9)
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
         .expect("vertical crosshair line");
     assert_eq!(vertical.stroke_style, LineStrokeStyle::Dashed);
 
     let horizontal = frame
         .lines
         .iter()
-        .find(|line| (line.y1 - line.y2).abs() <= 1e-9)
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
         .expect("horizontal crosshair line");
     assert_eq!(horizontal.stroke_style, LineStrokeStyle::Dotted);
 }
@@ -1614,16 +1630,32 @@ fn crosshair_line_style_shared_policy_applies_without_per_axis_overrides() {
     engine.set_render_style(style).expect("set style");
     engine.pointer_move(260.0, 210.0);
     let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
 
     let vertical = frame
         .lines
         .iter()
-        .find(|line| (line.x1 - line.x2).abs() <= 1e-9)
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
         .expect("vertical crosshair line");
     let horizontal = frame
         .lines
         .iter()
-        .find(|line| (line.y1 - line.y2).abs() <= 1e-9)
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
         .expect("horizontal crosshair line");
     assert_eq!(vertical.stroke_style, LineStrokeStyle::Dashed);
     assert_eq!(horizontal.stroke_style, LineStrokeStyle::Dashed);
@@ -1645,18 +1677,34 @@ fn crosshair_line_width_is_independent_per_axis() {
     engine.set_render_style(style).expect("set style");
     engine.pointer_move(260.0, 210.0);
     let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
 
     let vertical = frame
         .lines
         .iter()
-        .find(|line| (line.x1 - line.x2).abs() <= 1e-9)
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
         .expect("vertical crosshair line");
     assert!((vertical.stroke_width - 2.0).abs() <= 1e-9);
 
     let horizontal = frame
         .lines
         .iter()
-        .find(|line| (line.y1 - line.y2).abs() <= 1e-9)
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
         .expect("horizontal crosshair line");
     assert!((horizontal.stroke_width - 3.0).abs() <= 1e-9);
 }
@@ -1677,16 +1725,32 @@ fn crosshair_line_width_shared_policy_applies_without_per_axis_overrides() {
     engine.set_render_style(style).expect("set style");
     engine.pointer_move(260.0, 210.0);
     let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
 
     let vertical = frame
         .lines
         .iter()
-        .find(|line| (line.x1 - line.x2).abs() <= 1e-9)
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
         .expect("vertical crosshair line");
     let horizontal = frame
         .lines
         .iter()
-        .find(|line| (line.y1 - line.y2).abs() <= 1e-9)
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
         .expect("horizontal crosshair line");
     assert!((vertical.stroke_width - 2.5).abs() <= 1e-9);
     assert!((horizontal.stroke_width - 2.5).abs() <= 1e-9);
@@ -1708,11 +1772,22 @@ fn crosshair_line_color_is_independent_per_axis() {
     engine.set_render_style(style).expect("set style");
     engine.pointer_move(260.0, 210.0);
     let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
 
     let vertical = frame
         .lines
         .iter()
-        .find(|line| (line.x1 - line.x2).abs() <= 1e-9)
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
         .expect("vertical crosshair line");
     assert_eq!(
         vertical.color,
@@ -1724,7 +1799,12 @@ fn crosshair_line_color_is_independent_per_axis() {
     let horizontal = frame
         .lines
         .iter()
-        .find(|line| (line.y1 - line.y2).abs() <= 1e-9)
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
         .expect("horizontal crosshair line");
     assert_eq!(
         horizontal.color,
@@ -1750,16 +1830,32 @@ fn crosshair_line_color_shared_policy_applies_without_per_axis_overrides() {
     engine.set_render_style(style).expect("set style");
     engine.pointer_move(260.0, 210.0);
     let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
 
     let vertical = frame
         .lines
         .iter()
-        .find(|line| (line.x1 - line.x2).abs() <= 1e-9)
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
         .expect("vertical crosshair line");
     let horizontal = frame
         .lines
         .iter()
-        .find(|line| (line.y1 - line.y2).abs() <= 1e-9)
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
         .expect("horizontal crosshair line");
     assert_eq!(vertical.color, style.crosshair_line_color);
     assert_eq!(horizontal.color, style.crosshair_line_color);
@@ -2928,14 +3024,14 @@ fn crosshair_axis_label_box_visibility_priority_resolves_overlap_deterministical
             CrosshairLabelBoxOverflowPolicy::AllowOverflow,
         ),
         crosshair_time_label_box_min_width_px: 220.0,
-        crosshair_price_label_box_horizontal_anchor: Some(CrosshairLabelBoxHorizontalAnchor::Left),
-        crosshair_price_label_box_min_width_px: 60.0,
-        crosshair_time_label_box_visibility_priority: Some(
-            CrosshairLabelBoxVisibilityPriority::PreferTime,
+        crosshair_price_label_box_horizontal_anchor: Some(CrosshairLabelBoxHorizontalAnchor::Right),
+        crosshair_price_label_box_overflow_policy: Some(
+            CrosshairLabelBoxOverflowPolicy::AllowOverflow,
         ),
-        crosshair_price_label_box_visibility_priority: Some(
-            CrosshairLabelBoxVisibilityPriority::PreferPrice,
-        ),
+        crosshair_price_label_box_min_width_px: 140.0,
+        crosshair_label_box_visibility_priority: CrosshairLabelBoxVisibilityPriority::PreferTime,
+        crosshair_time_label_box_visibility_priority: None,
+        crosshair_price_label_box_visibility_priority: None,
         show_crosshair_time_label_box: true,
         show_crosshair_price_label_box: true,
         ..engine.render_style()
@@ -2951,8 +3047,9 @@ fn crosshair_axis_label_box_visibility_priority_resolves_overlap_deterministical
         .iter()
         .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
         .collect();
-    assert_eq!(boxes.len(), 1);
-    assert!(boxes[0].x < plot_right);
+    assert_eq!(boxes.len(), 2);
+    assert!(boxes.iter().any(|rect| rect.x < plot_right));
+    assert!(boxes.iter().any(|rect| rect.x >= plot_right));
 }
 
 #[test]
@@ -2968,7 +3065,7 @@ fn crosshair_axis_label_box_clip_margin_is_independent_per_axis() {
         crosshair_price_label_box_overflow_policy: Some(
             CrosshairLabelBoxOverflowPolicy::ClipToAxis,
         ),
-        crosshair_time_label_box_clip_margin_px: 16.0,
+        crosshair_time_label_box_clip_margin_px: 8.0,
         crosshair_price_label_box_clip_margin_px: 9.0,
         crosshair_time_label_box_horizontal_anchor: Some(CrosshairLabelBoxHorizontalAnchor::Left),
         crosshair_price_label_box_horizontal_anchor: Some(CrosshairLabelBoxHorizontalAnchor::Right),
@@ -2997,8 +3094,8 @@ fn crosshair_axis_label_box_clip_margin_is_independent_per_axis() {
         .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x >= plot_right)
         .expect("price box present");
 
-    assert!(time_box.x >= 16.0 - 1e-9);
-    assert!(time_box.y >= plot_bottom + 16.0 - 1e-9);
+    assert!(time_box.x >= 8.0 - 1e-9);
+    assert!(time_box.y >= plot_bottom + 8.0 - 1e-9);
     assert!(price_box.x >= plot_right + 9.0 - 1e-9);
     assert!(price_box.x + price_box.width <= viewport_width - 9.0 + 1e-9);
     assert!(price_box.y >= 9.0 - 1e-9);
@@ -3114,7 +3211,12 @@ fn crosshair_axis_label_box_vertical_anchor_is_independent_per_axis() {
     let mut engine = ChartEngine::new(renderer, config).expect("engine init");
     engine.set_crosshair_mode(CrosshairMode::Normal);
     let style = RenderStyle {
-        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_time_label_box_color: Some(Color::rgb(0.81, 0.30, 0.17)),
+        crosshair_price_label_box_color: Some(Color::rgb(0.17, 0.41, 0.86)),
+        crosshair_time_label_box_text_color: Some(Color::rgb(0.96, 0.91, 0.12)),
+        crosshair_price_label_box_text_color: Some(Color::rgb(0.11, 0.95, 0.37)),
+        crosshair_time_label_box_auto_text_contrast: Some(false),
+        crosshair_price_label_box_auto_text_contrast: Some(false),
         crosshair_time_label_box_vertical_anchor: Some(CrosshairLabelBoxVerticalAnchor::Top),
         crosshair_price_label_box_vertical_anchor: Some(CrosshairLabelBoxVerticalAnchor::Bottom),
         show_crosshair_time_label_box: true,
@@ -3128,24 +3230,46 @@ fn crosshair_axis_label_box_vertical_anchor_is_independent_per_axis() {
     let time_text = frame
         .texts
         .iter()
-        .find(|text| text.h_align == TextHAlign::Center)
+        .find(|text| {
+            text.color
+                == style
+                    .crosshair_time_label_box_text_color
+                    .expect("time text color override")
+        })
         .expect("time text present");
     let price_text = frame
         .texts
         .iter()
-        .find(|text| text.h_align == TextHAlign::Right)
+        .find(|text| {
+            text.color
+                == style
+                    .crosshair_price_label_box_text_color
+                    .expect("price text color override")
+        })
         .expect("price text present");
     let viewport_width = f64::from(engine.viewport().width);
     let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
     let time_box = frame
         .rects
         .iter()
-        .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x < plot_right)
+        .find(|rect| {
+            rect.fill_color
+                == style
+                    .crosshair_time_label_box_color
+                    .expect("time fill color override")
+                && rect.x < plot_right
+        })
         .expect("time box present");
     let price_box = frame
         .rects
         .iter()
-        .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x >= plot_right)
+        .find(|rect| {
+            rect.fill_color
+                == style
+                    .crosshair_price_label_box_color
+                    .expect("price fill color override")
+                && rect.x >= plot_right
+        })
         .expect("price box present");
 
     assert!(
