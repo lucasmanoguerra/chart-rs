@@ -291,6 +291,7 @@ pub struct RenderStyle {
     pub show_price_axis_labels: bool,
     pub show_time_axis_labels: bool,
     pub show_major_time_labels: bool,
+    pub show_major_time_grid_lines: bool,
     pub show_time_axis_tick_marks: bool,
     /// Horizontal inset from right edge used by price-axis labels.
     pub price_axis_label_padding_right_px: f64,
@@ -369,6 +370,7 @@ impl Default for RenderStyle {
             show_price_axis_labels: true,
             show_time_axis_labels: true,
             show_major_time_labels: true,
+            show_major_time_grid_lines: true,
             show_time_axis_tick_marks: true,
             price_axis_label_padding_right_px: 6.0,
             price_axis_tick_mark_length_px: 6.0,
@@ -1893,14 +1895,16 @@ impl<R: Renderer> ChartEngine<R> {
                     TextHAlign::Center,
                 ));
             }
-            frame = frame.with_line(LinePrimitive::new(
-                px,
-                0.0,
-                px,
-                plot_bottom,
-                grid_line_width,
-                grid_color,
-            ));
+            if !is_major_tick || style.show_major_time_grid_lines {
+                frame = frame.with_line(LinePrimitive::new(
+                    px,
+                    0.0,
+                    px,
+                    plot_bottom,
+                    grid_line_width,
+                    grid_color,
+                ));
+            }
             if style.show_time_axis_tick_marks {
                 frame = frame.with_line(LinePrimitive::new(
                     px,

@@ -600,6 +600,44 @@ fn bench_render_major_time_tick_styling(c: &mut Criterion) {
     });
 }
 
+fn bench_major_time_grid_lines_hidden_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 1_704_205_800.0, 1_704_206_100.0)
+            .with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session+timezone policy");
+    engine
+        .set_render_style(RenderStyle {
+            show_major_time_grid_lines: false,
+            major_grid_line_width: 2.0,
+            major_time_label_font_size_px: 14.0,
+            ..engine.render_style()
+        })
+        .expect("set major-grid visibility style");
+
+    c.bench_function("major_time_grid_lines_hidden_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 fn bench_price_axis_min_move_formatter(c: &mut Criterion) {
     let mut engine = ChartEngine::new(
         NullRenderer::default(),
@@ -1419,6 +1457,7 @@ criterion_group!(
     bench_time_axis_label_color_render,
     bench_time_axis_session_timezone_formatter,
     bench_render_major_time_tick_styling,
+    bench_major_time_grid_lines_hidden_render,
     bench_price_axis_min_move_formatter,
     bench_price_axis_percentage_display,
     bench_price_axis_log_mode_display,
