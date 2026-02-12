@@ -29,7 +29,7 @@ fn default_render_style_produces_grid_and_axis_lines() {
         .count();
 
     assert!(grid_lines >= 4);
-    assert!(axis_lines >= 4);
+    assert!(axis_lines >= 2);
 }
 
 #[test]
@@ -1587,6 +1587,8 @@ fn session_boundary_uses_major_tick_styling() {
         major_time_tick_mark_color: Color::rgb(0.89, 0.31, 0.19),
         major_time_tick_mark_width: 2.25,
         major_time_tick_mark_length_px: 8.5,
+        show_time_axis_tick_marks: true,
+        show_major_time_tick_marks: true,
         major_time_label_font_size_px: 14.0,
         time_axis_label_offset_y_px: 4.0,
         major_time_label_offset_y_px: 10.0,

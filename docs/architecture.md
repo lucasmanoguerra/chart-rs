@@ -44,11 +44,33 @@ Each feature requires:
 ## Scale Strategy
 
 - `TimeScale`
+  - supports bootstrap configuration from `ChartEngineConfig` for initial navigation/right-offset options
+  - supports bootstrap configuration from `ChartEngineConfig` for zoom anchoring/limit policies
+  - supports bootstrap configuration from `ChartEngineConfig` for edge/resize/realtime-append policies
   - tracks full range and visible range
   - supports fit-to-data with configurable left/right padding
+  - supports optional fixed-edge clamping of visible range against full-range bounds (`fix_left_edge` / `fix_right_edge`)
+  - supports optional right-offset/spacing synthesis based on reference time-step estimation (`right_offset_bars` / `bar_spacing_px`)
+  - supports optional zoom-spacing bounds (`TimeScaleZoomLimitBehavior`) for deterministic zoom-out/zoom-in clamp behavior
+  - supports optional pixel-based right-margin override with priority over bar-based offset (`time_scale_right_offset_px`)
+  - supports optional scroll-zoom right-edge anchoring policy (`right_bar_stays_on_scroll`)
+  - supports optional viewport-resize anchoring policy (`Left` / `Center` / `Right`) with lock toggle for deterministic range updates under width changes
+  - supports optional realtime append tail-tracking policy with right-edge tolerance controls (`preserve_right_edge_on_append` / `right_edge_tolerance_bars`)
+  - supports optional realtime price autoscale policy on incremental data updates (`PriceScaleRealtimeBehavior`)
+  - supports deterministic scroll-to-realtime reattachment command (`scroll_time_to_realtime`) composed with navigation and edge constraints
+  - supports deterministic bar-based scroll position introspection and explicit positioning (`time_scroll_position_bars` / `scroll_time_to_position_bars`)
+- interaction input paths can be host-gated with explicit scroll/scale toggles plus granular wheel/drag/pinch controls (`InteractionInputBehavior`) while pointer-crosshair flow remains independent
+- interaction input gates can be bootstrapped through `ChartEngineConfig` for deterministic startup behavior
+- touch-style pan path uses explicit API (`touch_drag_pan_time_visible`) with independent horizontal/vertical gate semantics
+- realtime data-ingest update paths enforce non-decreasing time and deterministic append-or-replace semantics (`update_point` / `update_candle`)
+- realtime data-ingest paths can optionally trigger deterministic best-effort price autoscale refresh after full-replacement (`set_*`) and append/update mutations
+- realtime autoscale policies can be bootstrapped via `ChartEngineConfig` for deterministic startup behavior
 - `PriceScale`
+  - supports bootstrap configuration from `ChartEngineConfig` for mode/inversion/margins
   - supports tuned autoscale from points or candles
   - supports `PriceScaleMode::Linear` and `PriceScaleMode::Log`
+  - supports optional inverted mapping direction for `invertScale` parity
+  - supports optional top/bottom axis whitespace margins for `scaleMargins` parity
   - log mode validates strictly-positive domains and applies tuning in transformed log space
   - log mode tick selection favors deterministic 1/2/5 decade ladders for axis-label parity
   - always maps higher prices to smaller Y pixel values (inverted axis)
@@ -63,8 +85,10 @@ Tuning contracts:
 - interaction state is stored in `interaction` module
 - data/candle snapping decisions are computed in `api` layer
 - crosshair baseline:
+  - startup crosshair mode is configurable at engine bootstrap (`ChartEngineConfig::crosshair_mode`)
   - pointer move sets visible state and updates coordinates
   - nearest snap candidate is selected from points/candles
+  - hidden mode keeps crosshair state non-visible on pointer movement
   - pointer leave hides crosshair and clears snap state
 
 ## Render Strategy

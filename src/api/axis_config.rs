@@ -10,20 +10,15 @@ pub enum AxisLabelLocale {
 }
 
 /// Built-in policy used for time-axis labels.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum TimeAxisLabelPolicy {
     /// Render logical time values as decimals.
     LogicalDecimal { precision: u8 },
     /// Interpret logical values as unix timestamps and format in UTC.
     UtcDateTime { show_seconds: bool },
     /// Select UTC format detail based on current visible span (zoom level).
+    #[default]
     UtcAdaptive,
-}
-
-impl Default for TimeAxisLabelPolicy {
-    fn default() -> Self {
-        Self::LogicalDecimal { precision: 2 }
-    }
 }
 
 /// Timezone alignment used by UTC-based time-axis policies.

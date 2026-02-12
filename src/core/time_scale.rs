@@ -148,9 +148,97 @@ impl TimeScale {
         Ok(())
     }
 
+    /// Applies optional visible-range constraints against full-range edges.
+    ///
+    /// - `fix_left_edge`: keeps visible start at or after full start
+    /// - `fix_right_edge`: keeps visible end at or before full end
+    ///
+    /// When both flags are enabled and visible span is wider than full span,
+    /// visible range is clamped to full range.
+    pub fn clamp_visible_range_to_full_edges(
+        &mut self,
+        fix_left_edge: bool,
+        fix_right_edge: bool,
+    ) -> ChartResult<bool> {
+        if !fix_left_edge && !fix_right_edge {
+            return Ok(false);
+        }
+
+        let full_start = self.full_start;
+        let full_end = self.full_end;
+        let full_span = full_end - full_start;
+
+        let mut start = self.visible_start;
+        let mut end = self.visible_end;
+        let span = end - start;
+
+        if fix_left_edge && fix_right_edge && span >= full_span {
+            start = full_start;
+            end = full_end;
+        } else if fix_left_edge && fix_right_edge {
+            if start < full_start {
+                start = full_start;
+                end = start + span;
+            }
+            if end > full_end {
+                end = full_end;
+                start = end - span;
+            }
+        } else if fix_left_edge {
+            if start < full_start {
+                let shift = full_start - start;
+                start += shift;
+                end += shift;
+            }
+        } else if fix_right_edge && end > full_end {
+            let shift = end - full_end;
+            start -= shift;
+            end -= shift;
+        }
+
+        let changed =
+            (start - self.visible_start).abs() > 1e-12 || (end - self.visible_end).abs() > 1e-12;
+        if changed {
+            self.set_visible_range(start, end)?;
+        }
+        Ok(changed)
+    }
+
     pub fn reset_visible_range_to_full(&mut self) {
         self.visible_start = self.full_start;
         self.visible_end = self.full_end;
+    }
+
+    /// Extends the fitted full range to include a new time sample.
+    ///
+    /// Visible range is intentionally not modified here.
+    pub fn include_time_in_full_range(
+        &mut self,
+        time: f64,
+        min_span_absolute: f64,
+    ) -> ChartResult<bool> {
+        if !time.is_finite() {
+            return Err(ChartError::InvalidData(
+                "time value must be finite".to_owned(),
+            ));
+        }
+        if !min_span_absolute.is_finite() || min_span_absolute <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "time min span must be finite and > 0".to_owned(),
+            ));
+        }
+
+        let previous_start = self.full_start;
+        let previous_end = self.full_end;
+
+        let start = self.full_start.min(time);
+        let end = self.full_end.max(time);
+        let normalized = normalize_range(start, end, min_span_absolute)?;
+        self.full_start = normalized.0;
+        self.full_end = normalized.1;
+
+        Ok((self.full_start - previous_start).abs() > 1e-12
+            || (self.full_end - previous_end).abs() > 1e-12)
     }
 
     /// Pans the visible range by an additive time delta.

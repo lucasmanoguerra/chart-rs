@@ -7,7 +7,83 @@ and this project adheres to Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.0.34-alpha.0] - 2026-02-12
+
 ### Added
+- Defaults parity block (`C-056`) aligning core v5.1 baseline knobs available in the Rust API:
+  `priceScale.scaleMargins` default (`top=0.2`, `bottom=0.1`), crosshair large-dashed baseline stroke style, and default hidden axis tick marks.
+- Layout parity block (`C-057`) adding strict section-boundary clipping to prevent overlap between plot, time-axis, and price-axis sections under edge and overflow scenarios.
+- New section-boundary regression coverage in `tests/render_axis_layout_tests.rs` for price/last-price labels and crosshair label boxes.
+- Bootstrap crosshair axis-label box style config parity baseline (`C-055`) with deterministic engine-init support for crosshair time/price label-box fill/border/corner policy.
+- Crosshair axis-label box style API parity baseline (`C-054`) with dedicated controller methods `crosshair_axis_label_box_style_behavior` and `set_crosshair_axis_label_box_style_behavior`.
+- Bootstrap crosshair axis-label style config parity baseline (`C-053`) with deterministic engine-init support for crosshair time/price label color/font/offset/inset policy.
+- Crosshair axis-label style API parity baseline (`C-052`) with dedicated controller methods `crosshair_axis_label_style_behavior` and `set_crosshair_axis_label_style_behavior`.
+- Bootstrap crosshair axis-label visibility config parity baseline (`C-051`) with deterministic engine-init support for time/price label/box/border visibility toggles.
+- Crosshair axis-label visibility API parity baseline (`C-050`) with dedicated controller methods `crosshair_axis_label_visibility_behavior` and `set_crosshair_axis_label_visibility_behavior`.
+- Bootstrap crosshair guide-line stroke-style config parity baseline (`C-049`) with deterministic engine-init support for shared/per-axis guide-line color/width/style policy.
+- Crosshair guide-line stroke-style API parity baseline (`C-048`) with dedicated controller methods `crosshair_guide_line_style_behavior` and `set_crosshair_guide_line_style_behavior`.
+- Bootstrap crosshair guide-line visibility config parity baseline (`C-047`) with deterministic engine-init support for shared/per-axis guide-line toggles.
+- Crosshair guide-line visibility API parity baseline (`C-046`) with dedicated controller methods `crosshair_guide_line_behavior` and `set_crosshair_guide_line_behavior`.
+- Property-test parity baseline (`C-045`) for full-replacement data canonicalization invariants in `set_data` / `set_candles`.
+- Bootstrap last-price behavior config parity baseline (`C-044`) with deterministic engine-init support for line/label visibility, trend-color mode, and source-mode policy via `last_price_behavior`.
+- Last-price behavior API parity baseline (`C-043`) with dedicated controller methods `last_price_behavior` and `set_last_price_behavior`.
+- Full-replacement data canonicalization parity baseline (`C-042`) with deterministic invalid-sample filtering, time sorting, and duplicate-timestamp replacement in `set_data` / `set_candles`.
+- Bootstrap last-price source-mode config parity baseline (`C-041`) with deterministic engine-init support for `RenderStyle.last_price_source_mode`.
+- Bootstrap axis-label formatter-policy config parity baseline (`C-040`) with deterministic engine-init support for time-axis and price-axis label bootstrap options.
+- Bootstrap time-scale edge/resize/realtime-policy config parity baseline (`C-039`) with deterministic engine-init support for constraint/resize/realtime append behavior.
+- Bootstrap time-scale zoom-policy config parity baseline (`C-038`) with deterministic engine-init support for right-edge scroll-zoom anchoring and zoom limits.
+- Bootstrap price-scale realtime-policy config parity baseline (`C-037`) with deterministic engine-init support for autoscale-on-set/update behavior.
+- Bootstrap time-scale navigation config parity baseline (`C-036`) with deterministic engine-init support for initial navigation/right-offset behavior.
+- Bootstrap interaction-input config parity baseline (`C-035`) with deterministic engine-init support for initial scroll/scale gate settings.
+- Bootstrap price-scale config parity baseline (`C-034`) with deterministic engine-init support for initial mode/inversion/margins.
+- Price-scale autoscale-on-set parity baseline (`C-033`) with opt-in autoscale refresh on full data replacement (`set_data` / `set_candles`).
+- Crosshair hidden-mode parity baseline (`C-032`) with deterministic `CrosshairMode::Hidden` behavior.
+- Price-scale margins parity baseline (`C-031`) with deterministic top/bottom whitespace controls (`scaleMargins`).
+- New price-scale API contract: `PriceScaleMarginBehavior` plus controller methods `price_scale_margin_behavior` and `set_price_scale_margin_behavior`.
+- Price-scale inversion parity baseline (`C-030`) with deterministic `invertScale` mapping behavior.
+- New price-scale API methods: `price_scale_inverted` and `set_price_scale_inverted`.
+- Touch-drag interaction parity baseline (`C-029`) with deterministic horizontal/vertical touch pan gates.
+- New time-scale API method: `touch_drag_pan_time_visible(delta_x_px, delta_y_px)` integrating `scroll_horz_touch_drag` / `scroll_vert_touch_drag` behavior.
+- Price-scale realtime autoscale parity baseline (`C-028`) with opt-in autoscale refresh on incremental append/update flows.
+- New price-scale API contract: `PriceScaleRealtimeBehavior` plus controller methods `price_scale_realtime_behavior` and `set_price_scale_realtime_behavior`.
+- Crosshair startup-mode parity baseline (`C-027`) with deterministic bootstrap configuration support.
+- Extended `ChartEngineConfig` with `crosshair_mode` and builder `with_crosshair_mode`, applied during engine initialization.
+- Time-scale zoom-limit parity baseline (`C-026`) with deterministic bar-spacing bounds aligned to `minBarSpacing` behavior.
+- New time-scale API contract: `TimeScaleZoomLimitBehavior` with `min_bar_spacing_px` and optional `max_bar_spacing_px`, plus controller methods `time_scale_zoom_limit_behavior` and `set_time_scale_zoom_limit_behavior`.
+- Interaction input parity baseline (`C-025`) with granular `handleScroll`/`handleScale` sub-path gates.
+- Extended `InteractionInputBehavior` with per-input toggles: `scroll_mouse_wheel`, `scroll_pressed_mouse_move`, `scroll_horz_touch_drag`, `scroll_vert_touch_drag`, `scale_mouse_wheel`, and `scale_pinch`.
+- Scroll-zoom anchoring parity baseline (`C-024`) with deterministic `rightBarStaysOnScroll` policy for wheel/pinch zoom.
+- New time-scale API contract: `TimeScaleScrollZoomBehavior` plus controller methods `time_scale_scroll_zoom_behavior` and `set_time_scale_scroll_zoom_behavior`.
+- New integration coverage: `tests/time_scale_scroll_zoom_behavior_tests.rs`.
+- Pixel right-margin parity baseline (`C-023`) with deterministic `rightOffsetPixels` priority semantics over bar-based right offset.
+- New time-scale API methods: `time_scale_right_offset_px` and `set_time_scale_right_offset_px`.
+- New integration coverage: `tests/time_scale_right_offset_pixels_tests.rs`.
+- Scroll-position parity baseline (`C-022`) with deterministic bar-based introspection and direct positioning aligned to Lightweight Charts `scrollPosition`/`scrollToPosition`.
+- New time-scale API methods: `time_scroll_position_bars` and `scroll_time_to_position_bars`.
+- New integration coverage: `tests/time_scale_scroll_position_tests.rs`.
+- Scroll-to-realtime parity baseline (`C-021`) with deterministic command semantics aligned to Lightweight Charts `scrollToRealTime`.
+- New time-scale API method: `scroll_time_to_realtime`.
+- New integration coverage: `tests/time_scale_scroll_to_realtime_tests.rs`.
+- Realtime update parity baseline (`C-020`) with deterministic append-or-replace semantics aligned to non-decreasing timestamp feeds.
+- New incremental API methods: `update_point` and `update_candle` (append when newer, replace when equal, reject older timestamps).
+- New integration coverage: `tests/realtime_update_semantics_tests.rs`.
+- Realtime append parity baseline (`C-019`) with deterministic continuous time-range shift when the viewport is tracking the right edge.
+- New API contract: `TimeScaleRealtimeAppendBehavior` plus controller methods `time_scale_realtime_append_behavior` and `set_time_scale_realtime_append_behavior`.
+- Realtime append integration in `append_point`/`append_candle` with right-edge tolerance policy and composition with time-scale navigation/edge constraints.
+- New integration coverage: `tests/time_scale_realtime_append_behavior_tests.rs`.
+- Viewport-resize anchoring parity baseline (`C-018`) with deterministic visible-range lock behavior across viewport width changes.
+- New API contracts: `TimeScaleResizeAnchor` and `TimeScaleResizeBehavior`, plus controller methods `time_scale_resize_behavior` and `set_time_scale_resize_behavior`.
+- New integration coverage: `tests/time_scale_resize_behavior_tests.rs`.
+- Time-scale right-offset/spacing parity baseline (`C-017`) with deterministic navigation synthesis using `right_offset_bars` and optional `bar_spacing_px`.
+- New API contract: `TimeScaleNavigationBehavior` plus controller methods `time_scale_navigation_behavior` and `set_time_scale_navigation_behavior`.
+- New integration coverage: `tests/time_scale_navigation_behavior_tests.rs`.
+- Interaction input gating parity baseline (`C-016`) with deterministic scroll/scale enable flags aligned to `handleScroll` / `handleScale` behavior families.
+- New API contract: `InteractionInputBehavior` plus controller methods `interaction_input_behavior` and `set_interaction_input_behavior`.
+- New interaction API path: `pinch_zoom_time_visible` with no-op semantics when scale handling is disabled.
+- New integration coverage: `tests/interaction_input_behavior_tests.rs`.
+- Time-scale fixed-edge parity baseline (`C-015`) with deterministic `fix_left_edge` / `fix_right_edge` navigation constraints against full-range bounds.
+- New API contract: `TimeScaleEdgeBehavior` plus controller methods `time_scale_edge_behavior` and `set_time_scale_edge_behavior`.
+- New integration coverage: `tests/time_scale_edge_behavior_tests.rs`.
 - GTK/Relm4 diagnostics bridge parity baseline (`R-089`) with adapter hooks to publish crosshair formatter diagnostics and versioned snapshot JSON during draw lifecycle.
 - New GTK adapter APIs: `set_crosshair_diagnostics_hook`, `clear_crosshair_diagnostics_hook`, `set_snapshot_json_hook`, `clear_snapshot_json_hook`, `crosshair_formatter_diagnostics_json_contract_v1_pretty`, and `snapshot_json_contract_v1_pretty`.
 - Snapshot/diagnostics schema guard parity baseline (`R-088`) with backward-compatible JSON parsers that accept both legacy raw payloads and versioned contract wrappers.

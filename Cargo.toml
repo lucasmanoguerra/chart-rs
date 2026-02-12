@@ -1,6 +1,6 @@
 [package]
 name = "chart-rs"
-version = "0.0.33-alpha.0"
+version = "0.0.34-alpha.0"
 edition = "2024"
 rust-version = "1.85"
 description = "A Rust-native charting library for GTK4/Relm4 inspired by Lightweight Charts v5.1."
@@ -47,7 +47,49 @@ rayon = { version = "1.10", optional = true }
 criterion = { version = "0.8", default-features = false }
 proptest = "1.6"
 approx = "0.5"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+tungstenite = { version = "0.24", default-features = false, features = ["handshake", "rustls-tls-webpki-roots"] }
 
 [[bench]]
 name = "core_math_bench"
 harness = false
+
+[[example]]
+name = "gtk_interaction_lab"
+required-features = ["desktop"]
+
+[[example]]
+name = "gtk_projection_gallery"
+required-features = ["desktop"]
+
+[[example]]
+name = "gtk_live_data_workbench"
+required-features = ["desktop"]
+
+[[example]]
+name = "gtk_tradingview_binance"
+required-features = ["desktop"]
+
+[[example]]
+name = "gtk_binance_axis_lab"
+required-features = ["desktop"]
+
+[[example]]
+name = "gtk_binance_projection_probe"
+required-features = ["desktop"]
+
+[[example]]
+name = "gtk_binance_contracts_lab"
+required-features = ["desktop"]
+
+[[example]]
+name = "gtk_binance_replay_workbench"
+required-features = ["desktop"]
+
+[[example]]
+name = "gtk_binance_scale_window_lab"
+required-features = ["desktop"]
+
+[[example]]
+name = "gtk_binance_defaults_normal_live"
+required-features = ["desktop"]

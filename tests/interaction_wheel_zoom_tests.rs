@@ -1,14 +1,25 @@
 use chart_rs::ChartError;
-use chart_rs::api::{ChartEngine, ChartEngineConfig};
+use chart_rs::api::{ChartEngine, ChartEngineConfig, TimeScaleNavigationBehavior};
 use chart_rs::core::Viewport;
 use chart_rs::render::NullRenderer;
 
-#[test]
-fn wheel_zoom_negative_delta_zooms_in_and_keeps_anchor_stable() {
+fn build_engine() -> ChartEngine<NullRenderer> {
     let renderer = NullRenderer::default();
     let config =
         ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
     let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine
+        .set_time_scale_navigation_behavior(TimeScaleNavigationBehavior {
+            right_offset_bars: 0.0,
+            bar_spacing_px: None,
+        })
+        .expect("disable default spacing navigation");
+    engine
+}
+
+#[test]
+fn wheel_zoom_negative_delta_zooms_in_and_keeps_anchor_stable() {
+    let mut engine = build_engine();
 
     let anchor_px = 250.0;
     let anchor_time_before = engine.map_pixel_to_x(anchor_px).expect("anchor time");
@@ -30,10 +41,7 @@ fn wheel_zoom_negative_delta_zooms_in_and_keeps_anchor_stable() {
 
 #[test]
 fn wheel_zoom_positive_delta_zooms_out() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine();
 
     let (start_before, end_before) = engine.time_visible_range();
     let span_before = end_before - start_before;
@@ -50,10 +58,7 @@ fn wheel_zoom_positive_delta_zooms_out() {
 
 #[test]
 fn wheel_zoom_zero_delta_is_noop() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine();
 
     let before = engine.time_visible_range();
     let factor = engine
@@ -67,10 +72,7 @@ fn wheel_zoom_zero_delta_is_noop() {
 
 #[test]
 fn wheel_zoom_rejects_invalid_inputs() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine();
 
     let err = engine
         .wheel_zoom_time_visible(f64::NAN, 100.0, 0.2, 1e-6)

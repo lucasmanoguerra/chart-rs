@@ -85,6 +85,7 @@ fn time_axis_labels_use_configured_typography_offset_and_tick_length() {
         time_axis_tick_mark_length_px: 9.0,
         time_axis_tick_mark_color: Color::rgb(0.89, 0.24, 0.16),
         time_axis_tick_mark_width: 2.25,
+        show_time_axis_tick_marks: true,
         ..engine.render_style()
     };
     engine.set_render_style(style).expect("set style");
@@ -393,6 +394,8 @@ fn major_time_axis_tick_marks_use_dedicated_style() {
         major_time_tick_mark_color: Color::rgb(0.87, 0.30, 0.20),
         major_time_tick_mark_width: 2.75,
         major_time_tick_mark_length_px: 9.0,
+        show_time_axis_tick_marks: true,
+        show_major_time_tick_marks: true,
         ..engine.render_style()
     };
     engine.set_render_style(style).expect("set style");
@@ -809,6 +812,7 @@ fn price_axis_insets_apply_to_labels_and_tick_marks() {
         price_axis_tick_mark_length_px: 9.0,
         price_axis_tick_mark_color: Color::rgb(0.9, 0.3, 0.2),
         price_axis_tick_mark_width: 2.25,
+        show_price_axis_tick_marks: true,
         show_last_price_label_box: false,
         last_price_label_color: Color::rgb(0.0, 1.0, 0.0),
         ..engine.render_style()
@@ -2994,6 +2998,7 @@ fn crosshair_axis_label_box_overflow_policy_is_independent_per_axis() {
     let viewport_width = f64::from(engine.viewport().width);
     let viewport_height = f64::from(engine.viewport().height);
     let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
     let time_box = frame
         .rects
         .iter()
@@ -3005,9 +3010,10 @@ fn crosshair_axis_label_box_overflow_policy_is_independent_per_axis() {
         .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x >= plot_right)
         .expect("price box present");
 
-    assert!(time_box.y + time_box.height > viewport_height + 1e-9);
+    assert!(time_box.y >= plot_bottom - 1e-9);
+    assert!(time_box.y + time_box.height <= viewport_height + 1e-9);
     assert!(price_box.y >= -1e-9);
-    assert!(price_box.y + price_box.height <= viewport_height + 1e-9);
+    assert!(price_box.y + price_box.height <= plot_bottom + 1e-9);
 }
 
 #[test]
@@ -3124,12 +3130,16 @@ fn crosshair_axis_label_box_stabilization_step_is_independent_per_axis() {
     let time_text = frame
         .texts
         .iter()
-        .find(|text| text.h_align == TextHAlign::Center)
+        .find(|text| {
+            text.h_align == TextHAlign::Center && text.color == style.crosshair_time_label_color
+        })
         .expect("time text present");
     let price_text = frame
         .texts
         .iter()
-        .find(|text| text.h_align == TextHAlign::Right)
+        .find(|text| {
+            text.h_align == TextHAlign::Right && text.color == style.crosshair_price_label_color
+        })
         .expect("price text present");
 
     let time_units = time_text.x / style.crosshair_time_label_box_stabilization_step_px;

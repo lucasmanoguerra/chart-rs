@@ -1,15 +1,26 @@
 use chart_rs::ChartError;
-use chart_rs::api::{ChartEngine, ChartEngineConfig};
+use chart_rs::api::{ChartEngine, ChartEngineConfig, TimeScaleNavigationBehavior};
 use chart_rs::core::Viewport;
 use chart_rs::interaction::KineticPanConfig;
 use chart_rs::render::NullRenderer;
 
-#[test]
-fn wheel_pan_translates_visible_range_and_preserves_span() {
+fn build_engine() -> ChartEngine<NullRenderer> {
     let renderer = NullRenderer::default();
     let config =
         ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
     let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine
+        .set_time_scale_navigation_behavior(TimeScaleNavigationBehavior {
+            right_offset_bars: 0.0,
+            bar_spacing_px: None,
+        })
+        .expect("disable default spacing navigation");
+    engine
+}
+
+#[test]
+fn wheel_pan_translates_visible_range_and_preserves_span() {
+    let mut engine = build_engine();
 
     let before = engine.time_visible_range();
     let delta = engine
@@ -30,10 +41,7 @@ fn wheel_pan_translates_visible_range_and_preserves_span() {
 
 #[test]
 fn wheel_pan_zero_delta_is_noop() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine();
 
     let before = engine.time_visible_range();
     let delta = engine.wheel_pan_time_visible(0.0, 0.2).expect("no-op");
@@ -43,10 +51,7 @@ fn wheel_pan_zero_delta_is_noop() {
 
 #[test]
 fn wheel_pan_rejects_invalid_inputs() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine();
 
     let err = engine
         .wheel_pan_time_visible(f64::NAN, 0.2)
@@ -61,10 +66,7 @@ fn wheel_pan_rejects_invalid_inputs() {
 
 #[test]
 fn kinetic_pan_step_moves_range_and_decays_velocity() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine();
 
     engine
         .set_kinetic_pan_config(KineticPanConfig {
@@ -86,10 +88,7 @@ fn kinetic_pan_step_moves_range_and_decays_velocity() {
 
 #[test]
 fn kinetic_pan_stops_when_velocity_drops_below_threshold() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine();
 
     engine
         .set_kinetic_pan_config(KineticPanConfig {
@@ -111,10 +110,7 @@ fn kinetic_pan_stops_when_velocity_drops_below_threshold() {
 
 #[test]
 fn kinetic_pan_rejects_invalid_inputs() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine();
 
     let err = engine
         .set_kinetic_pan_config(KineticPanConfig {

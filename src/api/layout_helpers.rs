@@ -2,6 +2,54 @@ use crate::render::RectPrimitive;
 
 use super::CrosshairLabelBoxVerticalAnchor;
 
+pub(super) const MIN_PLOT_WIDTH_PX: f64 = 80.0;
+pub(super) const MIN_PLOT_HEIGHT_PX: f64 = 56.0;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) struct AxisLayout {
+    pub plot_right: f64,
+    pub plot_bottom: f64,
+    pub price_axis_width: f64,
+    pub time_axis_height: f64,
+}
+
+pub(super) fn resolve_axis_layout(
+    viewport_width: f64,
+    viewport_height: f64,
+    requested_price_axis_width: f64,
+    requested_time_axis_height: f64,
+) -> AxisLayout {
+    let safe_viewport_width = viewport_width.max(0.0);
+    let safe_viewport_height = viewport_height.max(0.0);
+
+    let requested_price_axis_width = if requested_price_axis_width.is_finite() {
+        requested_price_axis_width.max(0.0)
+    } else {
+        0.0
+    };
+    let requested_time_axis_height = if requested_time_axis_height.is_finite() {
+        requested_time_axis_height.max(0.0)
+    } else {
+        0.0
+    };
+
+    let max_price_axis_width = (safe_viewport_width - MIN_PLOT_WIDTH_PX).max(0.0);
+    let max_time_axis_height = (safe_viewport_height - MIN_PLOT_HEIGHT_PX).max(0.0);
+
+    let price_axis_width = requested_price_axis_width.clamp(0.0, max_price_axis_width);
+    let time_axis_height = requested_time_axis_height.clamp(0.0, max_time_axis_height);
+
+    let plot_right = (safe_viewport_width - price_axis_width).clamp(0.0, safe_viewport_width);
+    let plot_bottom = (safe_viewport_height - time_axis_height).clamp(0.0, safe_viewport_height);
+
+    AxisLayout {
+        plot_right,
+        plot_bottom,
+        price_axis_width,
+        time_axis_height,
+    }
+}
+
 pub(super) fn estimate_label_text_width_px(text: &str, font_size_px: f64) -> f64 {
     // Keep this estimate deterministic and backend-independent.
     let units = text.chars().fold(0.0, |acc, ch| {

@@ -7,8 +7,10 @@ The project targets behavioral parity with TradingView Lightweight Charts v5.1 u
 
 ## Status
 
-Early bootstrap phase. The architecture, quality gates, and contributor workflow are in place.
-Core rendering and interaction parity work is ongoing.
+Advanced alpha phase. The tracked parity checklist currently reports completed
+Core/Render/Extensions blocks for the documented v5.1 scope, with deterministic
+tests and CI gates in place. Ongoing work is focused on parity hardening
+(visual fixture validation, default/boundary tuning, and UX-level refinements).
 
 ## Design Goals
 

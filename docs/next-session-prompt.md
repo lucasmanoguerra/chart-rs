@@ -8,20 +8,26 @@ Speak to me in Spanish, but keep all project artifacts in English (code, comment
 Project context:
 - Repo: chart-rs
 - Goal: replicate Lightweight Charts v5.1 behavior in Rust for GTK4/Relm4 desktop usage.
-- Current baseline: parity blocks R-001 through R-042 are completed.
-- Last merged PR: #75.
+- Current parity state (2026-02-12): checklist entries in `docs/parity-v5.1-checklist.md` are marked `done` for Core/Render/Extensions blocks currently tracked.
+- Default/boundary parity audit: `docs/v5.1-default-parity-audit.md` is in `done` state for documented defaults and section-boundary clamping.
+- Immediate follow-up targets from audit:
+  1) wire visible-window autoscale refresh into core pan/zoom flows,
+  2) validate adaptive axis-section sizing against Lightweight Charts visual fixtures.
 
 Execution policy:
 1) Discover continuation point from:
    - docs/parity-v5.1-checklist.md
+   - docs/v5.1-default-parity-audit.md
    - CHANGELOG.md
    - docs/developer-guide.md
    - docs/architecture.md
-2) Select next block(s) automatically and explain briefly why.
-3) Execute end-to-end in small batches (1-2 blocks per PR), no half-finished work.
+2) Decide the next work item automatically:
+   - if there are pending parity IDs, pick the lowest valid ID first;
+   - if there are no pending IDs, continue from the audit follow-up targets above.
+3) Execute end-to-end in small batches (1-2 scoped items per PR), no half-finished work.
 
 Block selection rules:
-- Pick the lowest pending parity ID first.
+- Pick the lowest pending parity ID first when pending IDs exist.
 - Respect dependencies: do not start a block that depends on a pending predecessor.
 - If multiple candidates are valid, prioritize:
   1. highest parity impact vs Lightweight Charts,
@@ -55,6 +61,5 @@ Required report per closed batch:
 - Closed block IDs.
 - Commits and PR links/status.
 - Files changed.
-- Next top 3 block candidates with rationale.
+- Next top 3 candidates with rationale.
 ```
-

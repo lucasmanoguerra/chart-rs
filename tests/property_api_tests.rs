@@ -1,4 +1,4 @@
-use chart_rs::api::{ChartEngine, ChartEngineConfig, EngineSnapshot};
+use chart_rs::api::{ChartEngine, ChartEngineConfig, EngineSnapshot, TimeScaleNavigationBehavior};
 use chart_rs::core::{DataPoint, OhlcBar, Viewport};
 use chart_rs::interaction::CrosshairMode;
 use chart_rs::render::NullRenderer;
@@ -134,6 +134,12 @@ proptest! {
             time_start + time_span,
         ).with_price_domain(0.0, 1.0);
         let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine
+            .set_time_scale_navigation_behavior(TimeScaleNavigationBehavior {
+                right_offset_bars: 0.0,
+                bar_spacing_px: None,
+            })
+            .expect("disable default spacing navigation");
 
         let (start_before, end_before) = engine.time_visible_range();
         let span_before = end_before - start_before;
@@ -165,6 +171,12 @@ proptest! {
             time_end,
         ).with_price_domain(0.0, 1000.0);
         let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine
+            .set_time_scale_navigation_behavior(TimeScaleNavigationBehavior {
+                right_offset_bars: 0.0,
+                bar_spacing_px: None,
+            })
+            .expect("disable default spacing navigation");
 
         let points = vec![
             DataPoint::new(time_start, 10.0),
@@ -241,6 +253,12 @@ proptest! {
             time_end,
         ).with_price_domain(0.0, 1000.0);
         let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine
+            .set_time_scale_navigation_behavior(TimeScaleNavigationBehavior {
+                right_offset_bars: 0.0,
+                bar_spacing_px: None,
+            })
+            .expect("disable default spacing navigation");
 
         let anchor_px = 1200.0 * anchor_ratio;
         let anchor_time_before = engine.map_pixel_to_x(anchor_px).expect("anchor before");
@@ -269,6 +287,12 @@ proptest! {
             time_end,
         ).with_price_domain(0.0, 1000.0);
         let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine
+            .set_time_scale_navigation_behavior(TimeScaleNavigationBehavior {
+                right_offset_bars: 0.0,
+                bar_spacing_px: None,
+            })
+            .expect("disable default spacing navigation");
 
         let (start_before, end_before) = engine.time_visible_range();
         let span_before = end_before - start_before;
