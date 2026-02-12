@@ -242,6 +242,16 @@ pub enum LastPriceLabelBoxWidthMode {
     FitText,
 }
 
+/// Width policy used for crosshair axis-label box layout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CrosshairLabelBoxWidthMode {
+    /// Stretch label box to the full axis panel width.
+    FullAxis,
+    /// Fit label box to text width using configured horizontal padding.
+    #[default]
+    FitText,
+}
+
 /// Style contract for the current render frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderStyle {
@@ -282,6 +292,7 @@ pub struct RenderStyle {
     pub crosshair_axis_label_font_size_px: f64,
     pub crosshair_label_box_padding_x_px: f64,
     pub crosshair_label_box_padding_y_px: f64,
+    pub crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode,
     pub crosshair_label_box_border_width_px: f64,
     pub crosshair_label_box_corner_radius_px: f64,
     pub last_price_line_width: f64,
@@ -405,6 +416,7 @@ impl Default for RenderStyle {
             crosshair_axis_label_font_size_px: 11.0,
             crosshair_label_box_padding_x_px: 5.0,
             crosshair_label_box_padding_y_px: 2.0,
+            crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
             crosshair_label_box_border_width_px: 0.0,
             crosshair_label_box_corner_radius_px: 0.0,
             last_price_line_width: 1.25,
@@ -2264,9 +2276,13 @@ impl<R: Renderer> ChartEngine<R> {
                         &text,
                         style.crosshair_axis_label_font_size_px,
                     );
-                    let box_width = (estimated_text_width
-                        + 2.0 * style.crosshair_label_box_padding_x_px)
-                        .clamp(0.0, plot_right);
+                    let requested_box_width = match style.crosshair_label_box_width_mode {
+                        CrosshairLabelBoxWidthMode::FullAxis => plot_right,
+                        CrosshairLabelBoxWidthMode::FitText => {
+                            estimated_text_width + 2.0 * style.crosshair_label_box_padding_x_px
+                        }
+                    };
+                    let box_width = requested_box_width.clamp(0.0, plot_right);
                     let max_left = (plot_right - box_width).max(0.0);
                     let box_left = (crosshair_x - box_width * 0.5).clamp(0.0, max_left);
                     let box_top = (time_label_y - style.crosshair_label_box_padding_y_px)
@@ -2338,9 +2354,13 @@ impl<R: Renderer> ChartEngine<R> {
                         &text,
                         style.crosshair_axis_label_font_size_px,
                     );
-                    let box_width = (estimated_text_width
-                        + 2.0 * style.crosshair_label_box_padding_x_px)
-                        .clamp(0.0, axis_panel_width);
+                    let requested_box_width = match style.crosshair_label_box_width_mode {
+                        CrosshairLabelBoxWidthMode::FullAxis => axis_panel_width,
+                        CrosshairLabelBoxWidthMode::FitText => {
+                            estimated_text_width + 2.0 * style.crosshair_label_box_padding_x_px
+                        }
+                    };
+                    let box_width = requested_box_width.clamp(0.0, axis_panel_width);
                     let box_left = (viewport_width - box_width).max(axis_panel_left);
                     let box_top = (text_y - style.crosshair_label_box_padding_y_px)
                         .clamp(0.0, viewport_height);

@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box width-mode parity baseline (`R-048`) with deterministic `FitText`/`FullAxis` layout behavior on time/price axis panels.
+- New render-style knob: `crosshair_label_box_width_mode` with `CrosshairLabelBoxWidthMode::{FitText, FullAxis}`.
+- New render-frame/property tests and criterion benchmark coverage for crosshair axis-label box width-mode behavior.
 - Crosshair axis-label box auto-contrast text parity baseline (`R-047`) with deterministic luminance-driven text color policy and manual text-color override.
 - New render-style knobs: `crosshair_label_box_text_color` and `crosshair_label_box_auto_text_contrast`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box text-contrast behavior.

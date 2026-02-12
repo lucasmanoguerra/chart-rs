@@ -1,8 +1,8 @@
 use chart_rs::ChartError;
 use chart_rs::api::{
-    AxisLabelLocale, ChartEngine, ChartEngineConfig, LastPriceLabelBoxWidthMode,
-    LastPriceSourceMode, RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy,
-    TimeAxisSessionConfig, TimeAxisTimeZone,
+    AxisLabelLocale, ChartEngine, ChartEngineConfig, CrosshairLabelBoxWidthMode,
+    LastPriceLabelBoxWidthMode, LastPriceSourceMode, RenderStyle, TimeAxisLabelConfig,
+    TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::Viewport;
 use chart_rs::render::{Color, NullRenderer};
@@ -74,6 +74,7 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_axis_label_font_size_px: 12.0,
         crosshair_label_box_padding_x_px: 6.0,
         crosshair_label_box_padding_y_px: 2.5,
+        crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
         crosshair_label_box_border_width_px: 1.25,
         crosshair_label_box_corner_radius_px: 3.0,
         last_price_line_width: 1.75,
