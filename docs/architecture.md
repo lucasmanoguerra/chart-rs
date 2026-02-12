@@ -105,6 +105,7 @@ Tuning contracts:
 - price-axis border visibility is a deterministic style-level control independent from bottom time-axis border visibility
 - crosshair guide-line color/width and horizontal/vertical visibility are deterministic style-level controls resolved from interaction state
 - crosshair time/price axis-label color, font-size, and visibility are deterministic style-level controls resolved from interaction snap state
+- crosshair time/price axis-label boxes support deterministic fit-text sizing with style-level fill/padding and independent per-axis visibility controls
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract

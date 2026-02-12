@@ -1666,3 +1666,59 @@ fn crosshair_axis_label_visibility_toggles_are_independent() {
             .any(|text| text.color == style.crosshair_price_label_color)
     );
 }
+
+#[test]
+fn crosshair_axis_label_boxes_render_on_time_and_price_axes() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.94, 0.83, 0.18),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let box_count = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .count();
+    assert_eq!(
+        box_count, 2,
+        "expected time and price crosshair label boxes"
+    );
+}
+
+#[test]
+fn crosshair_axis_label_box_visibility_toggles_are_independent() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.91, 0.35, 0.21),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let crosshair_boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+    assert_eq!(crosshair_boxes.len(), 1);
+    assert!(crosshair_boxes[0].x >= plot_right);
+}

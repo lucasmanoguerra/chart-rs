@@ -259,6 +259,7 @@ pub struct RenderStyle {
     pub crosshair_line_color: Color,
     pub crosshair_time_label_color: Color,
     pub crosshair_price_label_color: Color,
+    pub crosshair_label_box_color: Color,
     pub last_price_line_color: Color,
     pub last_price_label_color: Color,
     /// Applied when trend coloring is enabled and latest sample is above previous.
@@ -276,6 +277,8 @@ pub struct RenderStyle {
     pub major_time_tick_mark_width: f64,
     pub crosshair_line_width: f64,
     pub crosshair_axis_label_font_size_px: f64,
+    pub crosshair_label_box_padding_x_px: f64,
+    pub crosshair_label_box_padding_y_px: f64,
     pub last_price_line_width: f64,
     pub major_time_label_font_size_px: f64,
     /// Font size used by regular (non-major) time-axis labels.
@@ -319,6 +322,10 @@ pub struct RenderStyle {
     pub show_crosshair_time_label: bool,
     /// Controls visibility of the crosshair label projected on the price axis panel.
     pub show_crosshair_price_label: bool,
+    /// Controls visibility of the crosshair time-axis label box.
+    pub show_crosshair_time_label_box: bool,
+    /// Controls visibility of the crosshair price-axis label box.
+    pub show_crosshair_price_label_box: bool,
     /// Horizontal inset from right edge used by price-axis labels.
     pub price_axis_label_padding_right_px: f64,
     /// Length of short axis tick marks extending into the price-axis panel.
@@ -373,6 +380,7 @@ impl Default for RenderStyle {
             crosshair_line_color: Color::rgb(0.30, 0.35, 0.44),
             crosshair_time_label_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_price_label_color: Color::rgb(0.10, 0.12, 0.16),
+            crosshair_label_box_color: Color::rgb(0.94, 0.96, 0.99),
             last_price_line_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_up_color: Color::rgb(0.06, 0.62, 0.35),
@@ -387,6 +395,8 @@ impl Default for RenderStyle {
             major_time_tick_mark_width: 1.0,
             crosshair_line_width: 1.0,
             crosshair_axis_label_font_size_px: 11.0,
+            crosshair_label_box_padding_x_px: 5.0,
+            crosshair_label_box_padding_y_px: 2.0,
             last_price_line_width: 1.25,
             major_time_label_font_size_px: 12.0,
             time_axis_label_font_size_px: 11.0,
@@ -415,6 +425,8 @@ impl Default for RenderStyle {
             show_crosshair_vertical_line: true,
             show_crosshair_time_label: true,
             show_crosshair_price_label: true,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
             price_axis_label_padding_right_px: 6.0,
             price_axis_tick_mark_length_px: 6.0,
             show_last_price_line: true,
@@ -2213,10 +2225,38 @@ impl<R: Renderer> ChartEngine<R> {
                 let crosshair_time = crosshair
                     .snapped_time
                     .unwrap_or(self.time_scale.pixel_to_time(crosshair_x, self.viewport)?);
+                let text = self.format_time_axis_label(crosshair_time, visible_span_abs);
                 let time_label_y = (plot_bottom + style.time_axis_label_offset_y_px)
                     .min((viewport_height - style.crosshair_axis_label_font_size_px).max(0.0));
+                if style.show_crosshair_time_label_box {
+                    let estimated_text_width = Self::estimate_label_text_width_px(
+                        &text,
+                        style.crosshair_axis_label_font_size_px,
+                    );
+                    let box_width = (estimated_text_width
+                        + 2.0 * style.crosshair_label_box_padding_x_px)
+                        .clamp(0.0, plot_right);
+                    let max_left = (plot_right - box_width).max(0.0);
+                    let box_left = (crosshair_x - box_width * 0.5).clamp(0.0, max_left);
+                    let box_top = (time_label_y - style.crosshair_label_box_padding_y_px)
+                        .clamp(plot_bottom, viewport_height);
+                    let box_bottom = (time_label_y
+                        + style.crosshair_axis_label_font_size_px
+                        + style.crosshair_label_box_padding_y_px)
+                        .clamp(plot_bottom, viewport_height);
+                    let box_height = (box_bottom - box_top).max(0.0);
+                    if box_width > 0.0 && box_height > 0.0 {
+                        frame = frame.with_rect(RectPrimitive::new(
+                            box_left,
+                            box_top,
+                            box_width,
+                            box_height,
+                            style.crosshair_label_box_color,
+                        ));
+                    }
+                }
                 frame = frame.with_text(TextPrimitive::new(
-                    self.format_time_axis_label(crosshair_time, visible_span_abs),
+                    text,
                     crosshair_x,
                     time_label_y,
                     style.crosshair_axis_label_font_size_px,
@@ -2234,14 +2274,47 @@ impl<R: Renderer> ChartEngine<R> {
                     self.price_axis_label_config.display_mode,
                     fallback_display_base_price,
                 );
+                let text = self.format_price_axis_label(
+                    display_price,
+                    display_tick_step_abs,
+                    display_suffix,
+                );
+                let text_y = (crosshair_y - style.price_axis_label_offset_y_px).max(0.0);
+                let mut text_x = price_axis_label_anchor_x;
+                if style.show_crosshair_price_label_box {
+                    let axis_panel_left = plot_right;
+                    let axis_panel_width = (viewport_width - axis_panel_left).max(0.0);
+                    let estimated_text_width = Self::estimate_label_text_width_px(
+                        &text,
+                        style.crosshair_axis_label_font_size_px,
+                    );
+                    let box_width = (estimated_text_width
+                        + 2.0 * style.crosshair_label_box_padding_x_px)
+                        .clamp(0.0, axis_panel_width);
+                    let box_left = (viewport_width - box_width).max(axis_panel_left);
+                    let box_top = (text_y - style.crosshair_label_box_padding_y_px)
+                        .clamp(0.0, viewport_height);
+                    let box_bottom = (text_y
+                        + style.crosshair_axis_label_font_size_px
+                        + style.crosshair_label_box_padding_y_px)
+                        .clamp(0.0, viewport_height);
+                    let box_height = (box_bottom - box_top).max(0.0);
+                    text_x = (viewport_width - style.crosshair_label_box_padding_x_px)
+                        .clamp(box_left, viewport_width);
+                    if box_width > 0.0 && box_height > 0.0 {
+                        frame = frame.with_rect(RectPrimitive::new(
+                            box_left,
+                            box_top,
+                            box_width,
+                            box_height,
+                            style.crosshair_label_box_color,
+                        ));
+                    }
+                }
                 frame = frame.with_text(TextPrimitive::new(
-                    self.format_price_axis_label(
-                        display_price,
-                        display_tick_step_abs,
-                        display_suffix,
-                    ),
-                    price_axis_label_anchor_x,
-                    (crosshair_y - style.price_axis_label_offset_y_px).max(0.0),
+                    text,
+                    text_x,
+                    text_y,
                     style.crosshair_axis_label_font_size_px,
                     style.crosshair_price_label_color,
                     TextHAlign::Right,
@@ -2512,6 +2585,7 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.crosshair_line_color.validate()?;
     style.crosshair_time_label_color.validate()?;
     style.crosshair_price_label_color.validate()?;
+    style.crosshair_label_box_color.validate()?;
     style.last_price_line_color.validate()?;
     style.last_price_label_color.validate()?;
     style.last_price_up_color.validate()?;
@@ -2608,6 +2682,20 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `last_price_label_padding_right_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.crosshair_label_box_padding_x_px.is_finite()
+        || style.crosshair_label_box_padding_x_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_label_box_padding_x_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.crosshair_label_box_padding_y_px.is_finite()
+        || style.crosshair_label_box_padding_y_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_label_box_padding_y_px` must be finite and >= 0".to_owned(),
         ));
     }
     if !style.price_axis_tick_mark_length_px.is_finite()

@@ -144,4 +144,43 @@ proptest! {
         prop_assert_eq!(time_labels, usize::from(show_time_label));
         prop_assert_eq!(price_labels, usize::from(show_price_label));
     }
+
+    #[test]
+    fn crosshair_axis_label_boxes_are_deterministic_and_toggleable(
+        x in 0.0f64..1280.0f64,
+        y in 0.0f64..720.0f64,
+        show_time_box in any::<bool>(),
+        show_price_box in any::<bool>(),
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let style = RenderStyle {
+            crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.18),
+            show_crosshair_time_label_box: show_time_box,
+            show_crosshair_price_label_box: show_price_box,
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        engine.pointer_move(x, y);
+
+        let first = engine.build_render_frame().expect("first frame");
+        let second = engine.build_render_frame().expect("second frame");
+        prop_assert_eq!(first, second);
+
+        let box_count = first
+            .rects
+            .iter()
+            .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+            .count();
+        let expected_count = usize::from(show_time_box) + usize::from(show_price_box);
+        prop_assert_eq!(box_count, expected_count);
+    }
 }

@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box parity baseline (`R-045`) with deterministic fit-text background boxes for crosshair time/price axis labels.
+- New render-style knobs: `crosshair_label_box_color`, `crosshair_label_box_padding_x_px`, `crosshair_label_box_padding_y_px`, `show_crosshair_time_label_box`, and `show_crosshair_price_label_box`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box behavior.
 - Crosshair axis-label parity baseline (`R-044`) with deterministic time/price crosshair labels projected into axis panels.
 - New render-style knobs: `crosshair_time_label_color`, `crosshair_price_label_color`, `crosshair_axis_label_font_size_px`, `show_crosshair_time_label`, and `show_crosshair_price_label`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label render behavior.
