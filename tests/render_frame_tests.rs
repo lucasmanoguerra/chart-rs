@@ -2207,6 +2207,89 @@ fn crosshair_context_formatter_has_priority_over_legacy_formatter() {
 }
 
 #[test]
+fn crosshair_context_time_formatter_cache_key_includes_source_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(20.0, 10.0),
+        DataPoint::new(40.0, 20.0),
+        DataPoint::new(60.0, 30.0),
+    ]);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+        let source = match context.source_mode {
+            CrosshairLabelSourceMode::SnappedData => "S",
+            CrosshairLabelSourceMode::PointerProjected => "P",
+        };
+        format!("T:{value:.2}:{source}:{:.1}", context.visible_span_abs)
+    }));
+    engine.clear_crosshair_time_label_cache();
+    engine.pointer_move(333.0, 177.0);
+
+    engine.set_crosshair_mode(CrosshairMode::Magnet);
+    let _ = engine.build_render_frame().expect("magnet first");
+    let magnet_stats_1 = engine.crosshair_time_label_cache_stats();
+    let _ = engine.build_render_frame().expect("magnet second");
+    let magnet_stats_2 = engine.crosshair_time_label_cache_stats();
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine.pointer_move(333.0, 177.0);
+    let _ = engine.build_render_frame().expect("normal first");
+    let normal_stats = engine.crosshair_time_label_cache_stats();
+
+    assert!(magnet_stats_1.misses >= 1);
+    assert!(magnet_stats_2.hits > magnet_stats_1.hits);
+    assert!(normal_stats.misses > magnet_stats_2.misses);
+}
+
+#[test]
+fn crosshair_context_price_formatter_cache_key_includes_visible_span() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+        format!("P:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.clear_crosshair_price_label_cache();
+    engine.pointer_move(333.0, 177.0);
+
+    let _ = engine.build_render_frame().expect("span 100 first");
+    let span_100_stats_1 = engine.crosshair_price_label_cache_stats();
+    let _ = engine.build_render_frame().expect("span 100 second");
+    let span_100_stats_2 = engine.crosshair_price_label_cache_stats();
+
+    engine
+        .set_time_visible_range(0.0, 50.0)
+        .expect("set visible range");
+    let _ = engine.build_render_frame().expect("span 50 first");
+    let span_50_stats = engine.crosshair_price_label_cache_stats();
+
+    assert!(span_100_stats_1.misses >= 1);
+    assert!(span_100_stats_2.hits > span_100_stats_1.hits);
+    assert!(span_50_stats.misses > span_100_stats_2.misses);
+}
+
+#[test]
 fn crosshair_time_formatter_override_uses_dedicated_cache_stats() {
     let renderer = NullRenderer::default();
     let config =

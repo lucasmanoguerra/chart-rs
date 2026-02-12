@@ -12,6 +12,8 @@ impl<R: Renderer> ChartEngine<R> {
         if self.time_label_formatter.is_some() {
             return TimeLabelCacheProfile::Custom {
                 formatter_generation: self.time_label_formatter_generation,
+                source_mode_tag: 0,
+                visible_span_millis: 0,
             };
         }
 
@@ -35,6 +37,8 @@ impl<R: Renderer> ChartEngine<R> {
         if self.price_label_formatter.is_some() {
             return PriceLabelCacheProfile::Custom {
                 formatter_generation: self.price_label_formatter_generation,
+                source_mode_tag: 0,
+                visible_span_millis: 0,
             };
         }
 

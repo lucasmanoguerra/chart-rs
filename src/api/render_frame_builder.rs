@@ -28,6 +28,27 @@ use super::{
 };
 
 impl<R: Renderer> ChartEngine<R> {
+    fn crosshair_source_mode_tag(source_mode: CrosshairLabelSourceMode) -> u8 {
+        match source_mode {
+            CrosshairLabelSourceMode::SnappedData => 1,
+            CrosshairLabelSourceMode::PointerProjected => 2,
+        }
+    }
+
+    fn quantize_visible_span_millis(visible_span_abs: f64) -> i64 {
+        if !visible_span_abs.is_finite() {
+            return 0;
+        }
+        let millis = (visible_span_abs.abs() * 1_000.0).round();
+        if millis > i64::MAX as f64 {
+            i64::MAX
+        } else if millis < i64::MIN as f64 {
+            i64::MIN
+        } else {
+            millis as i64
+        }
+    }
+
     fn apply_crosshair_label_text_transform(text: String, prefix: &str, suffix: &str) -> String {
         if prefix.is_empty() && suffix.is_empty() {
             return text;
@@ -101,17 +122,34 @@ impl<R: Renderer> ChartEngine<R> {
         source_mode: CrosshairLabelSourceMode,
     ) -> String {
         if let Some(formatter) = &self.crosshair_time_label_formatter_with_context {
-            formatter(
+            let key = TimeLabelCacheKey {
+                profile: super::label_cache::TimeLabelCacheProfile::Custom {
+                    formatter_generation: self.crosshair_time_label_formatter_generation,
+                    source_mode_tag: Self::crosshair_source_mode_tag(source_mode),
+                    visible_span_millis: Self::quantize_visible_span_millis(visible_span_abs),
+                },
+                logical_time_millis: quantize_logical_time_millis(logical_time),
+            };
+            if let Some(cached) = self.crosshair_time_label_cache.borrow_mut().get(key) {
+                return cached;
+            }
+            let value = formatter(
                 logical_time,
                 CrosshairTimeLabelFormatterContext {
                     visible_span_abs,
                     source_mode,
                 },
-            )
+            );
+            self.crosshair_time_label_cache
+                .borrow_mut()
+                .insert(key, value.clone());
+            value
         } else if let Some(formatter) = &self.crosshair_time_label_formatter {
             let key = TimeLabelCacheKey {
                 profile: super::label_cache::TimeLabelCacheProfile::Custom {
                     formatter_generation: self.crosshair_time_label_formatter_generation,
+                    source_mode_tag: 0,
+                    visible_span_millis: 0,
                 },
                 logical_time_millis: quantize_logical_time_millis(logical_time),
             };
@@ -145,6 +183,19 @@ impl<R: Renderer> ChartEngine<R> {
         source_mode: CrosshairLabelSourceMode,
     ) -> String {
         if let Some(formatter) = &self.crosshair_price_label_formatter_with_context {
+            let key = PriceLabelCacheKey {
+                profile: super::label_cache::PriceLabelCacheProfile::Custom {
+                    formatter_generation: self.crosshair_price_label_formatter_generation,
+                    source_mode_tag: Self::crosshair_source_mode_tag(source_mode),
+                    visible_span_millis: Self::quantize_visible_span_millis(visible_span_abs),
+                },
+                display_price_nanos: quantize_price_label_value(display_price),
+                tick_step_nanos: quantize_price_label_value(tick_step_abs),
+                has_percent_suffix: !mode_suffix.is_empty(),
+            };
+            if let Some(cached) = self.crosshair_price_label_cache.borrow_mut().get(key) {
+                return cached;
+            }
             let mut value = formatter(
                 display_price,
                 CrosshairPriceLabelFormatterContext {
@@ -155,11 +206,16 @@ impl<R: Renderer> ChartEngine<R> {
             if !mode_suffix.is_empty() {
                 value.push_str(mode_suffix);
             }
+            self.crosshair_price_label_cache
+                .borrow_mut()
+                .insert(key, value.clone());
             value
         } else if let Some(formatter) = &self.crosshair_price_label_formatter {
             let key = PriceLabelCacheKey {
                 profile: super::label_cache::PriceLabelCacheProfile::Custom {
                     formatter_generation: self.crosshair_price_label_formatter_generation,
+                    source_mode_tag: 0,
+                    visible_span_millis: 0,
                 },
                 display_price_nanos: quantize_price_label_value(display_price),
                 tick_step_nanos: quantize_price_label_value(tick_step_abs),

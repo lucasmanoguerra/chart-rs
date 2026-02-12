@@ -56,6 +56,8 @@ pub(super) enum TimeLabelCacheProfile {
     },
     Custom {
         formatter_generation: u64,
+        source_mode_tag: u8,
+        visible_span_millis: i64,
     },
 }
 
@@ -67,6 +69,8 @@ pub(super) enum PriceLabelCacheProfile {
     },
     Custom {
         formatter_generation: u64,
+        source_mode_tag: u8,
+        visible_span_millis: i64,
     },
 }
 
