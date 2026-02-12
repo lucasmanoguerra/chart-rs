@@ -582,10 +582,9 @@ proptest! {
             .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
             .collect();
         prop_assert!(!boxes.is_empty());
-        prop_assert!(boxes.iter().all(|rect| {
-            rect.corner_radius <= (rect.width.min(rect.height)) * 0.5 + 1e-9
-                && rect.border_width >= 0.0
-        }));
+        prop_assert!(boxes.iter().all(|rect| rect.corner_radius
+            <= (rect.width.min(rect.height)) * 0.5 + 1e-9
+            && rect.border_width >= 0.0));
     }
 
     #[test]
@@ -632,12 +631,18 @@ proptest! {
         } else {
             style.crosshair_label_box_text_color
         };
-        prop_assert!(first.texts.iter().any(|text| {
-            text.h_align == TextHAlign::Center && text.color == expected_color
-        }));
-        prop_assert!(first.texts.iter().any(|text| {
-            text.h_align == TextHAlign::Right && text.color == expected_color
-        }));
+        prop_assert!(
+            first
+                .texts
+                .iter()
+                .any(|text| text.h_align == TextHAlign::Center && text.color == expected_color)
+        );
+        prop_assert!(
+            first
+                .texts
+                .iter()
+                .any(|text| text.h_align == TextHAlign::Right && text.color == expected_color)
+        );
     }
 
     #[test]
@@ -1344,8 +1349,11 @@ proptest! {
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
         prop_assert_eq!(first, second);
-        prop_assert!(first.rects.iter().all(|rect| {
-            rect.corner_radius <= (rect.width.min(rect.height)) * 0.5 + 1e-9
-        }));
+        prop_assert!(
+            first
+                .rects
+                .iter()
+                .all(|rect| rect.corner_radius <= (rect.width.min(rect.height)) * 0.5 + 1e-9)
+        );
     }
 }

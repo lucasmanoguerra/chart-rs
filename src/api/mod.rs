@@ -8,6 +8,7 @@ use crate::core::{
 };
 use crate::error::{ChartError, ChartResult};
 use crate::extensions::{ChartPlugin, PluginEvent};
+pub use crate::interaction::CrosshairMode;
 use crate::interaction::{CrosshairState, InteractionState};
 use crate::render::Renderer;
 
