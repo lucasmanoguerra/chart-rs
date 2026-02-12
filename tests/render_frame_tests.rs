@@ -296,6 +296,64 @@ fn major_time_axis_labels_use_dedicated_color() {
 }
 
 #[test]
+fn major_time_axis_labels_use_dedicated_offset() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1_704_205_800.0, 10.0),
+        DataPoint::new(1_704_205_860.0, 11.0),
+        DataPoint::new(1_704_205_920.0, 12.0),
+        DataPoint::new(1_704_205_980.0, 13.0),
+        DataPoint::new(1_704_206_040.0, 12.5),
+        DataPoint::new(1_704_206_100.0, 12.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let style = RenderStyle {
+        time_axis_label_offset_y_px: 4.0,
+        major_time_label_offset_y_px: 9.0,
+        major_time_label_font_size_px: 14.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_major_y =
+        (plot_bottom + style.major_time_label_offset_y_px).min((viewport_height - 14.0).max(0.0));
+    let expected_regular_y =
+        (plot_bottom + style.time_axis_label_offset_y_px).min((viewport_height - 11.0).max(0.0));
+
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center
+            && text.text == "2024-01-02 09:30"
+            && (text.y - expected_major_y).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center
+            && text.text != "2024-01-02 09:30"
+            && (text.y - expected_regular_y).abs() <= 1e-9
+    }));
+}
+
+#[test]
 fn major_time_axis_tick_marks_use_dedicated_style() {
     let renderer = NullRenderer::default();
     let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)

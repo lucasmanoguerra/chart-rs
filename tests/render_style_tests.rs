@@ -67,6 +67,7 @@ fn custom_render_style_is_applied_to_frame() {
         major_time_label_font_size_px: 13.0,
         time_axis_label_font_size_px: 11.5,
         time_axis_label_offset_y_px: 5.0,
+        major_time_label_offset_y_px: 7.0,
         time_axis_tick_mark_length_px: 7.0,
         major_time_tick_mark_length_px: 9.0,
         price_axis_label_font_size_px: 12.5,
@@ -448,6 +449,22 @@ fn invalid_time_axis_label_offset_y_is_rejected() {
 }
 
 #[test]
+fn invalid_major_time_label_offset_y_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.major_time_label_offset_y_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
 fn invalid_time_axis_tick_mark_length_is_rejected() {
     let renderer = NullRenderer::default();
     let config =
@@ -653,6 +670,8 @@ fn session_boundary_uses_major_tick_styling() {
         major_time_tick_mark_width: 2.25,
         major_time_tick_mark_length_px: 8.5,
         major_time_label_font_size_px: 14.0,
+        time_axis_label_offset_y_px: 4.0,
+        major_time_label_offset_y_px: 10.0,
         major_time_label_color: Color::rgb(0.90, 0.33, 0.14),
         ..engine.render_style()
     };
@@ -696,14 +715,25 @@ fn session_boundary_uses_major_tick_styling() {
             .abs()
                 <= 1e-9
     }));
-    assert!(
-        frame
-            .texts
-            .iter()
-            .any(|text| text.text == "2024-01-02 09:30"
-                && text.font_size_px == custom_style.major_time_label_font_size_px
-                && text.color == custom_style.major_time_label_color)
-    );
+    assert!(frame.texts.iter().any(|text| {
+        text.text == "2024-01-02 09:30"
+            && text.font_size_px == custom_style.major_time_label_font_size_px
+            && (text.y
+                - (plot_bottom + custom_style.major_time_label_offset_y_px)
+                    .min((viewport_height - custom_style.major_time_label_font_size_px).max(0.0)))
+            .abs()
+                <= 1e-9
+            && text.color == custom_style.major_time_label_color
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == chart_rs::render::TextHAlign::Center
+            && text.text != "2024-01-02 09:30"
+            && (text.y
+                - (plot_bottom + custom_style.time_axis_label_offset_y_px)
+                    .min((viewport_height - text.font_size_px).max(0.0)))
+            .abs()
+                <= 1e-9
+    }));
 }
 
 #[test]

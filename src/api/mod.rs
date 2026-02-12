@@ -277,6 +277,8 @@ pub struct RenderStyle {
     pub time_axis_label_font_size_px: f64,
     /// Vertical offset from the plot bottom used by time-axis label anchors.
     pub time_axis_label_offset_y_px: f64,
+    /// Vertical offset from the plot bottom used by major time-axis label anchors.
+    pub major_time_label_offset_y_px: f64,
     /// Length of short vertical tick marks extending into the time-axis panel.
     pub time_axis_tick_mark_length_px: f64,
     /// Length of short vertical tick marks for major time-axis ticks.
@@ -367,6 +369,7 @@ impl Default for RenderStyle {
             major_time_label_font_size_px: 12.0,
             time_axis_label_font_size_px: 11.0,
             time_axis_label_offset_y_px: 4.0,
+            major_time_label_offset_y_px: 4.0,
             time_axis_tick_mark_length_px: 6.0,
             major_time_tick_mark_length_px: 6.0,
             price_axis_label_font_size_px: 11.0,
@@ -1884,6 +1887,7 @@ impl<R: Renderer> ChartEngine<R> {
                 grid_color,
                 grid_line_width,
                 label_font_size_px,
+                label_offset_y_px,
                 label_color,
                 tick_mark_color,
                 tick_mark_width,
@@ -1893,6 +1897,7 @@ impl<R: Renderer> ChartEngine<R> {
                     style.major_grid_line_color,
                     style.major_grid_line_width,
                     style.major_time_label_font_size_px,
+                    style.major_time_label_offset_y_px,
                     style.major_time_label_color,
                     style.major_time_tick_mark_color,
                     style.major_time_tick_mark_width,
@@ -1903,13 +1908,14 @@ impl<R: Renderer> ChartEngine<R> {
                     style.grid_line_color,
                     style.grid_line_width,
                     style.time_axis_label_font_size_px,
+                    style.time_axis_label_offset_y_px,
                     style.time_axis_label_color,
                     style.time_axis_tick_mark_color,
                     style.time_axis_tick_mark_width,
                     style.time_axis_tick_mark_length_px,
                 )
             };
-            let time_label_y = (plot_bottom + style.time_axis_label_offset_y_px)
+            let time_label_y = (plot_bottom + label_offset_y_px)
                 .min((viewport_height - label_font_size_px).max(0.0));
             let text = self.format_time_axis_label(time, visible_span_abs);
             if style.show_time_axis_labels && (!is_major_tick || style.show_major_time_labels) {
@@ -2467,6 +2473,11 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     if !style.time_axis_label_offset_y_px.is_finite() || style.time_axis_label_offset_y_px < 0.0 {
         return Err(ChartError::InvalidData(
             "render style `time_axis_label_offset_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.major_time_label_offset_y_px.is_finite() || style.major_time_label_offset_y_px < 0.0 {
+        return Err(ChartError::InvalidData(
+            "render style `major_time_label_offset_y_px` must be finite and >= 0".to_owned(),
         ));
     }
     if !style.time_axis_tick_mark_length_px.is_finite() || style.time_axis_tick_mark_length_px < 0.0
