@@ -5,7 +5,7 @@ use chart_rs::api::{
     TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::Viewport;
-use chart_rs::render::{Color, NullRenderer};
+use chart_rs::render::{Color, NullRenderer, TextHAlign};
 
 #[test]
 fn default_render_style_produces_grid_and_axis_lines() {
@@ -59,10 +59,13 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_price_label_box_color: Some(Color::rgb(0.24, 0.41, 0.89)),
         crosshair_label_box_text_color: Color::rgb(0.08, 0.11, 0.16),
         crosshair_label_box_auto_text_contrast: false,
+        crosshair_label_box_text_h_align: Some(TextHAlign::Center),
         crosshair_time_label_box_text_color: Some(Color::rgb(0.11, 0.53, 0.26)),
         crosshair_price_label_box_text_color: Some(Color::rgb(0.22, 0.35, 0.81)),
         crosshair_time_label_box_auto_text_contrast: Some(true),
         crosshair_price_label_box_auto_text_contrast: Some(false),
+        crosshair_time_label_box_text_h_align: Some(TextHAlign::Left),
+        crosshair_price_label_box_text_h_align: Some(TextHAlign::Right),
         crosshair_label_box_border_color: Color::rgb(0.83, 0.84, 0.88),
         crosshair_time_label_box_border_color: Color::rgb(0.75, 0.32, 0.21),
         crosshair_price_label_box_border_color: Color::rgb(0.18, 0.36, 0.77),

@@ -1978,6 +1978,47 @@ fn crosshair_axis_label_box_text_policy_is_independent_per_axis() {
 }
 
 #[test]
+fn crosshair_axis_label_box_text_alignment_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_label_box_text_color: Color::rgb(0.95, 0.95, 0.95),
+        crosshair_label_box_auto_text_contrast: false,
+        crosshair_time_label_box_text_color: Some(Color::rgb(0.12, 0.76, 0.33)),
+        crosshair_price_label_box_text_color: Some(Color::rgb(0.22, 0.41, 0.90)),
+        crosshair_time_label_box_auto_text_contrast: Some(false),
+        crosshair_price_label_box_auto_text_contrast: Some(false),
+        crosshair_time_label_box_text_h_align: Some(TextHAlign::Left),
+        crosshair_price_label_box_text_h_align: Some(TextHAlign::Center),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.texts.iter().any(|text| {
+        text.color
+            == style
+                .crosshair_time_label_box_text_color
+                .expect("time color")
+            && text.h_align == TextHAlign::Left
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.color
+            == style
+                .crosshair_price_label_box_text_color
+                .expect("price color")
+            && text.h_align == TextHAlign::Center
+    }));
+}
+
+#[test]
 fn crosshair_axis_label_box_fill_color_is_independent_per_axis() {
     let renderer = NullRenderer::default();
     let config =

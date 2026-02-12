@@ -274,10 +274,13 @@ pub struct RenderStyle {
     pub crosshair_price_label_box_color: Option<Color>,
     pub crosshair_label_box_text_color: Color,
     pub crosshair_label_box_auto_text_contrast: bool,
+    pub crosshair_label_box_text_h_align: Option<TextHAlign>,
     pub crosshair_time_label_box_text_color: Option<Color>,
     pub crosshair_price_label_box_text_color: Option<Color>,
     pub crosshair_time_label_box_auto_text_contrast: Option<bool>,
     pub crosshair_price_label_box_auto_text_contrast: Option<bool>,
+    pub crosshair_time_label_box_text_h_align: Option<TextHAlign>,
+    pub crosshair_price_label_box_text_h_align: Option<TextHAlign>,
     pub crosshair_label_box_border_color: Color,
     pub crosshair_time_label_box_border_color: Color,
     pub crosshair_price_label_box_border_color: Color,
@@ -436,10 +439,13 @@ impl Default for RenderStyle {
             crosshair_price_label_box_color: None,
             crosshair_label_box_text_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_label_box_auto_text_contrast: false,
+            crosshair_label_box_text_h_align: None,
             crosshair_time_label_box_text_color: None,
             crosshair_price_label_box_text_color: None,
             crosshair_time_label_box_auto_text_contrast: None,
             crosshair_price_label_box_auto_text_contrast: None,
+            crosshair_time_label_box_text_h_align: None,
+            crosshair_price_label_box_text_h_align: None,
             crosshair_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
             crosshair_time_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
             crosshair_price_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
@@ -2345,6 +2351,8 @@ impl<R: Renderer> ChartEngine<R> {
                     time_label_padding_x,
                     (plot_right - time_label_padding_x).max(time_label_padding_x),
                 );
+                let mut time_text_x = crosshair_time_label_x;
+                let mut time_text_h_align = TextHAlign::Center;
                 let text = self.format_time_axis_label(crosshair_time, visible_span_abs);
                 let time_label_y = (plot_bottom + style.crosshair_time_label_offset_y_px)
                     .min((viewport_height - style.crosshair_time_label_font_size_px).max(0.0));
@@ -2359,6 +2367,10 @@ impl<R: Renderer> ChartEngine<R> {
                     style.crosshair_time_label_color
                 };
                 if style.show_crosshair_time_label_box {
+                    time_text_h_align = style
+                        .crosshair_time_label_box_text_h_align
+                        .or(style.crosshair_label_box_text_h_align)
+                        .unwrap_or(TextHAlign::Center);
                     let estimated_text_width = Self::estimate_label_text_width_px(
                         &text,
                         style.crosshair_time_label_font_size_px,
@@ -2390,6 +2402,15 @@ impl<R: Renderer> ChartEngine<R> {
                         .clamp(plot_bottom, viewport_height);
                     let box_height = (box_bottom - box_top).max(0.0);
                     if box_width > 0.0 && box_height > 0.0 {
+                        time_text_x = match time_text_h_align {
+                            TextHAlign::Left => (box_left
+                                + style.crosshair_time_label_box_padding_x_px)
+                                .clamp(box_left, box_left + box_width),
+                            TextHAlign::Center => box_left + box_width * 0.5,
+                            TextHAlign::Right => (box_left + box_width
+                                - style.crosshair_time_label_box_padding_x_px)
+                                .clamp(box_left, box_left + box_width),
+                        };
                         let mut rect = RectPrimitive::new(
                             box_left,
                             box_top,
@@ -2428,11 +2449,11 @@ impl<R: Renderer> ChartEngine<R> {
                 }
                 frame = frame.with_text(TextPrimitive::new(
                     text,
-                    crosshair_time_label_x,
+                    time_text_x,
                     time_label_y,
                     style.crosshair_time_label_font_size_px,
                     time_label_text_color,
-                    TextHAlign::Center,
+                    time_text_h_align,
                 ));
             }
             if style.show_crosshair_price_label {
@@ -2468,7 +2489,12 @@ impl<R: Renderer> ChartEngine<R> {
                     - style.crosshair_price_label_padding_right_px)
                     .clamp(plot_right, viewport_width);
                 let mut text_x = crosshair_price_label_anchor_x;
+                let mut price_text_h_align = TextHAlign::Right;
                 if style.show_crosshair_price_label_box {
+                    price_text_h_align = style
+                        .crosshair_price_label_box_text_h_align
+                        .or(style.crosshair_label_box_text_h_align)
+                        .unwrap_or(TextHAlign::Right);
                     let axis_panel_left = plot_right;
                     let axis_panel_width = (viewport_width - axis_panel_left).max(0.0);
                     let estimated_text_width = Self::estimate_label_text_width_px(
@@ -2502,8 +2528,15 @@ impl<R: Renderer> ChartEngine<R> {
                         + style.crosshair_price_label_box_padding_y_px)
                         .clamp(0.0, viewport_height);
                     let box_height = (box_bottom - box_top).max(0.0);
-                    text_x = (viewport_width - style.crosshair_price_label_box_padding_x_px)
-                        .clamp(box_left, viewport_width);
+                    text_x = match price_text_h_align {
+                        TextHAlign::Left => (box_left
+                            + style.crosshair_price_label_box_padding_x_px)
+                            .clamp(box_left, box_left + box_width),
+                        TextHAlign::Center => box_left + box_width * 0.5,
+                        TextHAlign::Right => (box_left + box_width
+                            - style.crosshair_price_label_box_padding_x_px)
+                            .clamp(box_left, box_left + box_width),
+                    };
                     if box_width > 0.0 && box_height > 0.0 {
                         let mut rect = RectPrimitive::new(
                             box_left,
@@ -2547,7 +2580,7 @@ impl<R: Renderer> ChartEngine<R> {
                     text_y,
                     style.crosshair_price_label_font_size_px,
                     price_label_text_color,
-                    TextHAlign::Right,
+                    price_text_h_align,
                 ));
             }
         }
