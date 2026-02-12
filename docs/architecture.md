@@ -15,6 +15,7 @@
   - backend implementations
 - `api`
   - Rust-idiomatic public interface
+  - split into focused submodules (for example `api::render_style`) to keep responsibilities narrow
 - `platform_gtk` (feature-gated)
   - GTK4/Relm4 adapter
 - `extensions`

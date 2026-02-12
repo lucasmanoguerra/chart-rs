@@ -91,6 +91,10 @@ Interaction invariants:
 ### `src/api`
 Main public facade (`ChartEngine`, `ChartEngineConfig`).
 
+Key files:
+- `mod.rs` (engine orchestration, state transitions, frame assembly)
+- `render_style.rs` (style enums + `RenderStyle` default contract)
+
 Responsibilities:
 - orchestration between core + interaction + renderer
 - time visible range controls and fit-to-data

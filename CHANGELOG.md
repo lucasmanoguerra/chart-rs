@@ -11,6 +11,11 @@ and this project adheres to Semantic Versioning.
 - Crosshair guide-line per-axis stroke-style parity baseline (`R-068`) with deterministic independent dash-pattern controls for horizontal and vertical crosshair lines.
 - New render-style knobs: `crosshair_line_style`, `crosshair_horizontal_line_style`, and `crosshair_vertical_line_style`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair guide-line per-axis stroke-style behavior.
+
+### Changed
+- Internal API modularization: moved render-style enums and `RenderStyle` default contract from `src/api/mod.rs` into `src/api/render_style.rs` with unchanged public re-exports.
+
+### Added
 - Crosshair axis-label box per-axis z-order parity baseline (`R-067`) with deterministic independent draw-order controls for time and price label boxes.
 - New render-style knobs: `crosshair_label_box_z_order_policy`, `crosshair_time_label_box_z_order_policy`, and `crosshair_price_label_box_z_order_policy`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis z-order behavior.
