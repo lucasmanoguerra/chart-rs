@@ -1,8 +1,11 @@
 use chart_rs::api::{
-    ChartEngine, ChartEngineConfig, CrosshairFormatterOverrideMode, EngineSnapshot,
+    CROSSHAIR_DIAGNOSTICS_JSON_SCHEMA_V1, ChartEngine, ChartEngineConfig,
+    CrosshairFormatterDiagnostics, CrosshairFormatterOverrideMode, ENGINE_SNAPSHOT_JSON_SCHEMA_V1,
+    EngineSnapshot,
 };
 use chart_rs::core::{OhlcBar, Viewport};
 use chart_rs::render::NullRenderer;
+use serde_json::Value;
 use std::sync::Arc;
 
 #[test]
@@ -185,4 +188,185 @@ fn crosshair_formatter_diagnostics_exposes_modes_generations_and_cache_stats() {
     let cleared = engine.crosshair_formatter_diagnostics();
     assert_eq!(cleared.time_cache.size, 0);
     assert_eq!(cleared.price_cache.size, 0);
+}
+
+#[test]
+fn snapshot_and_diagnostics_stay_coherent_across_formatter_lifecycle_transitions() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(640, 480), 0.0, 5.0).with_price_domain(1.0, 10.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("TL:{value:.2}")));
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, _| {
+        format!("TC:{value:.2}")
+    }));
+    engine.clear_crosshair_time_label_formatter_with_context();
+    engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("PL:{value:.2}")));
+    engine.pointer_move(180.0, 120.0);
+    let _ = engine.build_render_frame().expect("build frame");
+
+    let snapshot = engine.snapshot(6.0).expect("snapshot should build");
+    let diagnostics = engine.crosshair_formatter_diagnostics();
+    assert_eq!(
+        snapshot.crosshair_formatter.time_override_mode,
+        diagnostics.time_override_mode
+    );
+    assert_eq!(
+        snapshot.crosshair_formatter.price_override_mode,
+        diagnostics.price_override_mode
+    );
+    assert_eq!(
+        snapshot.crosshair_formatter.time_formatter_generation,
+        diagnostics.time_formatter_generation
+    );
+    assert_eq!(
+        snapshot.crosshair_formatter.price_formatter_generation,
+        diagnostics.price_formatter_generation
+    );
+
+    engine.clear_crosshair_formatter_caches();
+    let snapshot_after_clear = engine.snapshot(6.0).expect("snapshot should build");
+    let diagnostics_after_clear = engine.crosshair_formatter_diagnostics();
+    assert_eq!(diagnostics_after_clear.time_cache.size, 0);
+    assert_eq!(diagnostics_after_clear.price_cache.size, 0);
+    assert_eq!(
+        snapshot_after_clear.crosshair_formatter.time_override_mode,
+        diagnostics_after_clear.time_override_mode
+    );
+    assert_eq!(
+        snapshot_after_clear.crosshair_formatter.price_override_mode,
+        diagnostics_after_clear.price_override_mode
+    );
+    assert_eq!(
+        snapshot_after_clear
+            .crosshair_formatter
+            .time_formatter_generation,
+        diagnostics_after_clear.time_formatter_generation
+    );
+    assert_eq!(
+        snapshot_after_clear
+            .crosshair_formatter
+            .price_formatter_generation,
+        diagnostics_after_clear.price_formatter_generation
+    );
+}
+
+#[test]
+fn snapshot_json_crosshair_formatter_matches_diagnostics_after_mixed_mode_switches() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 500), 0.0, 10.0).with_price_domain(0.0, 100.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, _| {
+        format!("TC:{value:.2}")
+    }));
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, _| {
+        format!("PC:{value:.2}")
+    }));
+    engine.clear_crosshair_price_label_formatter_with_context();
+    engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("PL:{value:.2}")));
+    engine.pointer_move(250.0, 150.0);
+    let _ = engine.build_render_frame().expect("build frame");
+
+    let json = engine
+        .snapshot_json_pretty(8.0)
+        .expect("snapshot should serialize");
+    let decoded: EngineSnapshot =
+        serde_json::from_str(&json).expect("snapshot json should deserialize");
+    let diagnostics = engine.crosshair_formatter_diagnostics();
+
+    assert_eq!(
+        decoded.crosshair_formatter.time_override_mode,
+        diagnostics.time_override_mode
+    );
+    assert_eq!(
+        decoded.crosshair_formatter.price_override_mode,
+        diagnostics.price_override_mode
+    );
+    assert_eq!(
+        decoded.crosshair_formatter.time_formatter_generation,
+        diagnostics.time_formatter_generation
+    );
+    assert_eq!(
+        decoded.crosshair_formatter.price_formatter_generation,
+        diagnostics.price_formatter_generation
+    );
+}
+
+#[test]
+fn snapshot_json_contract_v1_supports_backward_compatible_parse() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 500), 0.0, 10.0).with_price_domain(0.0, 100.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("TL:{value:.2}")));
+
+    let raw_snapshot_json = engine
+        .snapshot_json_pretty(8.0)
+        .expect("raw snapshot should serialize");
+    let contract_json = engine
+        .snapshot_json_contract_v1_pretty(8.0)
+        .expect("contract snapshot should serialize");
+
+    let from_raw = EngineSnapshot::from_json_compat_str(&raw_snapshot_json)
+        .expect("compat parse should accept raw snapshot");
+    let from_contract = EngineSnapshot::from_json_compat_str(&contract_json)
+        .expect("compat parse should accept contract snapshot");
+    assert_eq!(
+        from_raw.crosshair_formatter,
+        from_contract.crosshair_formatter
+    );
+
+    let payload: Value = serde_json::from_str(&contract_json).expect("contract json");
+    assert_eq!(
+        payload
+            .get("schema_version")
+            .and_then(Value::as_u64)
+            .expect("schema_version should be u64"),
+        u64::from(ENGINE_SNAPSHOT_JSON_SCHEMA_V1)
+    );
+    let snapshot = payload.get("snapshot").expect("snapshot payload");
+    assert!(snapshot.get("crosshair_formatter").is_some());
+}
+
+#[test]
+fn diagnostics_json_contract_v1_supports_backward_compatible_parse() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 500), 0.0, 10.0).with_price_domain(0.0, 100.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, _| {
+        format!("PC:{value:.2}")
+    }));
+    engine.pointer_move(310.0, 140.0);
+    let _ = engine.build_render_frame().expect("build frame");
+
+    let raw_json = engine
+        .crosshair_formatter_diagnostics_json_pretty()
+        .expect("diagnostics json");
+    let contract_json = engine
+        .crosshair_formatter_diagnostics_json_contract_v1_pretty()
+        .expect("diagnostics contract json");
+
+    let from_raw = CrosshairFormatterDiagnostics::from_json_compat_str(&raw_json)
+        .expect("compat parse should accept raw diagnostics");
+    let from_contract = CrosshairFormatterDiagnostics::from_json_compat_str(&contract_json)
+        .expect("compat parse should accept contract diagnostics");
+    assert_eq!(from_raw, from_contract);
+
+    let payload: Value = serde_json::from_str(&contract_json).expect("contract json");
+    assert_eq!(
+        payload
+            .get("schema_version")
+            .and_then(Value::as_u64)
+            .expect("schema_version should be u64"),
+        u64::from(CROSSHAIR_DIAGNOSTICS_JSON_SCHEMA_V1)
+    );
+    let diagnostics = payload.get("diagnostics").expect("diagnostics payload");
+    assert!(diagnostics.get("time_override_mode").is_some());
+    assert!(diagnostics.get("price_override_mode").is_some());
+    assert!(diagnostics.get("time_formatter_generation").is_some());
+    assert!(diagnostics.get("price_formatter_generation").is_some());
 }

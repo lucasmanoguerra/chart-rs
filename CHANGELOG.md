@@ -8,6 +8,19 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- GTK/Relm4 diagnostics bridge parity baseline (`R-089`) with adapter hooks to publish crosshair formatter diagnostics and versioned snapshot JSON during draw lifecycle.
+- New GTK adapter APIs: `set_crosshair_diagnostics_hook`, `clear_crosshair_diagnostics_hook`, `set_snapshot_json_hook`, `clear_snapshot_json_hook`, `crosshair_formatter_diagnostics_json_contract_v1_pretty`, and `snapshot_json_contract_v1_pretty`.
+- Snapshot/diagnostics schema guard parity baseline (`R-088`) with backward-compatible JSON parsers that accept both legacy raw payloads and versioned contract wrappers.
+- New compatibility APIs: `EngineSnapshot::from_json_compat_str` and `CrosshairFormatterDiagnostics::from_json_compat_str`.
+- Crosshair diagnostics JSON export parity baseline (`R-087`) with stable raw and versioned (`v1`) export contracts.
+- New JSON contract APIs: `snapshot_json_contract_v1_pretty`, `crosshair_formatter_diagnostics_json_pretty`, and `crosshair_formatter_diagnostics_json_contract_v1_pretty`.
+- New contract payload types: `EngineSnapshotJsonContractV1`, `CrosshairFormatterDiagnosticsJsonContractV1`, and schema constants `ENGINE_SNAPSHOT_JSON_SCHEMA_V1` / `CROSSHAIR_DIAGNOSTICS_JSON_SCHEMA_V1`.
+- Crosshair snapshot/diagnostics coherence hardening parity baseline (`R-086`) with integration/property assertions that `EngineSnapshot.crosshair_formatter` and `crosshair_formatter_diagnostics()` remain mode/generation-aligned across lifecycle transitions.
+- New snapshot/diagnostics coherence tests in `tests/api_snapshot_tests.rs` and `tests/property_api_tests.rs`.
+- Crosshair legacy/context API contract matrix parity baseline (`R-085`) with explicit per-axis lifecycle/action mapping for mode, storage slots, and generation semantics.
+- New technical document: `docs/crosshair-formatter-contract-matrix.md`.
+- Crosshair lifecycle-transition benchmark parity baseline (`R-084`) with deterministic context-cache hot-path coverage under crosshair-mode/visible-range changes.
+- New benchmark: `bench_crosshair_axis_label_formatter_context_lifecycle_transitions` in `benches/core_math_bench.rs`.
 - Crosshair formatter diagnostics parity baseline (`R-083`) with consolidated per-axis override-mode, generation, and cache-stat observability APIs.
 - New API methods: `crosshair_formatter_diagnostics` and `clear_crosshair_formatter_caches`.
 - New diagnostics contract: `CrosshairFormatterDiagnostics`.

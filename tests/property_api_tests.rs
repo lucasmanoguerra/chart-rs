@@ -370,4 +370,137 @@ proptest! {
         let restored: EngineSnapshot = serde_json::from_str(&json).expect("snapshot roundtrip");
         prop_assert_eq!(restored.crosshair_formatter, first.crosshair_formatter);
     }
+
+    #[test]
+    fn crosshair_snapshot_and_diagnostics_contract_stay_coherent(
+        set_time_legacy in any::<bool>(),
+        set_time_context in any::<bool>(),
+        clear_time in any::<bool>(),
+        set_price_legacy in any::<bool>(),
+        set_price_context in any::<bool>(),
+        clear_price in any::<bool>(),
+        switch_crosshair_mode in any::<bool>(),
+        change_visible_range in any::<bool>(),
+        render_once in any::<bool>(),
+        clear_caches in any::<bool>(),
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1200, 700), 0.0, 100.0)
+            .with_price_domain(-2_000.0, 2_000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+        if set_time_legacy {
+            engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("TL:{value:.2}")));
+        }
+        if set_time_context {
+            engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+                format!("TC:{value:.2}:{:.1}", context.visible_span_abs)
+            }));
+        }
+        if clear_time {
+            if engine.crosshair_time_label_formatter_override_mode()
+                == chart_rs::api::CrosshairFormatterOverrideMode::Context
+            {
+                engine.clear_crosshair_time_label_formatter_with_context();
+            } else {
+                engine.clear_crosshair_time_label_formatter();
+            }
+        }
+
+        if set_price_legacy {
+            engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("PL:{value:.2}")));
+        }
+        if set_price_context {
+            engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+                format!("PC:{value:.2}:{:.1}", context.visible_span_abs)
+            }));
+        }
+        if clear_price {
+            if engine.crosshair_price_label_formatter_override_mode()
+                == chart_rs::api::CrosshairFormatterOverrideMode::Context
+            {
+                engine.clear_crosshair_price_label_formatter_with_context();
+            } else {
+                engine.clear_crosshair_price_label_formatter();
+            }
+        }
+
+        if switch_crosshair_mode {
+            engine.set_crosshair_mode(CrosshairMode::Normal);
+        } else {
+            engine.set_crosshair_mode(CrosshairMode::Magnet);
+        }
+        if change_visible_range {
+            engine
+                .set_time_visible_range(15.0, 90.0)
+                .expect("set visible range");
+        }
+
+        if render_once {
+            engine.pointer_move(440.0, 260.0);
+            let _ = engine.build_render_frame().expect("build frame");
+        }
+        if clear_caches {
+            engine.clear_crosshair_formatter_caches();
+        }
+
+        let snapshot = engine.snapshot(6.0).expect("snapshot");
+        let diagnostics = engine.crosshair_formatter_diagnostics();
+        prop_assert_eq!(
+            snapshot.crosshair_formatter.time_override_mode,
+            diagnostics.time_override_mode
+        );
+        prop_assert_eq!(
+            snapshot.crosshair_formatter.price_override_mode,
+            diagnostics.price_override_mode
+        );
+        prop_assert_eq!(
+            snapshot.crosshair_formatter.time_formatter_generation,
+            diagnostics.time_formatter_generation
+        );
+        prop_assert_eq!(
+            snapshot.crosshair_formatter.price_formatter_generation,
+            diagnostics.price_formatter_generation
+        );
+
+        if clear_caches {
+            prop_assert_eq!(diagnostics.time_cache.size, 0);
+            prop_assert_eq!(diagnostics.price_cache.size, 0);
+        }
+    }
+
+    #[test]
+    fn snapshot_json_compat_parser_keeps_crosshair_formatter_contract(
+        set_time_context in any::<bool>(),
+        set_price_legacy in any::<bool>(),
+        clear_price in any::<bool>(),
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1200, 700), 0.0, 100.0)
+            .with_price_domain(-2_000.0, 2_000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+        if set_time_context {
+            engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+                format!("TC:{value:.2}:{:.1}", context.visible_span_abs)
+            }));
+        }
+        if set_price_legacy {
+            engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("PL:{value:.2}")));
+        }
+        if clear_price {
+            engine.clear_crosshair_price_label_formatter();
+        }
+
+        let raw_json = engine.snapshot_json_pretty(6.0).expect("raw snapshot json");
+        let contract_json = engine
+            .snapshot_json_contract_v1_pretty(6.0)
+            .expect("contract snapshot json");
+
+        let raw_snapshot = EngineSnapshot::from_json_compat_str(&raw_json).expect("parse raw");
+        let contract_snapshot =
+            EngineSnapshot::from_json_compat_str(&contract_json).expect("parse contract");
+
+        prop_assert_eq!(raw_snapshot.crosshair_formatter, contract_snapshot.crosshair_formatter);
+    }
 }

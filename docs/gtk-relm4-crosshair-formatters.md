@@ -104,6 +104,30 @@ Each update mutates `ChartEngine`, then triggers a redraw.
   - `crosshair_price_label_formatter_override_mode()`
   - `crosshair_label_formatter_generations()`
 
+## Diagnostics Bridge Hooks (GTK Adapter)
+
+`GtkChartAdapter` can publish diagnostics and versioned snapshot payloads each
+draw pass, allowing Relm4 models or debug panels to consume stable contracts.
+
+```rust
+use chart_rs::platform_gtk::GtkChartAdapter;
+
+adapter.set_crosshair_diagnostics_hook(|diagnostics| {
+    // forward to telemetry/debug panel
+    eprintln!("diag={diagnostics:?}");
+});
+
+adapter.set_snapshot_json_hook(7.0, |snapshot_json| {
+    // persist / compare against fixtures
+    eprintln!("snapshot-json-bytes={}", snapshot_json.len());
+});
+```
+
+You can also pull one-shot payloads:
+
+- `crosshair_formatter_diagnostics_json_contract_v1_pretty()`
+- `snapshot_json_contract_v1_pretty(body_width_px)`
+
 ## Recommended Host-Side Rules
 
 - Prefer context-aware formatters for user-facing axis labels.

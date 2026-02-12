@@ -116,6 +116,7 @@ Key files:
 - `time_scale_controller.rs` (public time-scale range/pan/zoom/fit controller methods)
 - `series_projection.rs` (public series geometry/markers projection methods)
 - `snapshot_controller.rs` (public snapshot serialization/state export methods)
+- `json_contract.rs` (versioned snapshot/diagnostics JSON contracts and backward-compatible parsers)
 - `render_frame_builder.rs` (render-frame assembly and axis/crosshair label formatting helpers)
 - `label_formatter_controller.rs` (public axis/crosshair label formatter + label-cache lifecycle methods and cache stats/clear APIs)
 - `visible_window_access.rs` (public visible-window point/candle accessor methods)
@@ -172,8 +173,14 @@ Responsibilities:
 - snapshot/export parity for crosshair formatter lifecycle state (override mode per axis and formatter generations)
 - hardened crosshair formatter lifecycle introspection API (`crosshair_*_label_formatter_override_mode`, `crosshair_label_formatter_generations`) for host-side state diagnostics
 - consolidated crosshair formatter diagnostics API (`crosshair_formatter_diagnostics`, `clear_crosshair_formatter_caches`) for per-axis mode/generation/cache observability
+- snapshot/diagnostics coherence hardening tests for crosshair formatter lifecycle state (`tests/api_snapshot_tests.rs`, `tests/property_api_tests.rs`)
+- versioned JSON export contracts and backward-compatible parsers for snapshot/diagnostics payloads (`snapshot_json_contract_v1_pretty`, `crosshair_formatter_diagnostics_json_contract_v1_pretty`, `EngineSnapshot::from_json_compat_str`, `CrosshairFormatterDiagnostics::from_json_compat_str`)
+- technical API contract matrix for legacy/context crosshair formatters per axis (`docs/crosshair-formatter-contract-matrix.md`)
+- lifecycle-transition benchmark coverage for context-aware crosshair formatter cache-hot behavior (`benches/core_math_bench.rs`)
 - property-based lifecycle coverage for crosshair formatter transitions (legacy/context set/clear, context invalidation triggers, snapshot parity)
 - GTK4/Relm4 integration reference for context-aware crosshair formatter lifecycle wiring (`docs/gtk-relm4-crosshair-formatters.md`)
+- GTK4 adapter diagnostics bridge hooks for host observability pipelines (`set_crosshair_diagnostics_hook`, `set_snapshot_json_hook`)
+- local manual examples for API/interaction parity checks (`examples/README.md`)
 - configurable crosshair axis-label box policy (deterministic fit-text boxes with dedicated fill, padding, and independent time/price visibility toggles)
 - configurable crosshair axis-label box border/radius policy (deterministic border width/color and corner-radius styling)
 - configurable crosshair axis-label box text policy (manual text color or automatic contrast from box fill luminance)

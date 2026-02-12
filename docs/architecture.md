@@ -15,7 +15,7 @@
   - backend implementations
 - `api`
   - Rust-idiomatic public interface
-  - split into focused submodules (for example `api::render_style`, `api::axis_config`, `api::axis_label_format`, `api::axis_ticks`, `api::data_window`, `api::data_controller`, `api::engine_accessors`, `api::axis_label_controller`, `api::price_resolver`, `api::layout_helpers`, `api::snap_resolver`, `api::cache_profile`, `api::plugin_dispatch`, `api::plugin_registry`, `api::interaction_controller`, `api::label_formatter_controller`, `api::scale_access`, `api::time_scale_controller`, `api::series_projection`, `api::snapshot_controller`, `api::render_frame_builder`, `api::visible_window_access`, `api::price_scale_access`, `api::label_cache`, `api::validation`, `api::interaction_validation`) to keep responsibilities narrow
+  - split into focused submodules (for example `api::render_style`, `api::axis_config`, `api::axis_label_format`, `api::axis_ticks`, `api::data_window`, `api::data_controller`, `api::engine_accessors`, `api::axis_label_controller`, `api::price_resolver`, `api::layout_helpers`, `api::snap_resolver`, `api::cache_profile`, `api::plugin_dispatch`, `api::plugin_registry`, `api::interaction_controller`, `api::label_formatter_controller`, `api::scale_access`, `api::time_scale_controller`, `api::series_projection`, `api::snapshot_controller`, `api::json_contract`, `api::render_frame_builder`, `api::visible_window_access`, `api::price_scale_access`, `api::label_cache`, `api::validation`, `api::interaction_validation`) to keep responsibilities narrow
 - `platform_gtk` (feature-gated)
   - GTK4/Relm4 adapter
 - `extensions`
@@ -118,8 +118,10 @@ Tuning contracts:
 - engine snapshots export deterministic crosshair formatter lifecycle state (per-axis override mode + generation counters) for regression/debug tooling
 - formatter lifecycle introspection is exposed via explicit API accessors so host adapters can observe mode/generation without touching internals
 - a consolidated diagnostics surface exposes per-axis formatter mode/generation/cache state for host debug and health probes
+- a technical contract matrix documents legacy/context per-axis formatter lifecycle semantics and snapshot/diagnostics coherence expectations (`docs/crosshair-formatter-contract-matrix.md`)
+- snapshot/diagnostics exports support versioned JSON contracts with schema guards plus backward-compatible parsing of legacy raw payloads
 - property-level lifecycle tests cover formatter mode transitions, context invalidation boundaries, and snapshot export determinism
-- GTK4/Relm4 adapter flows should treat crosshair formatter updates as explicit message-driven state transitions (pointer/mode/range events) to preserve deterministic redraw behavior
+- GTK4/Relm4 adapter flows should treat crosshair formatter updates as explicit message-driven state transitions (pointer/mode/range events) and may bridge diagnostics/snapshot contract payloads through draw-time hooks for host observability
 - crosshair time/price axis-label boxes support deterministic fit-text sizing with style-level fill/padding and independent per-axis visibility controls
 - crosshair axis-label boxes support deterministic border/radius styling with clamped corner geometry for backend-stable output
 - crosshair axis-label boxes support deterministic manual or auto-contrast text-color resolution without backend-specific text-measurement dependencies

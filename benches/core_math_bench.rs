@@ -801,6 +801,63 @@ fn bench_crosshair_axis_label_formatter_context_cache_hot(c: &mut Criterion) {
     });
 }
 
+fn bench_crosshair_axis_label_formatter_context_lifecycle_transitions(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+        format!("T:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+        format!("P:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(800.0, 320.0);
+    let _ = engine.build_render_frame().expect("warm cache");
+
+    let mut flip = false;
+    c.bench_function(
+        "crosshair_axis_label_formatter_context_lifecycle_transitions",
+        |b| {
+            b.iter(|| {
+                flip = !flip;
+                if flip {
+                    engine.set_crosshair_mode(CrosshairMode::Magnet);
+                    engine
+                        .set_time_visible_range(0.0, 4_500.0)
+                        .expect("set visible range");
+                } else {
+                    engine.set_crosshair_mode(CrosshairMode::Normal);
+                    engine
+                        .set_time_visible_range(250.0, 5_000.0)
+                        .expect("set visible range");
+                }
+                engine.pointer_move(800.0, 320.0);
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
 fn bench_crosshair_axis_label_boxes_render(c: &mut Criterion) {
     let points: Vec<DataPoint> = (0..5_000)
         .map(|i| {
@@ -2955,6 +3012,7 @@ criterion_group!(
     bench_crosshair_axis_label_numeric_precision_per_axis_render,
     bench_crosshair_axis_label_formatter_context_per_axis_render,
     bench_crosshair_axis_label_formatter_context_cache_hot,
+    bench_crosshair_axis_label_formatter_context_lifecycle_transitions,
     bench_crosshair_axis_label_boxes_render,
     bench_crosshair_axis_label_boxes_border_radius_render,
     bench_crosshair_axis_label_boxes_auto_contrast_render,

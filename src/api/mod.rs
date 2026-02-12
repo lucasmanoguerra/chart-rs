@@ -36,6 +36,11 @@ pub use label_formatter_context::{
     CrosshairPriceLabelFormatterWithContextFn, CrosshairTimeLabelFormatterContext,
     CrosshairTimeLabelFormatterWithContextFn,
 };
+mod json_contract;
+pub use json_contract::{
+    CROSSHAIR_DIAGNOSTICS_JSON_SCHEMA_V1, CrosshairFormatterDiagnosticsJsonContractV1,
+    ENGINE_SNAPSHOT_JSON_SCHEMA_V1, EngineSnapshotJsonContractV1,
+};
 
 mod validation;
 use validation::validate_render_style;
