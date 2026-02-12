@@ -247,6 +247,7 @@ pub enum LastPriceLabelBoxWidthMode {
 pub struct RenderStyle {
     pub series_line_color: Color,
     pub grid_line_color: Color,
+    pub price_axis_grid_line_color: Color,
     pub major_grid_line_color: Color,
     pub axis_border_color: Color,
     pub price_axis_tick_mark_color: Color,
@@ -260,6 +261,7 @@ pub struct RenderStyle {
     /// Applied when trend coloring is enabled and no direction can be inferred.
     pub last_price_neutral_color: Color,
     pub grid_line_width: f64,
+    pub price_axis_grid_line_width: f64,
     pub major_grid_line_width: f64,
     pub axis_line_width: f64,
     pub price_axis_tick_mark_width: f64,
@@ -320,6 +322,7 @@ impl Default for RenderStyle {
         Self {
             series_line_color: Color::rgb(0.16, 0.38, 1.0),
             grid_line_color: Color::rgb(0.89, 0.92, 0.95),
+            price_axis_grid_line_color: Color::rgb(0.89, 0.92, 0.95),
             major_grid_line_color: Color::rgb(0.78, 0.83, 0.90),
             axis_border_color: Color::rgb(0.82, 0.84, 0.88),
             price_axis_tick_mark_color: Color::rgb(0.82, 0.84, 0.88),
@@ -330,6 +333,7 @@ impl Default for RenderStyle {
             last_price_down_color: Color::rgb(0.86, 0.22, 0.19),
             last_price_neutral_color: Color::rgb(0.16, 0.38, 1.0),
             grid_line_width: 1.0,
+            price_axis_grid_line_width: 1.0,
             major_grid_line_width: 1.25,
             axis_line_width: 1.0,
             price_axis_tick_mark_width: 1.0,
@@ -1960,8 +1964,8 @@ impl<R: Renderer> ChartEngine<R> {
                     py,
                     plot_right,
                     py,
-                    style.grid_line_width,
-                    style.grid_line_color,
+                    style.price_axis_grid_line_width,
+                    style.price_axis_grid_line_color,
                 ));
             }
             if style.show_price_axis_tick_marks {
@@ -2323,6 +2327,7 @@ fn validate_time_axis_session_config(
 fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.series_line_color.validate()?;
     style.grid_line_color.validate()?;
+    style.price_axis_grid_line_color.validate()?;
     style.major_grid_line_color.validate()?;
     style.axis_border_color.validate()?;
     style.price_axis_tick_mark_color.validate()?;
@@ -2338,6 +2343,10 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
 
     for (name, value) in [
         ("grid_line_width", style.grid_line_width),
+        (
+            "price_axis_grid_line_width",
+            style.price_axis_grid_line_width,
+        ),
         ("major_grid_line_width", style.major_grid_line_width),
         ("axis_line_width", style.axis_line_width),
         (

@@ -236,7 +236,8 @@ fn price_axis_grid_lines_can_be_hidden() {
 
     let style = RenderStyle {
         show_price_axis_grid_lines: false,
-        grid_line_color: Color::rgb(0.91, 0.23, 0.21),
+        price_axis_grid_line_color: Color::rgb(0.91, 0.23, 0.21),
+        price_axis_grid_line_width: 2.0,
         last_price_line_color: Color::rgb(0.11, 0.74, 0.31),
         ..engine.render_style()
     };
@@ -247,8 +248,8 @@ fn price_axis_grid_lines_can_be_hidden() {
     let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
 
     assert!(!frame.lines.iter().any(|line| {
-        line.color == style.grid_line_color
-            && line.stroke_width == style.grid_line_width
+        line.color == style.price_axis_grid_line_color
+            && line.stroke_width == style.price_axis_grid_line_width
             && (line.y1 - line.y2).abs() <= 1e-9
             && (line.x1 - 0.0).abs() <= 1e-9
             && (line.x2 - plot_right).abs() <= 1e-9

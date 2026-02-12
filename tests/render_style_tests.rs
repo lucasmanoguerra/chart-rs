@@ -42,6 +42,7 @@ fn custom_render_style_is_applied_to_frame() {
     let custom_style = RenderStyle {
         series_line_color: Color::rgb(0.9, 0.2, 0.2),
         grid_line_color: Color::rgb(0.1, 0.7, 0.4),
+        price_axis_grid_line_color: Color::rgb(0.12, 0.55, 0.81),
         major_grid_line_color: Color::rgb(0.8, 0.4, 0.1),
         axis_border_color: Color::rgb(0.2, 0.2, 0.2),
         price_axis_tick_mark_color: Color::rgb(0.7, 0.2, 0.5),
@@ -52,6 +53,7 @@ fn custom_render_style_is_applied_to_frame() {
         last_price_down_color: Color::rgb(0.9, 0.2, 0.2),
         last_price_neutral_color: Color::rgb(0.2, 0.2, 0.8),
         grid_line_width: 2.0,
+        price_axis_grid_line_width: 1.75,
         major_grid_line_width: 3.0,
         axis_line_width: 1.5,
         price_axis_tick_mark_width: 1.25,
@@ -119,6 +121,10 @@ fn custom_render_style_is_applied_to_frame() {
         )
     );
     assert!(frame.lines.iter().any(|line| {
+        line.color == custom_style.price_axis_grid_line_color
+            && line.stroke_width == custom_style.price_axis_grid_line_width
+    }));
+    assert!(frame.lines.iter().any(|line| {
         line.color == custom_style.price_axis_tick_mark_color
             && line.stroke_width == custom_style.price_axis_tick_mark_width
     }));
@@ -181,6 +187,38 @@ fn invalid_price_axis_tick_mark_color_is_rejected() {
 
     let mut style = engine.render_style();
     style.price_axis_tick_mark_color = Color::rgb(1.1, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_price_axis_grid_line_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.price_axis_grid_line_color = Color::rgb(1.2, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_price_axis_grid_line_width_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.price_axis_grid_line_width = 0.0;
 
     let err = engine
         .set_render_style(style)
