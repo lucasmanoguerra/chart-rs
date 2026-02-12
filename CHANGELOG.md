@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box per-axis vertical-anchor parity baseline (`R-061`) with deterministic independent vertical anchoring controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_vertical_anchor`, `crosshair_time_label_box_vertical_anchor`, and `crosshair_price_label_box_vertical_anchor`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis vertical-anchor behavior.
 - Crosshair axis-label box per-axis text-alignment parity baseline (`R-060`) with deterministic independent alignment controls for time and price label boxes.
 - New render-style knobs: `crosshair_label_box_text_h_align`, `crosshair_time_label_box_text_h_align`, and `crosshair_price_label_box_text_h_align`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis text-alignment behavior.

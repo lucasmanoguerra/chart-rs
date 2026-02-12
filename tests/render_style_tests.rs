@@ -94,6 +94,13 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
         crosshair_time_label_box_width_mode: Some(CrosshairLabelBoxWidthMode::FullAxis),
         crosshair_price_label_box_width_mode: Some(CrosshairLabelBoxWidthMode::FitText),
+        crosshair_label_box_vertical_anchor: chart_rs::api::CrosshairLabelBoxVerticalAnchor::Center,
+        crosshair_time_label_box_vertical_anchor: Some(
+            chart_rs::api::CrosshairLabelBoxVerticalAnchor::Top,
+        ),
+        crosshair_price_label_box_vertical_anchor: Some(
+            chart_rs::api::CrosshairLabelBoxVerticalAnchor::Bottom,
+        ),
         crosshair_label_box_min_width_px: 20.0,
         crosshair_time_label_box_min_width_px: 40.0,
         crosshair_price_label_box_min_width_px: 24.0,

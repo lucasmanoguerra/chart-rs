@@ -252,6 +252,15 @@ pub enum CrosshairLabelBoxWidthMode {
     FitText,
 }
 
+/// Vertical anchor used for crosshair axis-label box layout around label Y.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CrosshairLabelBoxVerticalAnchor {
+    Top,
+    #[default]
+    Center,
+    Bottom,
+}
+
 /// Style contract for the current render frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderStyle {
@@ -312,6 +321,9 @@ pub struct RenderStyle {
     pub crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode,
     pub crosshair_time_label_box_width_mode: Option<CrosshairLabelBoxWidthMode>,
     pub crosshair_price_label_box_width_mode: Option<CrosshairLabelBoxWidthMode>,
+    pub crosshair_label_box_vertical_anchor: CrosshairLabelBoxVerticalAnchor,
+    pub crosshair_time_label_box_vertical_anchor: Option<CrosshairLabelBoxVerticalAnchor>,
+    pub crosshair_price_label_box_vertical_anchor: Option<CrosshairLabelBoxVerticalAnchor>,
     pub crosshair_label_box_min_width_px: f64,
     pub crosshair_time_label_box_min_width_px: f64,
     pub crosshair_price_label_box_min_width_px: f64,
@@ -474,6 +486,9 @@ impl Default for RenderStyle {
             crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
             crosshair_time_label_box_width_mode: None,
             crosshair_price_label_box_width_mode: None,
+            crosshair_label_box_vertical_anchor: CrosshairLabelBoxVerticalAnchor::Center,
+            crosshair_time_label_box_vertical_anchor: None,
+            crosshair_price_label_box_vertical_anchor: None,
             crosshair_label_box_min_width_px: 0.0,
             crosshair_time_label_box_min_width_px: 0.0,
             crosshair_price_label_box_min_width_px: 0.0,
@@ -1269,6 +1284,37 @@ impl<R: Renderer> ChartEngine<R> {
             }
         });
         (units * font_size_px).max(font_size_px)
+    }
+
+    fn resolve_crosshair_box_vertical_layout(
+        label_anchor_y: f64,
+        font_size_px: f64,
+        padding_y_px: f64,
+        min_y: f64,
+        max_y: f64,
+        anchor: CrosshairLabelBoxVerticalAnchor,
+    ) -> (f64, f64, f64) {
+        let box_height = (font_size_px + 2.0 * padding_y_px).max(0.0);
+        let available_height = (max_y - min_y).max(0.0);
+        let clamped_box_height = box_height.min(available_height);
+        let preferred_top = match anchor {
+            CrosshairLabelBoxVerticalAnchor::Top => label_anchor_y,
+            CrosshairLabelBoxVerticalAnchor::Center => label_anchor_y - padding_y_px,
+            CrosshairLabelBoxVerticalAnchor::Bottom => label_anchor_y - clamped_box_height,
+        };
+        let top = preferred_top.clamp(min_y, max_y - clamped_box_height);
+        let bottom = top + clamped_box_height;
+        let text_y = match anchor {
+            CrosshairLabelBoxVerticalAnchor::Top => top + padding_y_px,
+            CrosshairLabelBoxVerticalAnchor::Center => {
+                top + (clamped_box_height - font_size_px) * 0.5
+            }
+            CrosshairLabelBoxVerticalAnchor::Bottom => {
+                top + clamped_box_height - padding_y_px - font_size_px
+            }
+        }
+        .clamp(min_y, (max_y - font_size_px).max(min_y));
+        (text_y, top, bottom)
     }
 
     fn resolve_time_label_cache_profile(&self, visible_span_abs: f64) -> TimeLabelCacheProfile {
@@ -2354,8 +2400,9 @@ impl<R: Renderer> ChartEngine<R> {
                 let mut time_text_x = crosshair_time_label_x;
                 let mut time_text_h_align = TextHAlign::Center;
                 let text = self.format_time_axis_label(crosshair_time, visible_span_abs);
-                let time_label_y = (plot_bottom + style.crosshair_time_label_offset_y_px)
+                let time_label_anchor_y = (plot_bottom + style.crosshair_time_label_offset_y_px)
                     .min((viewport_height - style.crosshair_time_label_font_size_px).max(0.0));
+                let mut time_label_y = time_label_anchor_y;
                 let time_label_text_color = if style.show_crosshair_time_label_box {
                     self.resolve_crosshair_label_box_text_color(
                         style.crosshair_time_label_color,
@@ -2383,6 +2430,9 @@ impl<R: Renderer> ChartEngine<R> {
                     } else {
                         style.crosshair_label_box_min_width_px
                     };
+                    let time_box_vertical_anchor = style
+                        .crosshair_time_label_box_vertical_anchor
+                        .unwrap_or(style.crosshair_label_box_vertical_anchor);
                     let requested_box_width = match time_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => plot_right,
                         CrosshairLabelBoxWidthMode::FitText => {
@@ -2394,12 +2444,16 @@ impl<R: Renderer> ChartEngine<R> {
                         .clamp(0.0, plot_right);
                     let max_left = (plot_right - box_width).max(0.0);
                     let box_left = (crosshair_time_label_x - box_width * 0.5).clamp(0.0, max_left);
-                    let box_top = (time_label_y - style.crosshair_time_label_box_padding_y_px)
-                        .clamp(plot_bottom, viewport_height);
-                    let box_bottom = (time_label_y
-                        + style.crosshair_time_label_font_size_px
-                        + style.crosshair_time_label_box_padding_y_px)
-                        .clamp(plot_bottom, viewport_height);
+                    let (resolved_time_label_y, box_top, box_bottom) =
+                        Self::resolve_crosshair_box_vertical_layout(
+                            time_label_anchor_y,
+                            style.crosshair_time_label_font_size_px,
+                            style.crosshair_time_label_box_padding_y_px,
+                            plot_bottom,
+                            viewport_height,
+                            time_box_vertical_anchor,
+                        );
+                    time_label_y = resolved_time_label_y;
                     let box_height = (box_bottom - box_top).max(0.0);
                     if box_width > 0.0 && box_height > 0.0 {
                         time_text_x = match time_text_h_align {
@@ -2474,7 +2528,9 @@ impl<R: Renderer> ChartEngine<R> {
                     display_tick_step_abs,
                     display_suffix,
                 );
-                let text_y = (crosshair_y - style.crosshair_price_label_offset_y_px).max(0.0);
+                let price_label_anchor_y =
+                    (crosshair_y - style.crosshair_price_label_offset_y_px).max(0.0);
+                let mut text_y = price_label_anchor_y;
                 let price_label_text_color = if style.show_crosshair_price_label_box {
                     self.resolve_crosshair_label_box_text_color(
                         style.crosshair_price_label_color,
@@ -2510,6 +2566,9 @@ impl<R: Renderer> ChartEngine<R> {
                     } else {
                         style.crosshair_label_box_min_width_px
                     };
+                    let price_box_vertical_anchor = style
+                        .crosshair_price_label_box_vertical_anchor
+                        .unwrap_or(style.crosshair_label_box_vertical_anchor);
                     let requested_box_width = match price_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => axis_panel_width,
                         CrosshairLabelBoxWidthMode::FitText => {
@@ -2521,12 +2580,16 @@ impl<R: Renderer> ChartEngine<R> {
                         .max(price_box_min_width)
                         .clamp(0.0, axis_panel_width);
                     let box_left = (viewport_width - box_width).max(axis_panel_left);
-                    let box_top = (text_y - style.crosshair_price_label_box_padding_y_px)
-                        .clamp(0.0, viewport_height);
-                    let box_bottom = (text_y
-                        + style.crosshair_price_label_font_size_px
-                        + style.crosshair_price_label_box_padding_y_px)
-                        .clamp(0.0, viewport_height);
+                    let (resolved_price_label_y, box_top, box_bottom) =
+                        Self::resolve_crosshair_box_vertical_layout(
+                            price_label_anchor_y,
+                            style.crosshair_price_label_font_size_px,
+                            style.crosshair_price_label_box_padding_y_px,
+                            0.0,
+                            viewport_height,
+                            price_box_vertical_anchor,
+                        );
+                    text_y = resolved_price_label_y;
                     let box_height = (box_bottom - box_top).max(0.0);
                     text_x = match price_text_h_align {
                         TextHAlign::Left => (box_left

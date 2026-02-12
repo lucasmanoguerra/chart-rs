@@ -120,6 +120,7 @@ Tuning contracts:
 - crosshair axis-label box fill color is deterministic and independently configurable per axis/panel
 - crosshair axis-label box minimum width is deterministic and independently configurable per axis/panel
 - crosshair axis-label box text alignment is deterministic and independently configurable per axis/panel
+- crosshair axis-label box vertical anchor is deterministic and independently configurable per axis/panel
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract

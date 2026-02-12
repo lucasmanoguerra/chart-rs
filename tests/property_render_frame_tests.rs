@@ -1,5 +1,6 @@
 use chart_rs::api::{
-    ChartEngine, ChartEngineConfig, CrosshairLabelBoxWidthMode, CrosshairMode, RenderStyle,
+    ChartEngine, ChartEngineConfig, CrosshairLabelBoxVerticalAnchor, CrosshairLabelBoxWidthMode,
+    CrosshairMode, RenderStyle,
 };
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, NullRenderer, TextHAlign};
@@ -336,6 +337,41 @@ proptest! {
         let style = RenderStyle {
             crosshair_time_label_box_text_h_align: Some(map_align(time_align_idx)),
             crosshair_price_label_box_text_h_align: Some(map_align(price_align_idx)),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        engine.pointer_move(400.0, 250.0);
+
+        let first = engine.build_render_frame().expect("first frame");
+        let second = engine.build_render_frame().expect("second frame");
+        prop_assert_eq!(first, second);
+    }
+
+    #[test]
+    fn crosshair_axis_label_box_vertical_anchor_is_deterministic_per_axis(
+        time_anchor_idx in 0u8..3u8,
+        price_anchor_idx in 0u8..3u8,
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let map_anchor = |idx: u8| match idx {
+            0 => CrosshairLabelBoxVerticalAnchor::Top,
+            1 => CrosshairLabelBoxVerticalAnchor::Center,
+            _ => CrosshairLabelBoxVerticalAnchor::Bottom,
+        };
+        let style = RenderStyle {
+            crosshair_time_label_box_vertical_anchor: Some(map_anchor(time_anchor_idx)),
+            crosshair_price_label_box_vertical_anchor: Some(map_anchor(price_anchor_idx)),
             show_crosshair_time_label_box: true,
             show_crosshair_price_label_box: true,
             ..engine.render_style()
