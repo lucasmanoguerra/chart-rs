@@ -96,7 +96,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
 
         let crosshair_lines: Vec<_> = first
             .lines
@@ -148,7 +148,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -185,7 +185,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -225,7 +225,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -259,7 +259,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -297,7 +297,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
 
         let time_text = first
             .texts
@@ -375,7 +375,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
 
         let time_text = first
             .texts
@@ -461,7 +461,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -495,7 +495,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
 
         let time_labels = first
             .texts
@@ -539,7 +539,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
 
         let box_count = first
             .rects
@@ -620,7 +620,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
 
         let expected_color = if auto_contrast {
             if bright_fill {
@@ -677,7 +677,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -712,7 +712,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -747,7 +747,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -782,7 +782,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -819,7 +819,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -866,7 +866,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -898,7 +898,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -928,7 +928,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -968,7 +968,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -999,7 +999,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -1029,7 +1029,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
 
         let viewport_width = f64::from(engine.viewport().width);
         let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
@@ -1080,7 +1080,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -1112,7 +1112,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -1144,7 +1144,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
 
         let viewport_width = f64::from(engine.viewport().width);
         let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
@@ -1192,7 +1192,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -1222,7 +1222,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -1252,7 +1252,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -1287,7 +1287,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -1317,7 +1317,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
     }
 
     #[test]
@@ -1348,7 +1348,7 @@ proptest! {
 
         let first = engine.build_render_frame().expect("first frame");
         let second = engine.build_render_frame().expect("second frame");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(prop_assert_eq!(first, second);first, prop_assert_eq!(first, second);second);
         prop_assert!(
             first
                 .rects
