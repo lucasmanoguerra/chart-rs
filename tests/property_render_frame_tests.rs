@@ -7,6 +7,7 @@ use chart_rs::api::{
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, LineStrokeStyle, NullRenderer, TextHAlign};
 use proptest::prelude::*;
+use std::sync::Arc;
 
 proptest! {
     #[test]
@@ -220,6 +221,40 @@ proptest! {
             ..engine.render_style()
         };
         engine.set_render_style(style).expect("set style");
+        engine.pointer_move(640.0, 360.0);
+
+        let first = engine.build_render_frame().expect("first frame");
+        let second = engine.build_render_frame().expect("second frame");
+        prop_assert_eq!(first, second);
+    }
+
+    #[test]
+    fn crosshair_label_formatter_overrides_are_deterministic_per_axis(
+        override_time in any::<bool>(),
+        override_price in any::<bool>(),
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let style = RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        if override_time {
+            engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("T:{value:.2}")));
+        }
+        if override_price {
+            engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("P:{value:.2}")));
+        }
         engine.pointer_move(640.0, 360.0);
 
         let first = engine.build_render_frame().expect("first frame");

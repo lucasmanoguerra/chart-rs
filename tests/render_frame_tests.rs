@@ -7,6 +7,7 @@ use chart_rs::api::{
 };
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, LineStrokeStyle, NullRenderer, TextHAlign};
+use std::sync::Arc;
 
 #[test]
 fn build_render_frame_includes_series_and_axis_primitives() {
@@ -1822,6 +1823,105 @@ fn crosshair_axis_labels_follow_pointer_in_normal_mode() {
                 <= 1e-9
             && (text.font_size_px - style.crosshair_price_label_font_size_px).abs() <= 1e-9
     }));
+}
+
+#[test]
+fn crosshair_time_label_formatter_override_is_applied_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 2 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis formatter");
+
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.89, 0.24, 0.20),
+        crosshair_price_label_color: Color::rgb(0.20, 0.43, 0.88),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("XTIME:{value:.1}")));
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let crosshair_time_text = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    assert!(crosshair_time_text.text.starts_with("XTIME:"));
+}
+
+#[test]
+fn crosshair_price_label_formatter_override_is_applied_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(10.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_price_axis_label_config(chart_rs::api::PriceAxisLabelConfig {
+            display_mode: chart_rs::api::PriceAxisDisplayMode::Percentage {
+                base_price: Some(25.0),
+            },
+            ..chart_rs::api::PriceAxisLabelConfig::default()
+        })
+        .expect("set price-axis formatter");
+
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.89, 0.24, 0.20),
+        crosshair_price_label_color: Color::rgb(0.20, 0.43, 0.88),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_price_label_formatter(Arc::new(|_| "XP".to_owned()));
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let crosshair_price_text = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_price_label_color)
+        .expect("crosshair price label");
+    assert_eq!(crosshair_price_text.text, "XP%");
+}
+
+#[test]
+fn clearing_crosshair_formatter_overrides_falls_back_to_default_policy() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.89, 0.24, 0.20),
+        crosshair_price_label_color: Color::rgb(0.20, 0.43, 0.88),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_time_label_formatter(Arc::new(|_| "XTIME".to_owned()));
+    engine.clear_crosshair_time_label_formatter();
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let crosshair_time_text = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    assert_ne!(crosshair_time_text.text, "XTIME");
 }
 
 #[test]

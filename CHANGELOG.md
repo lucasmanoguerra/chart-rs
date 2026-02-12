@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label formatter override parity baseline (`R-072`) with deterministic independent formatter overrides for time and price crosshair labels.
+- New API methods: `set_crosshair_time_label_formatter`, `clear_crosshair_time_label_formatter`, `set_crosshair_price_label_formatter`, and `clear_crosshair_price_label_formatter`.
+- New render-frame/property tests and criterion benchmark coverage for crosshair axis-label formatter override behavior.
 - Crosshair guide-line combined visibility gate parity baseline (`R-071`) with deterministic shared visibility control composed with per-axis line toggles.
 - New render-style knob: `show_crosshair_lines` combined with `show_crosshair_horizontal_line` and `show_crosshair_vertical_line`.
 - New render-frame/style/property tests and criterion benchmark coverage for shared crosshair guide-line visibility gating behavior.

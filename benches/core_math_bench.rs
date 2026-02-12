@@ -19,6 +19,7 @@ use chart_rs::interaction::{CrosshairMode, KineticPanConfig};
 use chart_rs::render::{Color, LineStrokeStyle, NullRenderer, TextHAlign};
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
+use std::sync::Arc;
 
 fn bench_linear_scale_round_trip(c: &mut Criterion) {
     let viewport = Viewport::new(1920, 1080);
@@ -561,6 +562,39 @@ fn bench_crosshair_axis_labels_render(c: &mut Criterion) {
     engine.pointer_move(800.0, 320.0);
 
     c.bench_function("crosshair_axis_labels_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_formatter_overrides_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("T:{value:.2}")));
+    engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("P:{value:.2}")));
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_formatter_overrides_render", |b| {
         b.iter(|| {
             let _ = engine.build_render_frame().expect("build render frame");
         })
@@ -2715,6 +2749,7 @@ criterion_group!(
     bench_crosshair_render_line_width_per_axis,
     bench_crosshair_render_lines_shared_visibility_gate,
     bench_crosshair_axis_labels_render,
+    bench_crosshair_axis_label_formatter_overrides_render,
     bench_crosshair_axis_label_boxes_render,
     bench_crosshair_axis_label_boxes_border_radius_render,
     bench_crosshair_axis_label_boxes_auto_contrast_render,

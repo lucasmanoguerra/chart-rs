@@ -116,7 +116,7 @@ Key files:
 - `series_projection.rs` (public series geometry/markers projection methods)
 - `snapshot_controller.rs` (public snapshot serialization/state export methods)
 - `render_frame_builder.rs` (render-frame assembly and axis/crosshair label formatting helpers)
-- `label_formatter_controller.rs` (public label formatter + label-cache lifecycle methods)
+- `label_formatter_controller.rs` (public axis/crosshair label formatter + label-cache lifecycle methods)
 - `visible_window_access.rs` (public visible-window point/candle accessor methods)
 - `price_scale_access.rs` (public price-scale map/domain/mode/autoscale methods)
 
@@ -161,6 +161,7 @@ Responsibilities:
 - configurable crosshair guide-line render policy (dedicated color/width and independent horizontal/vertical visibility toggles)
 - configurable crosshair guide-line combined visibility gate policy (`show_crosshair_lines`) applied together with per-axis visibility toggles
 - configurable crosshair axis-label render policy (dedicated time/price label colors, font size, and independent time/price visibility toggles)
+- configurable crosshair axis-label formatter override policy per axis (independent time/price formatter overrides with fallback to axis formatter policies)
 - configurable crosshair axis-label box policy (deterministic fit-text boxes with dedicated fill, padding, and independent time/price visibility toggles)
 - configurable crosshair axis-label box border/radius policy (deterministic border width/color and corner-radius styling)
 - configurable crosshair axis-label box text policy (manual text color or automatic contrast from box fill luminance)

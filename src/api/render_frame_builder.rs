@@ -508,7 +508,11 @@ impl<R: Renderer> ChartEngine<R> {
                     );
                 let mut time_text_x = crosshair_time_label_x;
                 let mut time_text_h_align = TextHAlign::Center;
-                let text = self.format_time_axis_label(crosshair_time, visible_span_abs);
+                let text = if let Some(formatter) = &self.crosshair_time_label_formatter {
+                    formatter(crosshair_time)
+                } else {
+                    self.format_time_axis_label(crosshair_time, visible_span_abs)
+                };
                 let time_label_anchor_y = (plot_bottom + style.crosshair_time_label_offset_y_px)
                     .min((viewport_height - style.crosshair_time_label_font_size_px).max(0.0));
                 let mut time_label_y = time_label_anchor_y;
@@ -692,11 +696,19 @@ impl<R: Renderer> ChartEngine<R> {
                     self.price_axis_label_config.display_mode,
                     fallback_display_base_price,
                 );
-                let text = self.format_price_axis_label(
-                    display_price,
-                    display_tick_step_abs,
-                    display_suffix,
-                );
+                let text = if let Some(formatter) = &self.crosshair_price_label_formatter {
+                    let mut value = formatter(display_price);
+                    if !display_suffix.is_empty() {
+                        value.push_str(display_suffix);
+                    }
+                    value
+                } else {
+                    self.format_price_axis_label(
+                        display_price,
+                        display_tick_step_abs,
+                        display_suffix,
+                    )
+                };
                 let price_label_anchor_y =
                     (crosshair_y - style.crosshair_price_label_offset_y_px).max(0.0);
                 let price_stabilization_step =

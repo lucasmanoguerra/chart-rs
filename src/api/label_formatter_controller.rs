@@ -34,6 +34,26 @@ impl<R: Renderer> ChartEngine<R> {
         self.price_label_cache.borrow_mut().clear();
     }
 
+    /// Sets a formatter override used only for crosshair time-axis label text.
+    pub fn set_crosshair_time_label_formatter(&mut self, formatter: TimeLabelFormatterFn) {
+        self.crosshair_time_label_formatter = Some(formatter);
+    }
+
+    /// Clears the crosshair time-axis label formatter override.
+    pub fn clear_crosshair_time_label_formatter(&mut self) {
+        self.crosshair_time_label_formatter = None;
+    }
+
+    /// Sets a formatter override used only for crosshair price-axis label text.
+    pub fn set_crosshair_price_label_formatter(&mut self, formatter: PriceLabelFormatterFn) {
+        self.crosshair_price_label_formatter = Some(formatter);
+    }
+
+    /// Clears the crosshair price-axis label formatter override.
+    pub fn clear_crosshair_price_label_formatter(&mut self) {
+        self.crosshair_price_label_formatter = None;
+    }
+
     #[must_use]
     pub fn time_label_cache_stats(&self) -> TimeLabelCacheStats {
         self.time_label_cache.borrow().stats()
