@@ -247,9 +247,14 @@ pub enum LastPriceLabelBoxWidthMode {
 pub struct RenderStyle {
     pub series_line_color: Color,
     pub grid_line_color: Color,
+    pub price_axis_grid_line_color: Color,
     pub major_grid_line_color: Color,
     pub axis_border_color: Color,
     pub price_axis_tick_mark_color: Color,
+    pub time_axis_tick_mark_color: Color,
+    pub major_time_tick_mark_color: Color,
+    pub time_axis_label_color: Color,
+    pub major_time_label_color: Color,
     pub axis_label_color: Color,
     pub last_price_line_color: Color,
     pub last_price_label_color: Color,
@@ -260,14 +265,43 @@ pub struct RenderStyle {
     /// Applied when trend coloring is enabled and no direction can be inferred.
     pub last_price_neutral_color: Color,
     pub grid_line_width: f64,
+    pub price_axis_grid_line_width: f64,
     pub major_grid_line_width: f64,
     pub axis_line_width: f64,
     pub price_axis_tick_mark_width: f64,
+    pub time_axis_tick_mark_width: f64,
+    pub major_time_tick_mark_width: f64,
     pub last_price_line_width: f64,
     pub major_time_label_font_size_px: f64,
+    /// Font size used by regular (non-major) time-axis labels.
+    pub time_axis_label_font_size_px: f64,
+    /// Vertical offset from the plot bottom used by time-axis label anchors.
+    pub time_axis_label_offset_y_px: f64,
+    /// Vertical offset from the plot bottom used by major time-axis label anchors.
+    pub major_time_label_offset_y_px: f64,
+    /// Length of short vertical tick marks extending into the time-axis panel.
+    pub time_axis_tick_mark_length_px: f64,
+    /// Length of short vertical tick marks for major time-axis ticks.
+    pub major_time_tick_mark_length_px: f64,
+    pub price_axis_label_font_size_px: f64,
+    /// Vertical inset (towards top) applied to price-axis labels from their tick Y position.
+    pub price_axis_label_offset_y_px: f64,
     pub last_price_label_font_size_px: f64,
+    /// Vertical inset (towards top) applied to last-price label anchor from marker Y position.
+    pub last_price_label_offset_y_px: f64,
+    /// Horizontal inset from right edge used by last-price label when box mode is disabled.
+    pub last_price_label_padding_right_px: f64,
     pub price_axis_width_px: f64,
     pub time_axis_height_px: f64,
+    pub show_price_axis_tick_marks: bool,
+    pub show_price_axis_grid_lines: bool,
+    pub show_price_axis_labels: bool,
+    pub show_time_axis_labels: bool,
+    pub show_major_time_labels: bool,
+    pub show_major_time_grid_lines: bool,
+    pub show_time_axis_tick_marks: bool,
+    /// Controls major time-axis tick-mark visibility independently from regular ticks.
+    pub show_major_time_tick_marks: bool,
     /// Horizontal inset from right edge used by price-axis labels.
     pub price_axis_label_padding_right_px: f64,
     /// Length of short axis tick marks extending into the price-axis panel.
@@ -310,9 +344,14 @@ impl Default for RenderStyle {
         Self {
             series_line_color: Color::rgb(0.16, 0.38, 1.0),
             grid_line_color: Color::rgb(0.89, 0.92, 0.95),
+            price_axis_grid_line_color: Color::rgb(0.89, 0.92, 0.95),
             major_grid_line_color: Color::rgb(0.78, 0.83, 0.90),
             axis_border_color: Color::rgb(0.82, 0.84, 0.88),
             price_axis_tick_mark_color: Color::rgb(0.82, 0.84, 0.88),
+            time_axis_tick_mark_color: Color::rgb(0.82, 0.84, 0.88),
+            major_time_tick_mark_color: Color::rgb(0.82, 0.84, 0.88),
+            time_axis_label_color: Color::rgb(0.10, 0.12, 0.16),
+            major_time_label_color: Color::rgb(0.10, 0.12, 0.16),
             axis_label_color: Color::rgb(0.10, 0.12, 0.16),
             last_price_line_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_color: Color::rgb(0.16, 0.38, 1.0),
@@ -320,14 +359,34 @@ impl Default for RenderStyle {
             last_price_down_color: Color::rgb(0.86, 0.22, 0.19),
             last_price_neutral_color: Color::rgb(0.16, 0.38, 1.0),
             grid_line_width: 1.0,
+            price_axis_grid_line_width: 1.0,
             major_grid_line_width: 1.25,
             axis_line_width: 1.0,
             price_axis_tick_mark_width: 1.0,
+            time_axis_tick_mark_width: 1.0,
+            major_time_tick_mark_width: 1.0,
             last_price_line_width: 1.25,
             major_time_label_font_size_px: 12.0,
+            time_axis_label_font_size_px: 11.0,
+            time_axis_label_offset_y_px: 4.0,
+            major_time_label_offset_y_px: 4.0,
+            time_axis_tick_mark_length_px: 6.0,
+            major_time_tick_mark_length_px: 6.0,
+            price_axis_label_font_size_px: 11.0,
+            price_axis_label_offset_y_px: 8.0,
             last_price_label_font_size_px: 11.0,
+            last_price_label_offset_y_px: 7.92,
+            last_price_label_padding_right_px: 6.0,
             price_axis_width_px: 72.0,
             time_axis_height_px: 24.0,
+            show_price_axis_tick_marks: true,
+            show_price_axis_grid_lines: true,
+            show_price_axis_labels: true,
+            show_time_axis_labels: true,
+            show_major_time_labels: true,
+            show_major_time_grid_lines: true,
+            show_time_axis_tick_marks: true,
+            show_major_time_tick_marks: true,
             price_axis_label_padding_right_px: 6.0,
             price_axis_tick_mark_length_px: 6.0,
             show_last_price_line: true,
@@ -1784,10 +1843,12 @@ impl<R: Renderer> ChartEngine<R> {
         let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
         let price_axis_label_anchor_x = (viewport_width - style.price_axis_label_padding_right_px)
             .clamp(plot_right, viewport_width);
+        let last_price_label_anchor_x = (viewport_width - style.last_price_label_padding_right_px)
+            .clamp(plot_right, viewport_width);
         let price_axis_tick_mark_end_x =
             (plot_right + style.price_axis_tick_mark_length_px).clamp(plot_right, viewport_width);
         let axis_color = style.axis_border_color;
-        let label_color = style.axis_label_color;
+        let price_label_color = style.axis_label_color;
         let time_tick_count =
             axis_tick_target_count(plot_right, AXIS_TIME_TARGET_SPACING_PX, 2, 12);
         let price_tick_count =
@@ -1822,40 +1883,73 @@ impl<R: Renderer> ChartEngine<R> {
         let visible_span_abs = (visible_end - visible_start).abs();
         for (time, px) in select_ticks_with_min_spacing(time_ticks, AXIS_TIME_MIN_SPACING_PX) {
             let is_major_tick = is_major_time_tick(time, self.time_axis_label_config);
-            let (grid_color, grid_line_width, label_font_size_px) = if is_major_tick {
+            let (
+                grid_color,
+                grid_line_width,
+                label_font_size_px,
+                label_offset_y_px,
+                label_color,
+                tick_mark_color,
+                tick_mark_width,
+                tick_mark_length_px,
+            ) = if is_major_tick {
                 (
                     style.major_grid_line_color,
                     style.major_grid_line_width,
                     style.major_time_label_font_size_px,
+                    style.major_time_label_offset_y_px,
+                    style.major_time_label_color,
+                    style.major_time_tick_mark_color,
+                    style.major_time_tick_mark_width,
+                    style.major_time_tick_mark_length_px,
                 )
             } else {
-                (style.grid_line_color, style.grid_line_width, 11.0)
+                (
+                    style.grid_line_color,
+                    style.grid_line_width,
+                    style.time_axis_label_font_size_px,
+                    style.time_axis_label_offset_y_px,
+                    style.time_axis_label_color,
+                    style.time_axis_tick_mark_color,
+                    style.time_axis_tick_mark_width,
+                    style.time_axis_tick_mark_length_px,
+                )
             };
+            let time_label_y = (plot_bottom + label_offset_y_px)
+                .min((viewport_height - label_font_size_px).max(0.0));
             let text = self.format_time_axis_label(time, visible_span_abs);
-            frame = frame.with_text(TextPrimitive::new(
-                text,
-                px,
-                (plot_bottom + 4.0).min((viewport_height - 12.0).max(0.0)),
-                label_font_size_px,
-                label_color,
-                TextHAlign::Center,
-            ));
-            frame = frame.with_line(LinePrimitive::new(
-                px,
-                0.0,
-                px,
-                plot_bottom,
-                grid_line_width,
-                grid_color,
-            ));
-            frame = frame.with_line(LinePrimitive::new(
-                px,
-                plot_bottom,
-                px,
-                (plot_bottom + 6.0).min(viewport_height),
-                style.axis_line_width,
-                axis_color,
-            ));
+            if style.show_time_axis_labels && (!is_major_tick || style.show_major_time_labels) {
+                frame = frame.with_text(TextPrimitive::new(
+                    text,
+                    px,
+                    time_label_y,
+                    label_font_size_px,
+                    label_color,
+                    TextHAlign::Center,
+                ));
+            }
+            if !is_major_tick || style.show_major_time_grid_lines {
+                frame = frame.with_line(LinePrimitive::new(
+                    px,
+                    0.0,
+                    px,
+                    plot_bottom,
+                    grid_line_width,
+                    grid_color,
+                ));
+            }
+            if style.show_time_axis_tick_marks
+                && (!is_major_tick || style.show_major_time_tick_marks)
+            {
+                frame = frame.with_line(LinePrimitive::new(
+                    px,
+                    plot_bottom,
+                    px,
+                    (plot_bottom + tick_mark_length_px).min(viewport_height),
+                    tick_mark_width,
+                    tick_mark_color,
+                ));
+            }
         }
 
         let raw_price_ticks = self.price_scale.ticks(price_tick_count)?;
@@ -1925,30 +2019,36 @@ impl<R: Renderer> ChartEngine<R> {
             );
             let text =
                 self.format_price_axis_label(display_price, display_tick_step_abs, display_suffix);
-            frame = frame.with_text(TextPrimitive::new(
-                text,
-                price_axis_label_anchor_x,
-                (py - 8.0).max(0.0),
-                11.0,
-                label_color,
-                TextHAlign::Right,
-            ));
-            frame = frame.with_line(LinePrimitive::new(
-                0.0,
-                py,
-                plot_right,
-                py,
-                style.grid_line_width,
-                style.grid_line_color,
-            ));
-            frame = frame.with_line(LinePrimitive::new(
-                plot_right,
-                py,
-                price_axis_tick_mark_end_x,
-                py,
-                style.price_axis_tick_mark_width,
-                style.price_axis_tick_mark_color,
-            ));
+            if style.show_price_axis_labels {
+                frame = frame.with_text(TextPrimitive::new(
+                    text,
+                    price_axis_label_anchor_x,
+                    (py - style.price_axis_label_offset_y_px).max(0.0),
+                    style.price_axis_label_font_size_px,
+                    price_label_color,
+                    TextHAlign::Right,
+                ));
+            }
+            if style.show_price_axis_grid_lines {
+                frame = frame.with_line(LinePrimitive::new(
+                    0.0,
+                    py,
+                    plot_right,
+                    py,
+                    style.price_axis_grid_line_width,
+                    style.price_axis_grid_line_color,
+                ));
+            }
+            if style.show_price_axis_tick_marks {
+                frame = frame.with_line(LinePrimitive::new(
+                    plot_right,
+                    py,
+                    price_axis_tick_mark_end_x,
+                    py,
+                    style.price_axis_tick_mark_width,
+                    style.price_axis_tick_mark_color,
+                ));
+            }
         }
 
         if let Some((last_price, py, marker_line_color, marker_label_color)) = latest_price_marker {
@@ -1974,14 +2074,14 @@ impl<R: Renderer> ChartEngine<R> {
                     display_tick_step_abs,
                     display_suffix,
                 );
-                let text_y = (py - style.last_price_label_font_size_px * 0.72).max(0.0);
+                let text_y = (py - style.last_price_label_offset_y_px).max(0.0);
                 let box_fill_color =
                     self.resolve_last_price_label_box_fill_color(marker_label_color);
                 let label_text_color = self
                     .resolve_last_price_label_box_text_color(box_fill_color, marker_label_color);
                 let axis_panel_left = plot_right;
                 let axis_panel_width = (viewport_width - axis_panel_left).max(0.0);
-                let default_text_anchor_x = price_axis_label_anchor_x;
+                let default_text_anchor_x = last_price_label_anchor_x;
                 let mut label_text_anchor_x = default_text_anchor_x;
                 if style.show_last_price_label_box {
                     let estimated_text_width = Self::estimate_label_text_width_px(
@@ -2298,9 +2398,14 @@ fn validate_time_axis_session_config(
 fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.series_line_color.validate()?;
     style.grid_line_color.validate()?;
+    style.price_axis_grid_line_color.validate()?;
     style.major_grid_line_color.validate()?;
     style.axis_border_color.validate()?;
     style.price_axis_tick_mark_color.validate()?;
+    style.time_axis_tick_mark_color.validate()?;
+    style.major_time_tick_mark_color.validate()?;
+    style.time_axis_label_color.validate()?;
+    style.major_time_label_color.validate()?;
     style.axis_label_color.validate()?;
     style.last_price_line_color.validate()?;
     style.last_price_label_color.validate()?;
@@ -2313,11 +2418,20 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
 
     for (name, value) in [
         ("grid_line_width", style.grid_line_width),
+        (
+            "price_axis_grid_line_width",
+            style.price_axis_grid_line_width,
+        ),
         ("major_grid_line_width", style.major_grid_line_width),
         ("axis_line_width", style.axis_line_width),
         (
             "price_axis_tick_mark_width",
             style.price_axis_tick_mark_width,
+        ),
+        ("time_axis_tick_mark_width", style.time_axis_tick_mark_width),
+        (
+            "major_time_tick_mark_width",
+            style.major_time_tick_mark_width,
         ),
         ("last_price_line_width", style.last_price_line_width),
         (
@@ -2325,8 +2439,20 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
             style.major_time_label_font_size_px,
         ),
         (
+            "time_axis_label_font_size_px",
+            style.time_axis_label_font_size_px,
+        ),
+        (
             "last_price_label_font_size_px",
             style.last_price_label_font_size_px,
+        ),
+        (
+            "last_price_label_offset_y_px",
+            style.last_price_label_offset_y_px,
+        ),
+        (
+            "price_axis_label_font_size_px",
+            style.price_axis_label_font_size_px,
         ),
         ("price_axis_width_px", style.price_axis_width_px),
         ("time_axis_height_px", style.time_axis_height_px),
@@ -2344,11 +2470,51 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
             "render style `price_axis_label_padding_right_px` must be finite and >= 0".to_owned(),
         ));
     }
+    if !style.time_axis_label_offset_y_px.is_finite() || style.time_axis_label_offset_y_px < 0.0 {
+        return Err(ChartError::InvalidData(
+            "render style `time_axis_label_offset_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.major_time_label_offset_y_px.is_finite() || style.major_time_label_offset_y_px < 0.0 {
+        return Err(ChartError::InvalidData(
+            "render style `major_time_label_offset_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.time_axis_tick_mark_length_px.is_finite() || style.time_axis_tick_mark_length_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `time_axis_tick_mark_length_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.major_time_tick_mark_length_px.is_finite()
+        || style.major_time_tick_mark_length_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `major_time_tick_mark_length_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.last_price_label_padding_right_px.is_finite()
+        || style.last_price_label_padding_right_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `last_price_label_padding_right_px` must be finite and >= 0".to_owned(),
+        ));
+    }
     if !style.price_axis_tick_mark_length_px.is_finite()
         || style.price_axis_tick_mark_length_px < 0.0
     {
         return Err(ChartError::InvalidData(
             "render style `price_axis_tick_mark_length_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.price_axis_label_offset_y_px.is_finite() || style.price_axis_label_offset_y_px < 0.0 {
+        return Err(ChartError::InvalidData(
+            "render style `price_axis_label_offset_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.last_price_label_offset_y_px.is_finite() || style.last_price_label_offset_y_px < 0.0 {
+        return Err(ChartError::InvalidData(
+            "render style `last_price_label_offset_y_px` must be finite and >= 0".to_owned(),
         ));
     }
     if !style.last_price_label_exclusion_px.is_finite() || style.last_price_label_exclusion_px < 0.0

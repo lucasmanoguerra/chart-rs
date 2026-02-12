@@ -600,6 +600,199 @@ fn bench_render_major_time_tick_styling(c: &mut Criterion) {
     });
 }
 
+fn bench_major_time_grid_lines_hidden_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 1_704_205_800.0, 1_704_206_100.0)
+            .with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session+timezone policy");
+    engine
+        .set_render_style(RenderStyle {
+            show_major_time_grid_lines: false,
+            major_grid_line_width: 2.0,
+            major_time_label_font_size_px: 14.0,
+            ..engine.render_style()
+        })
+        .expect("set major-grid visibility style");
+
+    c.bench_function("major_time_grid_lines_hidden_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_major_time_label_color_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 1_704_205_800.0, 1_704_206_100.0)
+            .with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session+timezone policy");
+    engine
+        .set_render_style(RenderStyle {
+            time_axis_label_color: Color::rgb(0.18, 0.26, 0.41),
+            major_time_label_color: Color::rgb(0.88, 0.30, 0.19),
+            ..engine.render_style()
+        })
+        .expect("set major-label color style");
+
+    c.bench_function("major_time_label_color_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_major_time_label_offset_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 1_704_205_800.0, 1_704_206_100.0)
+            .with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session+timezone policy");
+    engine
+        .set_render_style(RenderStyle {
+            time_axis_label_offset_y_px: 4.0,
+            major_time_label_offset_y_px: 10.0,
+            major_time_label_font_size_px: 14.0,
+            ..engine.render_style()
+        })
+        .expect("set major-label offset style");
+
+    c.bench_function("major_time_label_offset_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_major_time_tick_mark_style_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 1_704_205_800.0, 1_704_206_100.0)
+            .with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session+timezone policy");
+    engine
+        .set_render_style(RenderStyle {
+            time_axis_tick_mark_color: Color::rgb(0.19, 0.28, 0.42),
+            time_axis_tick_mark_width: 1.5,
+            time_axis_tick_mark_length_px: 4.0,
+            major_time_tick_mark_color: Color::rgb(0.87, 0.30, 0.20),
+            major_time_tick_mark_width: 2.75,
+            major_time_tick_mark_length_px: 9.0,
+            ..engine.render_style()
+        })
+        .expect("set major tick-mark style");
+
+    c.bench_function("major_time_tick_mark_style_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_major_time_tick_marks_hidden_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 1_704_205_800.0, 1_704_206_100.0)
+            .with_price_domain(0.0, 1.0),
+    )
+    .expect("engine init");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session+timezone policy");
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_tick_marks: true,
+            show_major_time_tick_marks: false,
+            major_time_tick_mark_color: Color::rgb(0.87, 0.30, 0.20),
+            major_time_tick_mark_width: 2.75,
+            ..engine.render_style()
+        })
+        .expect("set major tick-mark visibility");
+
+    c.bench_function("major_time_tick_marks_hidden_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 fn bench_price_axis_min_move_formatter(c: &mut Criterion) {
     let mut engine = ChartEngine::new(
         NullRenderer::default(),
@@ -969,6 +1162,428 @@ fn bench_price_axis_tick_mark_style_render(c: &mut Criterion) {
     });
 }
 
+fn bench_price_axis_label_typography_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_last_price_line: true,
+            show_last_price_label: true,
+            price_axis_label_font_size_px: 13.0,
+            price_axis_label_offset_y_px: 10.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("price_axis_label_typography_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_last_price_label_offset_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_last_price_line: true,
+            show_last_price_label: true,
+            last_price_label_offset_y_px: 12.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("last_price_label_offset_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_last_price_label_padding_right_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_last_price_line: true,
+            show_last_price_label: true,
+            show_last_price_label_box: false,
+            price_axis_label_padding_right_px: 16.0,
+            last_price_label_padding_right_px: 5.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("last_price_label_padding_right_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_price_axis_tick_marks_hidden_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_last_price_line: true,
+            show_last_price_label: true,
+            show_price_axis_tick_marks: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("price_axis_tick_marks_hidden_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_price_axis_grid_lines_hidden_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_last_price_line: true,
+            show_last_price_label: true,
+            show_price_axis_grid_lines: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("price_axis_grid_lines_hidden_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_price_axis_labels_hidden_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_last_price_line: true,
+            show_last_price_label: true,
+            show_price_axis_labels: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("price_axis_labels_hidden_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_price_axis_grid_line_style_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_last_price_line: true,
+            show_last_price_label: true,
+            show_price_axis_grid_lines: true,
+            price_axis_grid_line_color: Color::rgb(0.22, 0.64, 0.89),
+            price_axis_grid_line_width: 1.75,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("price_axis_grid_line_style_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_time_axis_label_typography_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 0 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis label config");
+    engine
+        .set_render_style(RenderStyle {
+            time_axis_label_font_size_px: 13.0,
+            time_axis_label_offset_y_px: 7.0,
+            time_axis_tick_mark_length_px: 8.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("time_axis_label_typography_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_time_axis_labels_hidden_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("time_axis_labels_hidden_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_major_time_axis_labels_hidden_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 1_704_205_800.0, 1_704_206_100.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..6)
+        .map(|i| {
+            let t = 1_704_205_800.0 + f64::from(i * 60);
+            let y = 100.0 + f64::from(i);
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis label config");
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: true,
+            show_major_time_labels: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("major_time_axis_labels_hidden_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_time_axis_tick_marks_hidden_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_tick_marks: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("time_axis_tick_marks_hidden_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_time_axis_tick_mark_style_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_tick_marks: true,
+            time_axis_tick_mark_color: Color::rgb(0.87, 0.28, 0.18),
+            time_axis_tick_mark_width: 2.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("time_axis_tick_mark_style_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_time_axis_label_color_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            time_axis_label_color: Color::rgb(0.88, 0.27, 0.21),
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("time_axis_label_color_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -989,8 +1604,19 @@ criterion_group!(
     bench_render_axis_layout_narrow,
     bench_time_axis_datetime_formatter,
     bench_time_axis_label_cache_hot,
+    bench_time_axis_label_typography_render,
+    bench_time_axis_labels_hidden_render,
+    bench_major_time_axis_labels_hidden_render,
+    bench_time_axis_tick_marks_hidden_render,
+    bench_time_axis_tick_mark_style_render,
+    bench_time_axis_label_color_render,
     bench_time_axis_session_timezone_formatter,
     bench_render_major_time_tick_styling,
+    bench_major_time_grid_lines_hidden_render,
+    bench_major_time_label_color_render,
+    bench_major_time_label_offset_render,
+    bench_major_time_tick_mark_style_render,
+    bench_major_time_tick_marks_hidden_render,
     bench_price_axis_min_move_formatter,
     bench_price_axis_percentage_display,
     bench_price_axis_log_mode_display,
@@ -1004,6 +1630,13 @@ criterion_group!(
     bench_last_price_label_box_fit_text_render,
     bench_price_axis_inset_policy_render,
     bench_price_axis_tick_mark_style_render,
+    bench_price_axis_label_typography_render,
+    bench_last_price_label_offset_render,
+    bench_last_price_label_padding_right_render,
+    bench_price_axis_tick_marks_hidden_render,
+    bench_price_axis_grid_lines_hidden_render,
+    bench_price_axis_labels_hidden_render,
+    bench_price_axis_grid_line_style_render,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);

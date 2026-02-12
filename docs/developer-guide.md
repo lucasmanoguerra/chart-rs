@@ -109,6 +109,24 @@ Responsibilities:
 - configurable last-price label-box width policy (`FullAxis` / `FitText`) with deterministic text-width estimation, horizontal padding, and minimum width guardrails
 - configurable price-axis inset policy for right-side label padding and tick-mark extension length
 - configurable price-axis tick-mark style policy (dedicated color/width separate from axis border)
+- configurable price-axis label typography policy (font size and vertical offset from tick position)
+- configurable last-price label vertical offset policy (independent from last-price font-size)
+- configurable last-price label right inset policy (independent from regular price-axis label inset)
+- configurable price-axis tick-mark visibility policy (show/hide short horizontal marks)
+- configurable price-axis horizontal grid-line visibility policy (show/hide per-axis grid strokes)
+- configurable price-axis regular-label visibility policy (show/hide non-marker price labels)
+- configurable price-axis horizontal grid-line style policy (color/width independent from time-grid lines)
+- configurable time-axis regular-label typography policy (font size, vertical offset, and short tick-mark length)
+- configurable time-axis regular-label visibility policy (show/hide non-major time labels)
+- configurable time-axis short tick-mark visibility policy (show/hide vertical axis marks)
+- configurable time-axis short tick-mark style policy (dedicated color/width independent from axis border)
+- configurable time-axis label color policy (dedicated label color independent from price-axis labels)
+- configurable major time-axis label visibility policy (show/hide major labels independently from regular labels)
+- configurable major time-axis grid visibility policy (show/hide major grid lines independently from regular grid lines)
+- configurable major time-axis label color policy (dedicated major-label color independent from regular time-axis labels)
+- configurable major time-axis label vertical offset policy (dedicated major-label Y offset independent from regular time-axis labels)
+- configurable major time-axis tick-mark style policy (dedicated major tick-mark color/width/length independent from regular time-axis ticks)
+- configurable major time-axis tick-mark visibility policy (show/hide major axis marks independently from regular time-axis ticks)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -144,6 +162,24 @@ Render invariants:
 - price-box width is deterministic: either full-axis panel width or fit-text width computed from estimator + horizontal padding and clamped to axis bounds
 - price-axis label anchor and tick-mark extension are deterministic style knobs (`price_axis_label_padding_right_px`, `price_axis_tick_mark_length_px`)
 - price-axis tick-mark stroke can be tuned independently from axis border styling (`price_axis_tick_mark_color`, `price_axis_tick_mark_width`)
+- price-axis label font size/offset are deterministic style knobs (`price_axis_label_font_size_px`, `price_axis_label_offset_y_px`)
+- last-price label Y anchor offset is a deterministic style knob (`last_price_label_offset_y_px`)
+- last-price label right inset is a deterministic style knob (`last_price_label_padding_right_px`) for non-box mode
+- price-axis short tick-mark visibility is a deterministic style knob (`show_price_axis_tick_marks`)
+- price-axis horizontal grid visibility is a deterministic style knob (`show_price_axis_grid_lines`)
+- price-axis regular-label visibility is a deterministic style knob (`show_price_axis_labels`)
+- price-axis horizontal grid style is deterministic (`price_axis_grid_line_color`, `price_axis_grid_line_width`)
+- time-axis regular-label font size/offset/tick length are deterministic style knobs (`time_axis_label_font_size_px`, `time_axis_label_offset_y_px`, `time_axis_tick_mark_length_px`)
+- time-axis regular-label visibility is a deterministic style knob (`show_time_axis_labels`)
+- time-axis short tick-mark visibility is a deterministic style knob (`show_time_axis_tick_marks`)
+- time-axis short tick-mark style is deterministic (`time_axis_tick_mark_color`, `time_axis_tick_mark_width`)
+- time-axis label color is a deterministic style knob (`time_axis_label_color`)
+- major time-axis label visibility is a deterministic style knob (`show_major_time_labels`)
+- major time-axis grid visibility is a deterministic style knob (`show_major_time_grid_lines`)
+- major time-axis label color is a deterministic style knob (`major_time_label_color`)
+- major time-axis label vertical offset is a deterministic style knob (`major_time_label_offset_y_px`)
+- major time-axis tick-mark style is a deterministic style knob (`major_time_tick_mark_color`, `major_time_tick_mark_width`, `major_time_tick_mark_length_px`)
+- major time-axis tick-mark visibility is a deterministic style knob (`show_major_time_tick_marks`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

@@ -83,6 +83,24 @@ Tuning contracts:
 - latest-price price-box width policy supports deterministic full-axis or fit-text modes with explicit horizontal padding/min-width guards
 - price-axis label right inset and axis tick-mark extension length are deterministic style-level controls
 - price-axis tick-mark color/width are style-level controls independent from axis border styling
+- price-axis label font size/vertical offset are deterministic style-level controls
+- last-price label vertical offset is a deterministic style-level control independent from font-size
+- last-price label right inset is a deterministic style-level control independent from regular axis-label inset
+- price-axis short tick-mark visibility is a deterministic style-level control
+- price-axis horizontal grid-line visibility is a deterministic style-level control
+- price-axis regular-label visibility is a deterministic style-level control
+- price-axis horizontal grid-line color/width are deterministic style-level controls independent from time-grid styling
+- time-axis regular-label font size/offset/tick length are deterministic style-level controls
+- time-axis regular-label visibility is a deterministic style-level control
+- time-axis short tick-mark visibility is a deterministic style-level control
+- time-axis short tick-mark color/width are deterministic style-level controls independent from axis-border styling
+- time-axis label color is a deterministic style-level control independent from price-axis label color
+- major time-axis label visibility is a deterministic style-level control independent from regular time labels
+- major time-axis grid visibility is a deterministic style-level control independent from regular time-grid lines
+- major time-axis label color is a deterministic style-level control independent from regular time-axis label color
+- major time-axis label vertical offset is a deterministic style-level control independent from regular time-axis labels
+- major time-axis tick-mark color/width/length are deterministic style-level controls independent from regular time-axis tick-mark styling
+- major time-axis tick-mark visibility is a deterministic style-level control independent from regular time-axis tick marks
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract

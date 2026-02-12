@@ -42,9 +42,14 @@ fn custom_render_style_is_applied_to_frame() {
     let custom_style = RenderStyle {
         series_line_color: Color::rgb(0.9, 0.2, 0.2),
         grid_line_color: Color::rgb(0.1, 0.7, 0.4),
+        price_axis_grid_line_color: Color::rgb(0.12, 0.55, 0.81),
         major_grid_line_color: Color::rgb(0.8, 0.4, 0.1),
         axis_border_color: Color::rgb(0.2, 0.2, 0.2),
         price_axis_tick_mark_color: Color::rgb(0.7, 0.2, 0.5),
+        time_axis_tick_mark_color: Color::rgb(0.2, 0.6, 0.85),
+        major_time_tick_mark_color: Color::rgb(0.89, 0.34, 0.18),
+        time_axis_label_color: Color::rgb(0.85, 0.24, 0.20),
+        major_time_label_color: Color::rgb(0.93, 0.42, 0.18),
         axis_label_color: Color::rgb(0.0, 0.0, 0.0),
         last_price_line_color: Color::rgb(0.2, 0.2, 0.8),
         last_price_label_color: Color::rgb(0.2, 0.2, 0.8),
@@ -52,14 +57,34 @@ fn custom_render_style_is_applied_to_frame() {
         last_price_down_color: Color::rgb(0.9, 0.2, 0.2),
         last_price_neutral_color: Color::rgb(0.2, 0.2, 0.8),
         grid_line_width: 2.0,
+        price_axis_grid_line_width: 1.75,
         major_grid_line_width: 3.0,
         axis_line_width: 1.5,
         price_axis_tick_mark_width: 1.25,
+        time_axis_tick_mark_width: 2.25,
+        major_time_tick_mark_width: 2.75,
         last_price_line_width: 1.75,
         major_time_label_font_size_px: 13.0,
+        time_axis_label_font_size_px: 11.5,
+        time_axis_label_offset_y_px: 5.0,
+        major_time_label_offset_y_px: 7.0,
+        time_axis_tick_mark_length_px: 7.0,
+        major_time_tick_mark_length_px: 9.0,
+        price_axis_label_font_size_px: 12.5,
+        price_axis_label_offset_y_px: 9.0,
         last_price_label_font_size_px: 12.0,
+        last_price_label_offset_y_px: 8.0,
+        last_price_label_padding_right_px: 7.0,
         price_axis_width_px: 84.0,
         time_axis_height_px: 28.0,
+        show_price_axis_tick_marks: true,
+        show_price_axis_grid_lines: true,
+        show_price_axis_labels: true,
+        show_time_axis_labels: true,
+        show_major_time_labels: true,
+        show_major_time_grid_lines: true,
+        show_time_axis_tick_marks: true,
+        show_major_time_tick_marks: true,
         price_axis_label_padding_right_px: 7.0,
         price_axis_tick_mark_length_px: 8.0,
         show_last_price_line: true,
@@ -112,8 +137,26 @@ fn custom_render_style_is_applied_to_frame() {
         )
     );
     assert!(frame.lines.iter().any(|line| {
+        line.color == custom_style.price_axis_grid_line_color
+            && line.stroke_width == custom_style.price_axis_grid_line_width
+    }));
+    assert!(frame.lines.iter().any(|line| {
         line.color == custom_style.price_axis_tick_mark_color
             && line.stroke_width == custom_style.price_axis_tick_mark_width
+    }));
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom =
+        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
+    assert!(frame.lines.iter().any(|line| {
+        line.color == custom_style.time_axis_tick_mark_color
+            && line.stroke_width == custom_style.time_axis_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == chart_rs::render::TextHAlign::Center
+            && text.color == custom_style.time_axis_label_color
     }));
 }
 
@@ -182,6 +225,102 @@ fn invalid_price_axis_tick_mark_color_is_rejected() {
 }
 
 #[test]
+fn invalid_time_axis_tick_mark_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_tick_mark_color = Color::rgb(1.1, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_major_time_tick_mark_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.major_time_tick_mark_color = Color::rgb(1.1, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_time_axis_label_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_label_color = Color::rgb(1.1, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_major_time_label_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.major_time_label_color = Color::rgb(1.1, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_price_axis_grid_line_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.price_axis_grid_line_color = Color::rgb(1.2, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_price_axis_grid_line_width_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.price_axis_grid_line_width = 0.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
 fn invalid_last_price_label_exclusion_is_rejected() {
     let renderer = NullRenderer::default();
     let config =
@@ -214,6 +353,22 @@ fn invalid_price_axis_label_padding_right_is_rejected() {
 }
 
 #[test]
+fn invalid_last_price_label_padding_right_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.last_price_label_padding_right_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
 fn invalid_price_axis_tick_mark_length_is_rejected() {
     let renderer = NullRenderer::default();
     let config =
@@ -222,6 +377,166 @@ fn invalid_price_axis_tick_mark_length_is_rejected() {
 
     let mut style = engine.render_style();
     style.price_axis_tick_mark_length_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_price_axis_label_font_size_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.price_axis_label_font_size_px = 0.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_time_axis_label_font_size_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_label_font_size_px = 0.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_price_axis_label_offset_y_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.price_axis_label_offset_y_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_time_axis_label_offset_y_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_label_offset_y_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_major_time_label_offset_y_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.major_time_label_offset_y_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_time_axis_tick_mark_length_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_tick_mark_length_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_major_time_tick_mark_length_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.major_time_tick_mark_length_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_time_axis_tick_mark_width_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_tick_mark_width = 0.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_major_time_tick_mark_width_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.major_time_tick_mark_width = 0.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_last_price_label_offset_y_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.last_price_label_offset_y_px = -1.0;
 
     let err = engine
         .set_render_style(style)
@@ -351,7 +666,13 @@ fn session_boundary_uses_major_tick_styling() {
     let custom_style = RenderStyle {
         major_grid_line_color: Color::rgb(0.75, 0.35, 0.12),
         major_grid_line_width: 2.5,
+        major_time_tick_mark_color: Color::rgb(0.89, 0.31, 0.19),
+        major_time_tick_mark_width: 2.25,
+        major_time_tick_mark_length_px: 8.5,
         major_time_label_font_size_px: 14.0,
+        time_axis_label_offset_y_px: 4.0,
+        major_time_label_offset_y_px: 10.0,
+        major_time_label_color: Color::rgb(0.90, 0.33, 0.14),
         ..engine.render_style()
     };
     engine
@@ -381,11 +702,244 @@ fn session_boundary_uses_major_tick_styling() {
             .any(|line| line.color == custom_style.major_grid_line_color
                 && line.stroke_width == custom_style.major_grid_line_width)
     );
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom =
+        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
+    assert!(frame.lines.iter().any(|line| {
+        line.color == custom_style.major_time_tick_mark_color
+            && line.stroke_width == custom_style.major_time_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && (line.y2
+                - (plot_bottom + custom_style.major_time_tick_mark_length_px).min(viewport_height))
+            .abs()
+                <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.text == "2024-01-02 09:30"
+            && text.font_size_px == custom_style.major_time_label_font_size_px
+            && (text.y
+                - (plot_bottom + custom_style.major_time_label_offset_y_px)
+                    .min((viewport_height - custom_style.major_time_label_font_size_px).max(0.0)))
+            .abs()
+                <= 1e-9
+            && text.color == custom_style.major_time_label_color
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == chart_rs::render::TextHAlign::Center
+            && text.text != "2024-01-02 09:30"
+            && (text.y
+                - (plot_bottom + custom_style.time_axis_label_offset_y_px)
+                    .min((viewport_height - text.font_size_px).max(0.0)))
+            .abs()
+                <= 1e-9
+    }));
+}
+
+#[test]
+fn major_time_labels_visibility_toggle_is_applied() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let custom_style = RenderStyle {
+        show_time_axis_labels: true,
+        show_major_time_labels: false,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(custom_style)
+        .expect("set custom render style");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let frame = engine.build_render_frame().expect("frame");
+    let center_labels: Vec<_> = frame
+        .texts
+        .iter()
+        .filter(|text| text.h_align == chart_rs::render::TextHAlign::Center)
+        .collect();
+
     assert!(
-        frame
+        !center_labels.is_empty(),
+        "expected regular time-axis labels to remain visible"
+    );
+    assert!(
+        !center_labels
+            .iter()
+            .any(|text| text.text == "2024-01-02 09:30")
+    );
+}
+
+#[test]
+fn major_time_grid_lines_visibility_toggle_is_applied() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let custom_style = RenderStyle {
+        show_major_time_grid_lines: false,
+        major_grid_line_color: Color::rgb(0.86, 0.31, 0.22),
+        major_grid_line_width: 2.5,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(custom_style)
+        .expect("set custom render style");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let frame = engine.build_render_frame().expect("frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom =
+        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == custom_style.major_grid_line_color
+            && line.stroke_width == custom_style.major_grid_line_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - 0.0).abs() <= 1e-9
+            && (line.y2 - plot_bottom).abs() <= 1e-9
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == custom_style.grid_line_color
+            && line.stroke_width == custom_style.grid_line_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - 0.0).abs() <= 1e-9
+            && (line.y2 - plot_bottom).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn major_time_tick_marks_visibility_toggle_is_applied() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let custom_style = RenderStyle {
+        show_time_axis_tick_marks: true,
+        show_major_time_tick_marks: false,
+        major_time_tick_mark_color: Color::rgb(0.89, 0.31, 0.19),
+        major_time_tick_mark_width: 2.25,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(custom_style)
+        .expect("set custom render style");
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let frame = engine.build_render_frame().expect("frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom =
+        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == custom_style.major_time_tick_mark_color
+            && line.stroke_width == custom_style.major_time_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == custom_style.time_axis_tick_mark_color
+            && line.stroke_width == custom_style.time_axis_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
+}
+
+#[test]
+fn time_axis_labels_visibility_toggle_is_applied() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let custom_style = RenderStyle {
+        show_time_axis_labels: false,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(custom_style)
+        .expect("set custom render style");
+
+    let frame = engine.build_render_frame().expect("frame");
+    assert!(
+        !frame
             .texts
             .iter()
-            .any(|text| text.text == "2024-01-02 09:30"
-                && text.font_size_px == custom_style.major_time_label_font_size_px)
+            .any(|text| text.h_align == chart_rs::render::TextHAlign::Center)
     );
+}
+
+#[test]
+fn time_axis_tick_marks_visibility_toggle_is_applied() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let custom_style = RenderStyle {
+        time_axis_tick_mark_color: Color::rgb(0.91, 0.33, 0.16),
+        time_axis_tick_mark_width: 2.0,
+        show_time_axis_tick_marks: false,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(custom_style)
+        .expect("set custom render style");
+
+    let frame = engine.build_render_frame().expect("frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom =
+        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == custom_style.time_axis_tick_mark_color
+            && line.stroke_width == custom_style.time_axis_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
 }

@@ -8,7 +8,63 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- No changes yet.
+- Price-axis label typography parity baseline (`R-022`) with deterministic configurable axis-label font size and vertical offset.
+- New render-style knobs: `price_axis_label_font_size_px` and `price_axis_label_offset_y_px`.
+- New render-frame/style tests and criterion benchmark coverage for price-axis label typography behavior.
+- Last-price label offset parity baseline (`R-023`) with deterministic configurable vertical offset from marker Y.
+- New render-style knob: `last_price_label_offset_y_px`.
+- New render-frame/style tests and criterion benchmark coverage for last-price label offset behavior.
+- Last-price label right-inset parity baseline (`R-024`) with deterministic configurable right-side padding in non-box mode.
+- New render-style knob: `last_price_label_padding_right_px`.
+- New render-frame/style tests and criterion benchmark coverage for last-price label right-inset behavior.
+- Price-axis tick-mark visibility parity baseline (`R-025`) with deterministic show/hide behavior for short axis marks.
+- New render-style knob: `show_price_axis_tick_marks`.
+- New render-frame/style tests and criterion benchmark coverage for tick-mark visibility behavior.
+- Price-axis horizontal grid-line visibility parity baseline (`R-026`) with deterministic show/hide behavior.
+- New render-style knob: `show_price_axis_grid_lines`.
+- New render-frame/style tests and criterion benchmark coverage for horizontal grid-line visibility behavior.
+- Price-axis regular-label visibility parity baseline (`R-027`) with deterministic show/hide behavior.
+- New render-style knob: `show_price_axis_labels`.
+- New render-frame/style tests and criterion benchmark coverage for regular-label visibility behavior.
+- Price-axis horizontal grid-line style parity baseline (`R-028`) with deterministic dedicated color/width controls.
+- New render-style knobs: `price_axis_grid_line_color` and `price_axis_grid_line_width`.
+- New render-frame/style tests and criterion benchmark coverage for horizontal grid-line style behavior.
+- Time-axis regular-label typography parity baseline (`R-029`) with deterministic configurable label font size, vertical offset, and short tick-mark length.
+- New render-style knobs: `time_axis_label_font_size_px`, `time_axis_label_offset_y_px`, and `time_axis_tick_mark_length_px`.
+- New render-frame/style tests and criterion benchmark coverage for time-axis regular-label typography behavior.
+- Time-axis regular-label visibility parity baseline (`R-030`) with deterministic show/hide behavior.
+- New render-style knob: `show_time_axis_labels`.
+- New render-frame tests and criterion benchmark coverage for time-axis label visibility behavior.
+- Time-axis tick-mark visibility parity baseline (`R-031`) with deterministic show/hide behavior.
+- New render-style knob: `show_time_axis_tick_marks`.
+- New render-frame/style tests and criterion benchmark coverage for time-axis tick-mark visibility behavior.
+- Time-axis tick-mark style parity baseline (`R-032`) with deterministic dedicated color/width controls.
+- New render-style knobs: `time_axis_tick_mark_color` and `time_axis_tick_mark_width`.
+- New render-frame/style tests and criterion benchmark coverage for time-axis tick-mark style behavior.
+- Time-axis label color parity baseline (`R-033`) with deterministic dedicated color control independent from price-axis labels.
+- New render-style knob: `time_axis_label_color`.
+- New render-frame/style tests and criterion benchmark coverage for time-axis label color behavior.
+- Major time-axis label visibility parity baseline (`R-034`) with deterministic show/hide behavior independent from regular time labels.
+- New render-style knob: `show_major_time_labels`.
+- New render-frame/style tests and criterion benchmark coverage for major-label visibility behavior.
+- Major time-axis grid visibility parity baseline (`R-035`) with deterministic show/hide behavior independent from regular time-grid lines.
+- New render-style knob: `show_major_time_grid_lines`.
+- New render-frame/style tests and criterion benchmark coverage for major-grid visibility behavior.
+- Major time-axis label color parity baseline (`R-036`) with deterministic dedicated color control independent from regular time-axis labels.
+- New render-style knob: `major_time_label_color`.
+- New render-frame/style tests and criterion benchmark coverage for major-label color behavior.
+- Major time-axis tick-mark style parity baseline (`R-037`) with deterministic dedicated color/width controls independent from regular time-axis tick marks.
+- New render-style knobs: `major_time_tick_mark_color` and `major_time_tick_mark_width`.
+- New render-frame/style tests and criterion benchmark coverage for major tick-mark style behavior.
+- Major time-axis tick-mark length parity baseline (`R-038`) with deterministic dedicated length control independent from regular time-axis tick marks.
+- New render-style knob: `major_time_tick_mark_length_px`.
+- New render-frame/style tests and criterion benchmark coverage for major tick-mark length behavior.
+- Major time-axis tick-mark visibility parity baseline (`R-039`) with deterministic show/hide behavior independent from regular time-axis tick marks.
+- New render-style knob: `show_major_time_tick_marks`.
+- New render-frame/style tests and criterion benchmark coverage for major tick-mark visibility behavior.
+- Major time-axis label-offset parity baseline (`R-040`) with deterministic dedicated Y-offset control independent from regular time-axis labels.
+- New render-style knob: `major_time_label_offset_y_px`.
+- New render-frame/style tests and criterion benchmark coverage for major-label offset behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 

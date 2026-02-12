@@ -1,5 +1,7 @@
 use chart_rs::api::{
-    ChartEngine, ChartEngineConfig, LastPriceLabelBoxWidthMode, LastPriceSourceMode, RenderStyle,
+    AxisLabelLocale, ChartEngine, ChartEngineConfig, LastPriceLabelBoxWidthMode,
+    LastPriceSourceMode, RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy,
+    TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, NullRenderer, TextHAlign};
@@ -57,6 +59,562 @@ fn null_renderer_receives_computed_frame_counts() {
 }
 
 #[test]
+fn time_axis_labels_use_configured_typography_offset_and_tick_length() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 0 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis config");
+
+    let style = RenderStyle {
+        time_axis_label_font_size_px: 13.0,
+        time_axis_label_offset_y_px: 7.0,
+        time_axis_tick_mark_length_px: 9.0,
+        time_axis_tick_mark_color: Color::rgb(0.89, 0.24, 0.16),
+        time_axis_tick_mark_width: 2.25,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_label_y = (plot_bottom + style.time_axis_label_offset_y_px)
+        .min((viewport_height - style.time_axis_label_font_size_px).max(0.0));
+    let expected_tick_end_y =
+        (plot_bottom + style.time_axis_tick_mark_length_px).min(viewport_height);
+
+    let time_labels: Vec<_> = frame
+        .texts
+        .iter()
+        .filter(|text| text.h_align == TextHAlign::Center)
+        .collect();
+    assert!(!time_labels.is_empty(), "expected time-axis labels");
+    assert!(time_labels.iter().all(|text| {
+        (text.font_size_px - style.time_axis_label_font_size_px).abs() <= 1e-9
+            && (text.y - expected_label_y).abs() <= 1e-9
+    }));
+
+    let time_tick_marks: Vec<_> = frame
+        .lines
+        .iter()
+        .filter(|line| {
+            line.color == style.time_axis_tick_mark_color
+                && line.stroke_width == style.time_axis_tick_mark_width
+                && (line.x1 - line.x2).abs() <= 1e-9
+                && (line.y1 - plot_bottom).abs() <= 1e-9
+                && line.y2 > line.y1
+        })
+        .collect();
+    assert!(!time_tick_marks.is_empty(), "expected time-axis tick marks");
+    assert!(
+        time_tick_marks
+            .iter()
+            .all(|line| (line.y2 - expected_tick_end_y).abs() <= 1e-9)
+    );
+}
+
+#[test]
+fn time_axis_labels_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+
+    assert!(
+        !frame
+            .texts
+            .iter()
+            .any(|text| text.h_align == TextHAlign::Center)
+    );
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.grid_line_color
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - 0.0).abs() <= 1e-9
+            && (line.y2 - plot_bottom).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn time_axis_labels_use_dedicated_color() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+
+    let style = RenderStyle {
+        time_axis_label_color: Color::rgb(0.90, 0.30, 0.22),
+        axis_label_color: Color::rgb(0.12, 0.18, 0.26),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center && text.color == style.time_axis_label_color
+    }));
+    assert!(
+        frame.texts.iter().any(|text| {
+            text.h_align == TextHAlign::Right && text.color == style.axis_label_color
+        })
+    );
+}
+
+#[test]
+fn major_time_axis_labels_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1_704_205_800.0, 10.0),
+        DataPoint::new(1_704_205_860.0, 11.0),
+        DataPoint::new(1_704_205_920.0, 12.0),
+        DataPoint::new(1_704_205_980.0, 13.0),
+        DataPoint::new(1_704_206_040.0, 12.5),
+        DataPoint::new(1_704_206_100.0, 12.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let style = RenderStyle {
+        show_time_axis_labels: true,
+        show_major_time_labels: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let center_labels: Vec<_> = frame
+        .texts
+        .iter()
+        .filter(|text| text.h_align == TextHAlign::Center)
+        .collect();
+
+    assert!(
+        !center_labels.is_empty(),
+        "expected regular time labels to remain"
+    );
+    assert!(
+        !center_labels
+            .iter()
+            .any(|text| text.text == "2024-01-02 09:30")
+    );
+}
+
+#[test]
+fn major_time_axis_labels_use_dedicated_color() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1_704_205_800.0, 10.0),
+        DataPoint::new(1_704_205_860.0, 11.0),
+        DataPoint::new(1_704_205_920.0, 12.0),
+        DataPoint::new(1_704_205_980.0, 13.0),
+        DataPoint::new(1_704_206_040.0, 12.5),
+        DataPoint::new(1_704_206_100.0, 12.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let style = RenderStyle {
+        time_axis_label_color: Color::rgb(0.17, 0.27, 0.43),
+        major_time_label_color: Color::rgb(0.89, 0.31, 0.18),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center
+            && text.text == "2024-01-02 09:30"
+            && text.color == style.major_time_label_color
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center
+            && text.text != "2024-01-02 09:30"
+            && text.color == style.time_axis_label_color
+    }));
+}
+
+#[test]
+fn major_time_axis_labels_use_dedicated_offset() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1_704_205_800.0, 10.0),
+        DataPoint::new(1_704_205_860.0, 11.0),
+        DataPoint::new(1_704_205_920.0, 12.0),
+        DataPoint::new(1_704_205_980.0, 13.0),
+        DataPoint::new(1_704_206_040.0, 12.5),
+        DataPoint::new(1_704_206_100.0, 12.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let style = RenderStyle {
+        time_axis_label_offset_y_px: 4.0,
+        major_time_label_offset_y_px: 9.0,
+        major_time_label_font_size_px: 14.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_major_y =
+        (plot_bottom + style.major_time_label_offset_y_px).min((viewport_height - 14.0).max(0.0));
+    let expected_regular_y =
+        (plot_bottom + style.time_axis_label_offset_y_px).min((viewport_height - 11.0).max(0.0));
+
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center
+            && text.text == "2024-01-02 09:30"
+            && (text.y - expected_major_y).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center
+            && text.text != "2024-01-02 09:30"
+            && (text.y - expected_regular_y).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn major_time_axis_tick_marks_use_dedicated_style() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1_704_205_800.0, 10.0),
+        DataPoint::new(1_704_205_860.0, 11.0),
+        DataPoint::new(1_704_205_920.0, 12.0),
+        DataPoint::new(1_704_205_980.0, 13.0),
+        DataPoint::new(1_704_206_040.0, 12.5),
+        DataPoint::new(1_704_206_100.0, 12.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let style = RenderStyle {
+        time_axis_tick_mark_color: Color::rgb(0.16, 0.28, 0.43),
+        time_axis_tick_mark_width: 1.5,
+        time_axis_tick_mark_length_px: 4.0,
+        major_time_tick_mark_color: Color::rgb(0.87, 0.30, 0.20),
+        major_time_tick_mark_width: 2.75,
+        major_time_tick_mark_length_px: 9.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_major_tick_end =
+        (plot_bottom + style.major_time_tick_mark_length_px).min(viewport_height);
+    let expected_regular_tick_end =
+        (plot_bottom + style.time_axis_tick_mark_length_px).min(viewport_height);
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.major_time_tick_mark_color
+            && line.stroke_width == style.major_time_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && (line.y2 - expected_major_tick_end).abs() <= 1e-9
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.time_axis_tick_mark_color
+            && line.stroke_width == style.time_axis_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && (line.y2 - expected_regular_tick_end).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn major_time_axis_tick_marks_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1_704_205_800.0, 10.0),
+        DataPoint::new(1_704_205_860.0, 11.0),
+        DataPoint::new(1_704_205_920.0, 12.0),
+        DataPoint::new(1_704_205_980.0, 13.0),
+        DataPoint::new(1_704_206_040.0, 12.5),
+        DataPoint::new(1_704_206_100.0, 12.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let style = RenderStyle {
+        show_time_axis_tick_marks: true,
+        show_major_time_tick_marks: false,
+        time_axis_tick_mark_color: Color::rgb(0.16, 0.28, 0.43),
+        time_axis_tick_mark_width: 1.5,
+        major_time_tick_mark_color: Color::rgb(0.87, 0.30, 0.20),
+        major_time_tick_mark_width: 2.75,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.major_time_tick_mark_color
+            && line.stroke_width == style.major_time_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.time_axis_tick_mark_color
+            && line.stroke_width == style.time_axis_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
+}
+
+#[test]
+fn major_time_axis_grid_lines_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1_704_205_800.0, 10.0),
+        DataPoint::new(1_704_205_860.0, 11.0),
+        DataPoint::new(1_704_205_920.0, 12.0),
+        DataPoint::new(1_704_205_980.0, 13.0),
+        DataPoint::new(1_704_206_040.0, 12.5),
+        DataPoint::new(1_704_206_100.0, 12.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let style = RenderStyle {
+        show_major_time_grid_lines: false,
+        major_grid_line_color: Color::rgb(0.87, 0.28, 0.20),
+        major_grid_line_width: 2.5,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.major_grid_line_color
+            && line.stroke_width == style.major_grid_line_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - 0.0).abs() <= 1e-9
+            && (line.y2 - plot_bottom).abs() <= 1e-9
+    }));
+    assert!(
+        frame
+            .texts
+            .iter()
+            .any(|text| { text.h_align == TextHAlign::Center && text.text == "2024-01-02 09:30" })
+    );
+}
+
+#[test]
+fn time_axis_tick_marks_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+
+    let style = RenderStyle {
+        time_axis_tick_mark_color: Color::rgb(0.92, 0.31, 0.19),
+        time_axis_tick_mark_width: 2.0,
+        show_time_axis_tick_marks: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.time_axis_tick_mark_color
+            && line.stroke_width == style.time_axis_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.grid_line_color
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - 0.0).abs() <= 1e-9
+            && (line.y2 - plot_bottom).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn time_axis_tick_marks_use_dedicated_style() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+
+    let style = RenderStyle {
+        axis_border_color: Color::rgb(0.12, 0.14, 0.18),
+        axis_line_width: 1.0,
+        time_axis_tick_mark_color: Color::rgb(0.86, 0.26, 0.22),
+        time_axis_tick_mark_width: 2.5,
+        show_time_axis_tick_marks: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.axis_border_color
+            && line.stroke_width == style.axis_line_width
+            && (line.y1 - line.y2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.time_axis_tick_mark_color
+            && line.stroke_width == style.time_axis_tick_mark_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
+}
+
+#[test]
 fn last_price_marker_uses_latest_sample_value() {
     let renderer = NullRenderer::default();
     let config =
@@ -85,6 +643,41 @@ fn last_price_marker_uses_latest_sample_value() {
         text.color == style.last_price_label_color
             && text.h_align == TextHAlign::Right
             && text.text == "15.00"
+    }));
+}
+
+#[test]
+fn last_price_label_uses_configured_vertical_offset() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1.0, 12.0),
+        DataPoint::new(2.0, 16.0),
+        DataPoint::new(3.0, 15.0),
+    ]);
+
+    let style = RenderStyle {
+        last_price_label_color: Color::rgb(1.0, 0.2, 0.2),
+        last_price_label_offset_y_px: 13.0,
+        show_last_price_label_box: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let marker_y = engine.map_price_to_pixel(15.0).expect("map").clamp(
+        0.0,
+        f64::from(engine.viewport().height) - style.time_axis_height_px,
+    );
+    let expected_text_y = (marker_y - style.last_price_label_offset_y_px).max(0.0);
+
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.text == "15.00"
+            && text.color == style.last_price_label_color
+            && (text.y - expected_text_y).abs() <= 1e-9
     }));
 }
 
@@ -127,6 +720,7 @@ fn price_axis_insets_apply_to_labels_and_tick_marks() {
 
     let style = RenderStyle {
         price_axis_label_padding_right_px: 14.0,
+        last_price_label_padding_right_px: 14.0,
         price_axis_tick_mark_length_px: 9.0,
         price_axis_tick_mark_color: Color::rgb(0.9, 0.3, 0.2),
         price_axis_tick_mark_width: 2.25,
@@ -160,6 +754,173 @@ fn price_axis_insets_apply_to_labels_and_tick_marks() {
             && (line.y1 - line.y2).abs() <= 1e-9
             && (line.x1 - plot_right).abs() <= 1e-9
             && (line.x2 - expected_tick_mark_end_x).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn price_axis_tick_marks_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        show_price_axis_tick_marks: false,
+        price_axis_tick_mark_color: Color::rgb(0.91, 0.23, 0.21),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.price_axis_tick_mark_color
+            && (line.y1 - line.y2).abs() <= 1e-9
+            && (line.x1 - plot_right).abs() <= 1e-9
+            && line.x2 > line.x1
+    }));
+}
+
+#[test]
+fn price_axis_grid_lines_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        show_price_axis_grid_lines: false,
+        price_axis_grid_line_color: Color::rgb(0.91, 0.23, 0.21),
+        price_axis_grid_line_width: 2.0,
+        last_price_line_color: Color::rgb(0.11, 0.74, 0.31),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.price_axis_grid_line_color
+            && line.stroke_width == style.price_axis_grid_line_width
+            && (line.y1 - line.y2).abs() <= 1e-9
+            && (line.x1 - 0.0).abs() <= 1e-9
+            && (line.x2 - plot_right).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn price_axis_labels_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        show_price_axis_labels: false,
+        show_last_price_label: true,
+        last_price_label_color: Color::rgb(0.12, 0.72, 0.31),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(
+        !frame.texts.iter().any(|text| {
+            text.h_align == TextHAlign::Right && text.color == style.axis_label_color
+        })
+    );
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.color == style.last_price_label_color
+            && text.text == "20.00"
+    }));
+}
+
+#[test]
+fn last_price_label_padding_right_is_independent_from_axis_label_padding() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        price_axis_label_padding_right_px: 18.0,
+        last_price_label_padding_right_px: 4.0,
+        show_last_price_label_box: false,
+        last_price_label_color: Color::rgb(0.0, 1.0, 0.0),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let expected_axis_label_x = viewport_width - style.price_axis_label_padding_right_px;
+    let expected_last_price_label_x = viewport_width - style.last_price_label_padding_right_px;
+
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.color == style.axis_label_color
+            && (text.x - expected_axis_label_x).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.color == style.last_price_label_color
+            && text.text == "20.00"
+            && (text.x - expected_last_price_label_x).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn price_axis_labels_use_configured_font_size_and_offset() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        price_axis_label_font_size_px: 13.5,
+        price_axis_label_offset_y_px: 11.0,
+        show_last_price_label: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let axis_labels: Vec<_> = frame
+        .texts
+        .iter()
+        .filter(|text| text.h_align == TextHAlign::Right && text.color == style.axis_label_color)
+        .collect();
+    assert!(!axis_labels.is_empty(), "expected price-axis labels");
+    assert!(
+        axis_labels
+            .iter()
+            .all(|text| (text.font_size_px - style.price_axis_label_font_size_px).abs() <= 1e-9)
+    );
+    assert!(axis_labels.iter().any(|text| {
+        frame.lines.iter().any(|line| {
+            line.color == style.grid_line_color
+                && (line.y1 - line.y2).abs() <= 1e-9
+                && ((line.y1 - text.y) - style.price_axis_label_offset_y_px).abs() <= 1e-9
+        })
+    }));
+    assert!(axis_labels.iter().all(|text| {
+        frame.lines.iter().any(|line| {
+            line.color == style.grid_line_color && (line.y1 - line.y2).abs() <= 1e-9 && {
+                let delta_y = line.y1 - text.y;
+                delta_y >= -1e-9 && delta_y <= style.price_axis_label_offset_y_px + 1e-9
+            }
+        })
     }));
 }
 
