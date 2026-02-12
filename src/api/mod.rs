@@ -73,6 +73,12 @@ use data_window::{expand_visible_window, markers_in_time_window};
 mod interaction_validation;
 use interaction_validation::validate_kinetic_pan_config;
 
+mod layout_helpers;
+use layout_helpers::{
+    estimate_label_text_width_px, rects_overlap, resolve_crosshair_box_vertical_layout,
+    stabilize_position,
+};
+
 mod price_resolver;
 
 #[cfg(feature = "cairo-backend")]
@@ -451,80 +457,6 @@ impl<R: Renderer> ChartEngine<R> {
             .borrow_mut()
             .insert(key, text.clone());
         text
-    }
-
-    fn estimate_label_text_width_px(text: &str, font_size_px: f64) -> f64 {
-        // Keep this estimate deterministic and backend-independent.
-        let units = text.chars().fold(0.0, |acc, ch| {
-            acc + match ch {
-                '0'..='9' => 0.62,
-                '.' | ',' => 0.34,
-                '-' | '+' | '%' => 0.42,
-                ' ' => 0.33,
-                _ => 0.58,
-            }
-        });
-        (units * font_size_px).max(font_size_px)
-    }
-
-    fn stabilize_position(value: f64, step_px: f64) -> f64 {
-        if step_px > 0.0 {
-            (value / step_px).round() * step_px
-        } else {
-            value
-        }
-    }
-
-    fn resolve_crosshair_box_vertical_layout(
-        label_anchor_y: f64,
-        font_size_px: f64,
-        padding_y_px: f64,
-        min_y: f64,
-        max_y: f64,
-        anchor: CrosshairLabelBoxVerticalAnchor,
-        clip_to_bounds: bool,
-    ) -> (f64, f64, f64) {
-        let box_height = (font_size_px + 2.0 * padding_y_px).max(0.0);
-        let available_height = (max_y - min_y).max(0.0);
-        let clamped_box_height = if clip_to_bounds {
-            box_height.min(available_height)
-        } else {
-            box_height
-        };
-        let preferred_top = match anchor {
-            CrosshairLabelBoxVerticalAnchor::Top => label_anchor_y,
-            CrosshairLabelBoxVerticalAnchor::Center => label_anchor_y - padding_y_px,
-            CrosshairLabelBoxVerticalAnchor::Bottom => label_anchor_y - clamped_box_height,
-        };
-        let top = if clip_to_bounds {
-            preferred_top.clamp(min_y, max_y - clamped_box_height)
-        } else {
-            preferred_top
-        };
-        let bottom = top + clamped_box_height;
-        let text_y = match anchor {
-            CrosshairLabelBoxVerticalAnchor::Top => top + padding_y_px,
-            CrosshairLabelBoxVerticalAnchor::Center => {
-                top + (clamped_box_height - font_size_px) * 0.5
-            }
-            CrosshairLabelBoxVerticalAnchor::Bottom => {
-                top + clamped_box_height - padding_y_px - font_size_px
-            }
-        };
-        let text_y = if clip_to_bounds {
-            text_y.clamp(min_y, (max_y - font_size_px).max(min_y))
-        } else {
-            text_y
-        };
-        (text_y, top, bottom)
-    }
-
-    fn rects_overlap(a: RectPrimitive, b: RectPrimitive) -> bool {
-        let a_right = a.x + a.width;
-        let a_bottom = a.y + a.height;
-        let b_right = b.x + b.width;
-        let b_bottom = b.y + b.height;
-        a.x < b_right && b.x < a_right && a.y < b_bottom && b.y < a_bottom
     }
 
     fn resolve_time_label_cache_profile(&self, visible_span_abs: f64) -> TimeLabelCacheProfile {
@@ -1500,10 +1432,8 @@ impl<R: Renderer> ChartEngine<R> {
                 let default_text_anchor_x = last_price_label_anchor_x;
                 let mut label_text_anchor_x = default_text_anchor_x;
                 if style.show_last_price_label_box {
-                    let estimated_text_width = Self::estimate_label_text_width_px(
-                        &text,
-                        style.last_price_label_font_size_px,
-                    );
+                    let estimated_text_width =
+                        estimate_label_text_width_px(&text, style.last_price_label_font_size_px);
                     // Keep width selection deterministic and backend-independent so snapshots
                     // remain stable across null/cairo renderers and CI environments.
                     let requested_box_width = match style.last_price_label_box_width_mode {
@@ -1632,11 +1562,10 @@ impl<R: Renderer> ChartEngine<R> {
                         style.crosshair_label_box_stabilization_step_px
                     };
                 let crosshair_time_label_x =
-                    Self::stabilize_position(crosshair_time_label_x, time_stabilization_step)
-                        .clamp(
-                            time_label_padding_x,
-                            (plot_right - time_label_padding_x).max(time_label_padding_x),
-                        );
+                    stabilize_position(crosshair_time_label_x, time_stabilization_step).clamp(
+                        time_label_padding_x,
+                        (plot_right - time_label_padding_x).max(time_label_padding_x),
+                    );
                 let mut time_text_x = crosshair_time_label_x;
                 let mut time_text_h_align = TextHAlign::Center;
                 let text = self.format_time_axis_label(crosshair_time, visible_span_abs);
@@ -1658,7 +1587,7 @@ impl<R: Renderer> ChartEngine<R> {
                         .crosshair_time_label_box_text_h_align
                         .or(style.crosshair_label_box_text_h_align)
                         .unwrap_or(TextHAlign::Center);
-                    let estimated_text_width = Self::estimate_label_text_width_px(
+                    let estimated_text_width = estimate_label_text_width_px(
                         &text,
                         style.crosshair_time_label_font_size_px,
                     );
@@ -1744,7 +1673,7 @@ impl<R: Renderer> ChartEngine<R> {
                         requested_left
                     };
                     let (resolved_time_label_y, box_top, box_bottom) =
-                        Self::resolve_crosshair_box_vertical_layout(
+                        resolve_crosshair_box_vertical_layout(
                             time_label_anchor_y,
                             style.crosshair_time_label_font_size_px,
                             style.crosshair_time_label_box_padding_y_px,
@@ -1837,8 +1766,7 @@ impl<R: Renderer> ChartEngine<R> {
                         style.crosshair_label_box_stabilization_step_px
                     };
                 let price_label_anchor_y =
-                    Self::stabilize_position(price_label_anchor_y, price_stabilization_step)
-                        .max(0.0);
+                    stabilize_position(price_label_anchor_y, price_stabilization_step).max(0.0);
                 let mut text_y = price_label_anchor_y;
                 let price_label_text_color = if style.show_crosshair_price_label_box {
                     self.resolve_crosshair_label_box_text_color(
@@ -1862,7 +1790,7 @@ impl<R: Renderer> ChartEngine<R> {
                         .unwrap_or(TextHAlign::Right);
                     let axis_panel_left = plot_right;
                     let axis_panel_width = (viewport_width - axis_panel_left).max(0.0);
-                    let estimated_text_width = Self::estimate_label_text_width_px(
+                    let estimated_text_width = estimate_label_text_width_px(
                         &text,
                         style.crosshair_price_label_font_size_px,
                     );
@@ -1949,7 +1877,7 @@ impl<R: Renderer> ChartEngine<R> {
                         requested_left
                     };
                     let (resolved_price_label_y, box_top, box_bottom) =
-                        Self::resolve_crosshair_box_vertical_layout(
+                        resolve_crosshair_box_vertical_layout(
                             price_label_anchor_y,
                             style.crosshair_price_label_font_size_px,
                             style.crosshair_price_label_box_padding_y_px,
@@ -2018,7 +1946,7 @@ impl<R: Renderer> ChartEngine<R> {
             }
 
             if let (Some(time_rect), Some(price_rect)) = (time_box_rect, price_box_rect) {
-                if Self::rects_overlap(time_rect, price_rect) {
+                if rects_overlap(time_rect, price_rect) {
                     let time_priority = style
                         .crosshair_time_label_box_visibility_priority
                         .unwrap_or(style.crosshair_label_box_visibility_priority);

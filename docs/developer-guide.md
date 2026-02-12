@@ -102,6 +102,7 @@ Key files:
 - `data_window.rs` (visible-window expansion and marker window filtering helpers)
 - `interaction_validation.rs` (kinetic-pan validation helpers)
 - `price_resolver.rs` (latest/previous price sample and marker color/text resolution helpers)
+- `layout_helpers.rs` (crosshair/axis label layout math helpers)
 
 Responsibilities:
 - orchestration between core + interaction + renderer
