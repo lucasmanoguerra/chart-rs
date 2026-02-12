@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box per-axis overflow-policy parity baseline (`R-063`) with deterministic independent `ClipToAxis`/`AllowOverflow` controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_overflow_policy`, `crosshair_time_label_box_overflow_policy`, and `crosshair_price_label_box_overflow_policy`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis overflow-policy behavior.
 - Crosshair axis-label box per-axis horizontal-anchor parity baseline (`R-062`) with deterministic independent horizontal anchoring controls for time and price label boxes.
 - New render-style knobs: `crosshair_label_box_horizontal_anchor`, `crosshair_time_label_box_horizontal_anchor`, and `crosshair_price_label_box_horizontal_anchor`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis horizontal-anchor behavior.

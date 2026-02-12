@@ -270,6 +270,14 @@ pub enum CrosshairLabelBoxHorizontalAnchor {
     Right,
 }
 
+/// Overflow policy used for crosshair axis-label box layout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CrosshairLabelBoxOverflowPolicy {
+    #[default]
+    ClipToAxis,
+    AllowOverflow,
+}
+
 /// Style contract for the current render frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderStyle {
@@ -336,6 +344,9 @@ pub struct RenderStyle {
     pub crosshair_label_box_horizontal_anchor: Option<CrosshairLabelBoxHorizontalAnchor>,
     pub crosshair_time_label_box_horizontal_anchor: Option<CrosshairLabelBoxHorizontalAnchor>,
     pub crosshair_price_label_box_horizontal_anchor: Option<CrosshairLabelBoxHorizontalAnchor>,
+    pub crosshair_label_box_overflow_policy: Option<CrosshairLabelBoxOverflowPolicy>,
+    pub crosshair_time_label_box_overflow_policy: Option<CrosshairLabelBoxOverflowPolicy>,
+    pub crosshair_price_label_box_overflow_policy: Option<CrosshairLabelBoxOverflowPolicy>,
     pub crosshair_label_box_min_width_px: f64,
     pub crosshair_time_label_box_min_width_px: f64,
     pub crosshair_price_label_box_min_width_px: f64,
@@ -504,6 +515,9 @@ impl Default for RenderStyle {
             crosshair_label_box_horizontal_anchor: None,
             crosshair_time_label_box_horizontal_anchor: None,
             crosshair_price_label_box_horizontal_anchor: None,
+            crosshair_label_box_overflow_policy: None,
+            crosshair_time_label_box_overflow_policy: None,
+            crosshair_price_label_box_overflow_policy: None,
             crosshair_label_box_min_width_px: 0.0,
             crosshair_time_label_box_min_width_px: 0.0,
             crosshair_price_label_box_min_width_px: 0.0,
@@ -1308,16 +1322,25 @@ impl<R: Renderer> ChartEngine<R> {
         min_y: f64,
         max_y: f64,
         anchor: CrosshairLabelBoxVerticalAnchor,
+        clip_to_bounds: bool,
     ) -> (f64, f64, f64) {
         let box_height = (font_size_px + 2.0 * padding_y_px).max(0.0);
         let available_height = (max_y - min_y).max(0.0);
-        let clamped_box_height = box_height.min(available_height);
+        let clamped_box_height = if clip_to_bounds {
+            box_height.min(available_height)
+        } else {
+            box_height
+        };
         let preferred_top = match anchor {
             CrosshairLabelBoxVerticalAnchor::Top => label_anchor_y,
             CrosshairLabelBoxVerticalAnchor::Center => label_anchor_y - padding_y_px,
             CrosshairLabelBoxVerticalAnchor::Bottom => label_anchor_y - clamped_box_height,
         };
-        let top = preferred_top.clamp(min_y, max_y - clamped_box_height);
+        let top = if clip_to_bounds {
+            preferred_top.clamp(min_y, max_y - clamped_box_height)
+        } else {
+            preferred_top
+        };
         let bottom = top + clamped_box_height;
         let text_y = match anchor {
             CrosshairLabelBoxVerticalAnchor::Top => top + padding_y_px,
@@ -1327,8 +1350,12 @@ impl<R: Renderer> ChartEngine<R> {
             CrosshairLabelBoxVerticalAnchor::Bottom => {
                 top + clamped_box_height - padding_y_px - font_size_px
             }
-        }
-        .clamp(min_y, (max_y - font_size_px).max(min_y));
+        };
+        let text_y = if clip_to_bounds {
+            text_y.clamp(min_y, (max_y - font_size_px).max(min_y))
+        } else {
+            text_y
+        };
         (text_y, top, bottom)
     }
 
@@ -2448,6 +2475,10 @@ impl<R: Renderer> ChartEngine<R> {
                     let time_box_vertical_anchor = style
                         .crosshair_time_label_box_vertical_anchor
                         .unwrap_or(style.crosshair_label_box_vertical_anchor);
+                    let time_box_overflow_policy = style
+                        .crosshair_time_label_box_overflow_policy
+                        .or(style.crosshair_label_box_overflow_policy)
+                        .unwrap_or(CrosshairLabelBoxOverflowPolicy::ClipToAxis);
                     let requested_box_width = match time_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => plot_right,
                         CrosshairLabelBoxWidthMode::FitText => {
@@ -2471,7 +2502,13 @@ impl<R: Renderer> ChartEngine<R> {
                             crosshair_time_label_x - box_width
                         }
                     };
-                    let box_left = requested_left.clamp(0.0, max_left);
+                    let box_left = if time_box_overflow_policy
+                        == CrosshairLabelBoxOverflowPolicy::ClipToAxis
+                    {
+                        requested_left.clamp(0.0, max_left)
+                    } else {
+                        requested_left
+                    };
                     let (resolved_time_label_y, box_top, box_bottom) =
                         Self::resolve_crosshair_box_vertical_layout(
                             time_label_anchor_y,
@@ -2480,6 +2517,7 @@ impl<R: Renderer> ChartEngine<R> {
                             plot_bottom,
                             viewport_height,
                             time_box_vertical_anchor,
+                            time_box_overflow_policy == CrosshairLabelBoxOverflowPolicy::ClipToAxis,
                         );
                     time_label_y = resolved_time_label_y;
                     let box_height = (box_bottom - box_top).max(0.0);
@@ -2597,6 +2635,10 @@ impl<R: Renderer> ChartEngine<R> {
                     let price_box_vertical_anchor = style
                         .crosshair_price_label_box_vertical_anchor
                         .unwrap_or(style.crosshair_label_box_vertical_anchor);
+                    let price_box_overflow_policy = style
+                        .crosshair_price_label_box_overflow_policy
+                        .or(style.crosshair_label_box_overflow_policy)
+                        .unwrap_or(CrosshairLabelBoxOverflowPolicy::ClipToAxis);
                     let requested_box_width = match price_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => axis_panel_width,
                         CrosshairLabelBoxWidthMode::FitText => {
@@ -2618,8 +2660,13 @@ impl<R: Renderer> ChartEngine<R> {
                         }
                         CrosshairLabelBoxHorizontalAnchor::Right => viewport_width - box_width,
                     };
-                    let box_left =
-                        requested_left.clamp(axis_panel_left, viewport_width - box_width);
+                    let box_left = if price_box_overflow_policy
+                        == CrosshairLabelBoxOverflowPolicy::ClipToAxis
+                    {
+                        requested_left.clamp(axis_panel_left, viewport_width - box_width)
+                    } else {
+                        requested_left
+                    };
                     let (resolved_price_label_y, box_top, box_bottom) =
                         Self::resolve_crosshair_box_vertical_layout(
                             price_label_anchor_y,
@@ -2628,6 +2675,8 @@ impl<R: Renderer> ChartEngine<R> {
                             0.0,
                             viewport_height,
                             price_box_vertical_anchor,
+                            price_box_overflow_policy
+                                == CrosshairLabelBoxOverflowPolicy::ClipToAxis,
                         );
                     text_y = resolved_price_label_y;
                     let box_height = (box_bottom - box_top).max(0.0);

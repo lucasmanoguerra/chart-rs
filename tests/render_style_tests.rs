@@ -110,6 +110,15 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_price_label_box_horizontal_anchor: Some(
             chart_rs::api::CrosshairLabelBoxHorizontalAnchor::Right,
         ),
+        crosshair_label_box_overflow_policy: Some(
+            chart_rs::api::CrosshairLabelBoxOverflowPolicy::ClipToAxis,
+        ),
+        crosshair_time_label_box_overflow_policy: Some(
+            chart_rs::api::CrosshairLabelBoxOverflowPolicy::AllowOverflow,
+        ),
+        crosshair_price_label_box_overflow_policy: Some(
+            chart_rs::api::CrosshairLabelBoxOverflowPolicy::ClipToAxis,
+        ),
         crosshair_label_box_min_width_px: 20.0,
         crosshair_time_label_box_min_width_px: 40.0,
         crosshair_price_label_box_min_width_px: 24.0,

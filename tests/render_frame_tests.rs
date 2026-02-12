@@ -1,8 +1,8 @@
 use chart_rs::api::{
     AxisLabelLocale, ChartEngine, ChartEngineConfig, CrosshairLabelBoxHorizontalAnchor,
-    CrosshairLabelBoxVerticalAnchor, CrosshairLabelBoxWidthMode, CrosshairMode,
-    LastPriceLabelBoxWidthMode, LastPriceSourceMode, RenderStyle, TimeAxisLabelConfig,
-    TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
+    CrosshairLabelBoxOverflowPolicy, CrosshairLabelBoxVerticalAnchor, CrosshairLabelBoxWidthMode,
+    CrosshairMode, LastPriceLabelBoxWidthMode, LastPriceSourceMode, RenderStyle,
+    TimeAxisLabelConfig, TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, NullRenderer, TextHAlign};
@@ -2058,6 +2058,52 @@ fn crosshair_axis_label_box_horizontal_anchor_is_independent_per_axis() {
     assert!(
         (price_box.x - (plot_right + (axis_panel_width - price_box.width) * 0.5)).abs() <= 1e-9
     );
+}
+
+#[test]
+fn crosshair_axis_label_box_overflow_policy_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_time_label_box_vertical_anchor: Some(CrosshairLabelBoxVerticalAnchor::Top),
+        crosshair_price_label_box_vertical_anchor: Some(CrosshairLabelBoxVerticalAnchor::Bottom),
+        crosshair_time_label_box_padding_y_px: 24.0,
+        crosshair_price_label_box_padding_y_px: 24.0,
+        crosshair_time_label_box_overflow_policy: Some(
+            CrosshairLabelBoxOverflowPolicy::AllowOverflow,
+        ),
+        crosshair_price_label_box_overflow_policy: Some(
+            CrosshairLabelBoxOverflowPolicy::ClipToAxis,
+        ),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 490.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let time_box = frame
+        .rects
+        .iter()
+        .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x < plot_right)
+        .expect("time box present");
+    let price_box = frame
+        .rects
+        .iter()
+        .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x >= plot_right)
+        .expect("price box present");
+
+    assert!(time_box.y + time_box.height > viewport_height + 1e-9);
+    assert!(price_box.y >= -1e-9);
+    assert!(price_box.y + price_box.height <= viewport_height + 1e-9);
 }
 
 #[test]
