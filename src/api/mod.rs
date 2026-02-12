@@ -12,7 +12,7 @@ use crate::core::{
 };
 use crate::error::{ChartError, ChartResult};
 use crate::extensions::{
-    ChartPlugin, MarkerPlacementConfig, PlacedMarker, PluginContext, PluginEvent, SeriesMarker,
+    ChartPlugin, MarkerPlacementConfig, PlacedMarker, PluginEvent, SeriesMarker,
     place_markers_on_candles,
 };
 use crate::interaction::{
@@ -78,6 +78,7 @@ use layout_helpers::{
 };
 
 mod cache_profile;
+mod plugin_dispatch;
 mod price_resolver;
 mod snap_resolver;
 
@@ -2002,29 +2003,5 @@ impl<R: Renderer> ChartEngine<R> {
     #[must_use]
     pub fn into_renderer(self) -> R {
         self.renderer
-    }
-
-    fn plugin_context(&self) -> PluginContext {
-        PluginContext {
-            viewport: self.viewport,
-            time_visible_range: self.time_scale.visible_range(),
-            price_domain: self.price_scale.domain(),
-            points_len: self.points.len(),
-            candles_len: self.candles.len(),
-            interaction_mode: self.interaction.mode(),
-            crosshair: self.interaction.crosshair(),
-        }
-    }
-
-    fn emit_plugin_event(&mut self, event: PluginEvent) {
-        let context = self.plugin_context();
-        for plugin in &mut self.plugins {
-            plugin.on_event(event, context);
-        }
-    }
-
-    fn emit_visible_range_changed(&mut self) {
-        let (start, end) = self.time_scale.visible_range();
-        self.emit_plugin_event(PluginEvent::VisibleRangeChanged { start, end });
     }
 }

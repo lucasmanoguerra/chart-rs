@@ -105,6 +105,7 @@ Key files:
 - `layout_helpers.rs` (crosshair/axis label layout math helpers)
 - `snap_resolver.rs` (crosshair nearest-sample snapping helpers for points/candles)
 - `cache_profile.rs` (time/price label cache-profile resolution helpers)
+- `plugin_dispatch.rs` (plugin event context/build + dispatch helpers)
 
 Responsibilities:
 - orchestration between core + interaction + renderer
