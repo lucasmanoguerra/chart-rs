@@ -12,6 +12,8 @@ pub enum CrosshairMode {
     Magnet,
     /// Crosshair follows raw pointer position without snapping.
     Normal,
+    /// Crosshair remains hidden regardless of pointer movement.
+    Hidden,
 }
 
 /// Tuning for deterministic kinetic pan stepping.

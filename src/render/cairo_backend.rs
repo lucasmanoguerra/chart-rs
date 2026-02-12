@@ -172,6 +172,9 @@ fn apply_line_stroke_style(context: &Context, stroke_style: LineStrokeStyle, str
     match stroke_style {
         LineStrokeStyle::Solid => context.set_dash(&[], 0.0),
         LineStrokeStyle::Dashed => context.set_dash(&[stroke_width * 6.0, stroke_width * 4.0], 0.0),
+        LineStrokeStyle::LargeDashed => {
+            context.set_dash(&[stroke_width * 8.0, stroke_width * 6.0], 0.0)
+        }
         LineStrokeStyle::Dotted => context.set_dash(&[stroke_width, stroke_width * 2.0], 0.0),
     }
 }

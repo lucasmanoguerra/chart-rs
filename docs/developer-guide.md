@@ -85,9 +85,17 @@ Interaction invariants:
 - pointer leave clears visibility and snap state
 - `CrosshairMode::Magnet` snaps to nearest mapped data/candle candidate
 - `CrosshairMode::Normal` follows pointer coordinates without snapping
+- `CrosshairMode::Hidden` keeps crosshair invisible regardless of pointer movement
 - wheel delta is normalized to 120-step notches for deterministic zoom factors
 - wheel pan preserves visible-range span while shifting window deterministically
 - kinetic pan uses deterministic step integration with explicit decay tuning
+- optional fixed-edge time-scale policy can constrain navigation to full-range bounds (`fix_left_edge` / `fix_right_edge`)
+- optional interaction input gates can disable scroll/scale families and granular input paths (`handle_scroll`, `handle_scale`, `scroll_mouse_wheel`, `scroll_pressed_mouse_move`, `scroll_horz_touch_drag`, `scroll_vert_touch_drag`, `scale_mouse_wheel`, `scale_pinch`, `scale_axis_pressed_mouse_move`, `scale_axis_double_click_reset`)
+- axis-scale interaction paths are available via `axis_drag_scale_price` and `axis_double_click_reset_price_scale`, both gated by `scale_axis_*` options
+- touch-style pan input is available through `touch_drag_pan_time_visible` and respects `scroll_horz_touch_drag` / `scroll_vert_touch_drag`
+- optional time-scale navigation policy can synthesize right-margin/spacing behavior from data step estimation (`right_offset_bars` / `bar_spacing_px`)
+- optional time-scale resize policy can lock visible range under viewport width changes using deterministic anchors (`lock_visible_range_on_resize` + `Left`/`Center`/`Right`)
+- optional realtime append policy can preserve right-edge follow semantics with bar-based tolerance (`preserve_right_edge_on_append` / `right_edge_tolerance_bars`)
 
 ### `src/api`
 Main public facade (`ChartEngine`, `ChartEngineConfig`).
@@ -125,7 +133,41 @@ Key files:
 Responsibilities:
 - orchestration between core + interaction + renderer
 - time visible range controls and fit-to-data
+- bootstrap crosshair startup mode selection (`ChartEngineConfig::with_crosshair_mode`)
+- bootstrap price-scale startup mode/inversion/margins (`ChartEngineConfig::with_price_scale_*`)
+- bootstrap interaction input gates (`ChartEngineConfig::with_interaction_input_behavior`)
+- bootstrap time-scale navigation/right-offset options (`ChartEngineConfig::with_time_scale_*`)
+- bootstrap time-scale zoom options (`ChartEngineConfig::with_time_scale_scroll_zoom_behavior`, `with_time_scale_zoom_limit_behavior`)
+- bootstrap time-scale edge/resize/realtime-append options (`ChartEngineConfig::with_time_scale_edge_behavior`, `with_time_scale_resize_behavior`, `with_time_scale_realtime_append_behavior`)
+- bootstrap price-scale realtime autoscale policy (`ChartEngineConfig::with_price_scale_realtime_behavior`)
+- bootstrap axis-label formatter policies (`ChartEngineConfig::with_time_axis_label_config`, `with_price_axis_label_config`)
+- bootstrap last-price source mode policy (`ChartEngineConfig::with_last_price_source_mode`)
+- bootstrap last-price behavior policy (`ChartEngineConfig::with_last_price_behavior`)
+- bootstrap crosshair guide-line visibility policy (`ChartEngineConfig::with_crosshair_guide_line_behavior`)
+- bootstrap crosshair guide-line stroke-style policy (`ChartEngineConfig::with_crosshair_guide_line_style_behavior`)
+- bootstrap crosshair axis-label visibility policy (`ChartEngineConfig::with_crosshair_axis_label_visibility_behavior`)
+- bootstrap crosshair axis-label style policy (`ChartEngineConfig::with_crosshair_axis_label_style_behavior`)
+- bootstrap crosshair axis-label box style policy (`ChartEngineConfig::with_crosshair_axis_label_box_style_behavior`)
+- optional time-scale edge constraints for visible-range navigation (`TimeScaleEdgeBehavior`)
+- optional interaction input gating for host-controlled scroll/scale path enablement, including per-input wheel/drag/pinch and axis-scale option controls (`InteractionInputBehavior`)
+- optional price-axis drag-scale and axis-reset interaction paths (`axis_drag_scale_price`, `axis_double_click_reset_price_scale`)
+- optional time-scale navigation behavior for right-offset and spacing synthesis (`TimeScaleNavigationBehavior`)
+- optional time-scale zoom-limit behavior for bar-spacing bounds (`TimeScaleZoomLimitBehavior`)
+- optional pixel-based right-margin override with priority over bar-based right offset (`time_scale_right_offset_px`)
+- optional scroll-zoom right-edge anchoring policy (`right_bar_stays_on_scroll`)
+- optional time-scale resize behavior for viewport resize anchoring policy (`TimeScaleResizeBehavior`)
+- optional realtime append behavior for continuous tail tracking during incremental updates (`TimeScaleRealtimeAppendBehavior`)
+- optional price-scale realtime autoscale behavior on incremental updates (`PriceScaleRealtimeBehavior`)
+- explicit scroll-to-realtime command for deterministic tail reattachment (`scroll_time_to_realtime`)
+- bar-based scroll position introspection and explicit positioning (`time_scroll_position_bars`, `scroll_time_to_position_bars`)
+- realtime update semantics for incremental feeds (`update_point` / `update_candle` append-or-replace with out-of-order rejection)
+- deterministic canonicalization for full-replacement datasets (`set_data` / `set_candles`) with invalid-sample filtering, time sorting, and duplicate-timestamp replacement
+- property-test coverage for canonicalization invariants under extreme/invalid input (`tests/property_data_set_canonicalization_tests.rs`)
 - price autoscale from points/candles (default and tuned)
+- optional autoscale refresh on realtime append/update flows (`autoscale_on_data_update`)
+- optional autoscale refresh on full data replacement (`autoscale_on_data_set`)
+- optional inverted price-axis mapping (`set_price_scale_inverted`)
+- optional price-scale top/bottom whitespace margins (`set_price_scale_margin_behavior`)
 - crosshair snapping behavior
 - price scale mode switching (`Linear` / `Log`) with domain validation
 - time-axis formatter policy + locale/custom formatter injection
@@ -137,6 +179,12 @@ Responsibilities:
 - latest-price label exclusion radius to avoid overlapping price-axis labels
 - optional trend-aware last-price marker color policy (up/down/neutral)
 - configurable last-price source mode (`LatestData` or `LatestVisible`) for pan/zoom behavior parity
+- dedicated last-price behavior API (`last_price_behavior` / `set_last_price_behavior`) for line visibility, label visibility, trend-color mode, and source policy control
+- dedicated crosshair guide-line visibility API (`crosshair_guide_line_behavior` / `set_crosshair_guide_line_behavior`) for shared and per-axis line toggles
+- dedicated crosshair guide-line style API (`crosshair_guide_line_style_behavior` / `set_crosshair_guide_line_style_behavior`) for shared/per-axis color-width-style policies
+- dedicated crosshair axis-label visibility API (`crosshair_axis_label_visibility_behavior` / `set_crosshair_axis_label_visibility_behavior`) for time/price label, box, and border toggles
+- dedicated crosshair axis-label style API (`crosshair_axis_label_style_behavior` / `set_crosshair_axis_label_style_behavior`) for time/price label color, font, offset, and inset policies
+- dedicated crosshair axis-label box style API (`crosshair_axis_label_box_style_behavior` / `set_crosshair_axis_label_box_style_behavior`) for shared/per-axis box fill, border, and corner-radius policies
 - optional last-price axis label box (filled price-box) with configurable fill/text colors, border/radius, and contrast policy
 - configurable last-price label-box width policy (`FullAxis` / `FitText`) with deterministic text-width estimation, horizontal padding, and minimum width guardrails
 - configurable price-axis inset policy for right-side label padding and tick-mark extension length
@@ -245,6 +293,7 @@ Render invariants:
 - last-price label Y anchor offset is a deterministic style knob (`last_price_label_offset_y_px`)
 - last-price label right inset is a deterministic style knob (`last_price_label_padding_right_px`) for non-box mode
 - price-axis short tick-mark visibility is a deterministic style knob (`show_price_axis_tick_marks`)
+- default axis tick-mark visibility follows Lightweight Charts v5.1 baseline (`show_price_axis_tick_marks=false`, `show_time_axis_tick_marks=false`, `show_major_time_tick_marks=false`)
 - price-axis horizontal grid visibility is a deterministic style knob (`show_price_axis_grid_lines`)
 - price-axis regular-label visibility is a deterministic style knob (`show_price_axis_labels`)
 - price-axis horizontal grid style is deterministic (`price_axis_grid_line_color`, `price_axis_grid_line_width`)
@@ -262,6 +311,7 @@ Render invariants:
 - time-axis border visibility is a deterministic style knob (`show_time_axis_border`)
 - price-axis border visibility is a deterministic style knob (`show_price_axis_border`)
 - crosshair guide lines are deterministic style knobs (`crosshair_line_color`, `crosshair_line_width`, `show_crosshair_horizontal_line`, `show_crosshair_vertical_line`)
+- default crosshair guide-line stroke baseline follows Lightweight Charts v5.1 large-dashed style (`crosshair_line_style=LargeDashed`)
 - crosshair axis labels are deterministic style knobs (`crosshair_time_label_color`, `crosshair_price_label_color`, `crosshair_axis_label_font_size_px`, `show_crosshair_time_label`, `show_crosshair_price_label`)
 - crosshair axis-label text transform is deterministic per axis (`crosshair_label_prefix`, `crosshair_label_suffix`, `crosshair_time_label_prefix`, `crosshair_time_label_suffix`, `crosshair_price_label_prefix`, `crosshair_price_label_suffix`)
 - crosshair axis-label numeric precision is deterministic per axis (`crosshair_label_numeric_precision`, `crosshair_time_label_numeric_precision`, `crosshair_price_label_numeric_precision`)
@@ -283,6 +333,7 @@ Render invariants:
 - crosshair axis-label box vertical anchor is deterministic per axis (`crosshair_label_box_vertical_anchor`, `crosshair_time_label_box_vertical_anchor`, `crosshair_price_label_box_vertical_anchor`)
 - crosshair axis-label box horizontal anchor is deterministic per axis (`crosshair_label_box_horizontal_anchor`, `crosshair_time_label_box_horizontal_anchor`, `crosshair_price_label_box_horizontal_anchor`)
 - crosshair axis-label box overflow policy is deterministic per axis (`crosshair_label_box_overflow_policy`, `crosshair_time_label_box_overflow_policy`, `crosshair_price_label_box_overflow_policy`)
+- axis/crosshair/last-price label layout is section-safe: price-side labels are vertically clamped to plot bounds and time-side labels are clamped to time-axis bounds to prevent section overlap
 - crosshair axis-label box visibility priority is deterministic per axis (`crosshair_label_box_visibility_priority`, `crosshair_time_label_box_visibility_priority`, `crosshair_price_label_box_visibility_priority`)
 - crosshair axis-label box clipping margin is deterministic per axis (`crosshair_label_box_clip_margin_px`, `crosshair_time_label_box_clip_margin_px`, `crosshair_price_label_box_clip_margin_px`)
 - crosshair axis-label box stabilization step is deterministic per axis (`crosshair_label_box_stabilization_step_px`, `crosshair_time_label_box_stabilization_step_px`, `crosshair_price_label_box_stabilization_step_px`)

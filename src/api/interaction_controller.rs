@@ -5,12 +5,21 @@ use crate::interaction::{
 use crate::render::Renderer;
 
 use super::interaction_validation::validate_kinetic_pan_config;
-use super::{ChartEngine, PluginEvent};
+use super::{ChartEngine, InteractionInputBehavior, PluginEvent};
 
 impl<R: Renderer> ChartEngine<R> {
     #[must_use]
     pub fn interaction_mode(&self) -> InteractionMode {
         self.interaction.mode()
+    }
+
+    #[must_use]
+    pub fn interaction_input_behavior(&self) -> InteractionInputBehavior {
+        self.interaction_input_behavior
+    }
+
+    pub fn set_interaction_input_behavior(&mut self, behavior: InteractionInputBehavior) {
+        self.interaction_input_behavior = behavior;
     }
 
     #[must_use]
@@ -21,6 +30,9 @@ impl<R: Renderer> ChartEngine<R> {
     pub fn set_crosshair_mode(&mut self, mode: CrosshairMode) {
         self.clear_crosshair_context_formatter_caches_if_needed();
         self.interaction.set_crosshair_mode(mode);
+        if mode == CrosshairMode::Hidden {
+            self.interaction.on_pointer_leave();
+        }
     }
 
     #[must_use]
@@ -73,6 +85,7 @@ impl<R: Renderer> ChartEngine<R> {
         match self.interaction.crosshair_mode() {
             CrosshairMode::Magnet => self.interaction.set_crosshair_snap(self.snap_at_x(x)),
             CrosshairMode::Normal => self.interaction.set_crosshair_snap(None),
+            CrosshairMode::Hidden => self.interaction.on_pointer_leave(),
         }
         self.emit_plugin_event(PluginEvent::PointerMoved { x, y });
     }
@@ -84,11 +97,17 @@ impl<R: Renderer> ChartEngine<R> {
     }
 
     pub fn pan_start(&mut self) {
+        if !self.interaction_input_behavior.allows_drag_pan() {
+            return;
+        }
         self.interaction.on_pan_start();
         self.emit_plugin_event(PluginEvent::PanStarted);
     }
 
     pub fn pan_end(&mut self) {
+        if !self.interaction_input_behavior.allows_drag_pan() {
+            return;
+        }
         self.interaction.on_pan_end();
         self.emit_plugin_event(PluginEvent::PanEnded);
     }

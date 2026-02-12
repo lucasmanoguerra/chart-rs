@@ -17,8 +17,8 @@ use super::axis_ticks::{
 };
 use super::label_cache::{PriceLabelCacheKey, TimeLabelCacheKey};
 use super::layout_helpers::{
-    estimate_label_text_width_px, rects_overlap, resolve_crosshair_box_vertical_layout,
-    stabilize_position,
+    estimate_label_text_width_px, rects_overlap, resolve_axis_layout,
+    resolve_crosshair_box_vertical_layout, stabilize_position,
 };
 use super::{
     ChartEngine, CrosshairLabelBoxHorizontalAnchor, CrosshairLabelBoxOverflowPolicy,
@@ -279,8 +279,14 @@ impl<R: Renderer> ChartEngine<R> {
 
         let viewport_width = f64::from(self.viewport.width);
         let viewport_height = f64::from(self.viewport.height);
-        let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
-        let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+        let layout = resolve_axis_layout(
+            viewport_width,
+            viewport_height,
+            style.price_axis_width_px,
+            style.time_axis_height_px,
+        );
+        let plot_right = layout.plot_right;
+        let plot_bottom = layout.plot_bottom;
         let price_axis_label_anchor_x = (viewport_width - style.price_axis_label_padding_right_px)
             .clamp(plot_right, viewport_width);
         let last_price_label_anchor_x = (viewport_width - style.last_price_label_padding_right_px)
@@ -363,14 +369,20 @@ impl<R: Renderer> ChartEngine<R> {
                 .min((viewport_height - label_font_size_px).max(0.0));
             let text = self.format_time_axis_label(time, visible_span_abs);
             if style.show_time_axis_labels && (!is_major_tick || style.show_major_time_labels) {
-                frame = frame.with_text(TextPrimitive::new(
-                    text,
-                    px,
-                    time_label_y,
-                    label_font_size_px,
-                    label_color,
-                    TextHAlign::Center,
-                ));
+                let estimated_width = estimate_label_text_width_px(&text, label_font_size_px);
+                if estimated_width <= (plot_right - 2.0).max(0.0) {
+                    let half_width = (estimated_width * 0.5).clamp(0.0, plot_right * 0.5);
+                    let time_label_x =
+                        px.clamp(half_width, (plot_right - half_width).max(half_width));
+                    frame = frame.with_text(TextPrimitive::new(
+                        text,
+                        time_label_x,
+                        time_label_y,
+                        label_font_size_px,
+                        label_color,
+                        TextHAlign::Center,
+                    ));
+                }
             }
             if !is_major_tick || style.show_major_time_grid_lines {
                 frame = frame.with_line(LinePrimitive::new(
@@ -464,10 +476,14 @@ impl<R: Renderer> ChartEngine<R> {
             let text =
                 self.format_price_axis_label(display_price, display_tick_step_abs, display_suffix);
             if style.show_price_axis_labels {
+                let price_label_y = (py - style.price_axis_label_offset_y_px).clamp(
+                    0.0,
+                    (plot_bottom - style.price_axis_label_font_size_px).max(0.0),
+                );
                 frame = frame.with_text(TextPrimitive::new(
                     text,
                     price_axis_label_anchor_x,
-                    (py - style.price_axis_label_offset_y_px).max(0.0),
+                    price_label_y,
                     style.price_axis_label_font_size_px,
                     price_label_color,
                     TextHAlign::Right,
@@ -518,7 +534,10 @@ impl<R: Renderer> ChartEngine<R> {
                     display_tick_step_abs,
                     display_suffix,
                 );
-                let text_y = (py - style.last_price_label_offset_y_px).max(0.0);
+                let mut text_y = (py - style.last_price_label_offset_y_px).clamp(
+                    0.0,
+                    (plot_bottom - style.last_price_label_font_size_px).max(0.0),
+                );
                 let box_fill_color =
                     self.resolve_last_price_label_box_fill_color(marker_label_color);
                 let label_text_color = self
@@ -528,6 +547,12 @@ impl<R: Renderer> ChartEngine<R> {
                 let default_text_anchor_x = last_price_label_anchor_x;
                 let mut label_text_anchor_x = default_text_anchor_x;
                 if style.show_last_price_label_box {
+                    let min_text_y = style.last_price_label_box_padding_y_px.max(0.0);
+                    let max_text_y = (plot_bottom
+                        - style.last_price_label_font_size_px
+                        - style.last_price_label_box_padding_y_px.max(0.0))
+                    .max(min_text_y);
+                    text_y = text_y.clamp(min_text_y, max_text_y);
                     let estimated_text_width =
                         estimate_label_text_width_px(&text, style.last_price_label_font_size_px);
                     // Keep width selection deterministic and backend-independent so snapshots
@@ -540,12 +565,12 @@ impl<R: Renderer> ChartEngine<R> {
                     };
                     let box_width = requested_box_width.clamp(0.0, axis_panel_width);
                     let box_left = (viewport_width - box_width).max(axis_panel_left);
-                    let box_top = (text_y - style.last_price_label_box_padding_y_px)
-                        .clamp(0.0, viewport_height);
+                    let box_top =
+                        (text_y - style.last_price_label_box_padding_y_px.max(0.0)).max(0.0);
                     let box_bottom = (text_y
                         + style.last_price_label_font_size_px
-                        + style.last_price_label_box_padding_y_px)
-                        .clamp(0.0, viewport_height);
+                        + style.last_price_label_box_padding_y_px.max(0.0))
+                    .min(plot_bottom);
                     let box_height = (box_bottom - box_top).max(0.0);
                     label_text_anchor_x = (viewport_width
                         - style.last_price_label_box_padding_x_px)
@@ -809,7 +834,7 @@ impl<R: Renderer> ChartEngine<R> {
                             time_clip_min_y,
                             time_clip_max_y,
                             time_box_vertical_anchor,
-                            time_box_overflow_policy == CrosshairLabelBoxOverflowPolicy::ClipToAxis,
+                            true,
                         );
                     time_label_y = resolved_time_label_y;
                     let box_height = (box_bottom - box_top).max(0.0);
@@ -905,8 +930,11 @@ impl<R: Renderer> ChartEngine<R> {
                         .crosshair_price_label_suffix
                         .unwrap_or(style.crosshair_label_suffix),
                 );
-                let price_label_anchor_y =
-                    (crosshair_y - style.crosshair_price_label_offset_y_px).max(0.0);
+                let price_label_anchor_y = (crosshair_y - style.crosshair_price_label_offset_y_px)
+                    .clamp(
+                        0.0,
+                        (plot_bottom - style.crosshair_price_label_font_size_px).max(0.0),
+                    );
                 let price_stabilization_step =
                     if style.crosshair_price_label_box_stabilization_step_px > 0.0 {
                         style.crosshair_price_label_box_stabilization_step_px
@@ -914,7 +942,10 @@ impl<R: Renderer> ChartEngine<R> {
                         style.crosshair_label_box_stabilization_step_px
                     };
                 let price_label_anchor_y =
-                    stabilize_position(price_label_anchor_y, price_stabilization_step).max(0.0);
+                    stabilize_position(price_label_anchor_y, price_stabilization_step).clamp(
+                        0.0,
+                        (plot_bottom - style.crosshair_price_label_font_size_px).max(0.0),
+                    );
                 let mut text_y = price_label_anchor_y;
                 let price_label_text_color = if style.show_crosshair_price_label_box {
                     self.resolve_crosshair_label_box_text_color(
@@ -981,16 +1012,16 @@ impl<R: Renderer> ChartEngine<R> {
                     let price_clip_min_y = if price_box_overflow_policy
                         == CrosshairLabelBoxOverflowPolicy::ClipToAxis
                     {
-                        price_box_clip_margin.min(viewport_height * 0.5)
+                        price_box_clip_margin.min(plot_bottom * 0.5)
                     } else {
                         0.0
                     };
                     let price_clip_max_y = if price_box_overflow_policy
                         == CrosshairLabelBoxOverflowPolicy::ClipToAxis
                     {
-                        (viewport_height - price_box_clip_margin).max(price_clip_min_y)
+                        (plot_bottom - price_box_clip_margin).max(price_clip_min_y)
                     } else {
-                        viewport_height
+                        plot_bottom
                     };
                     let requested_box_width = match price_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => axis_panel_width,
@@ -1032,8 +1063,7 @@ impl<R: Renderer> ChartEngine<R> {
                             price_clip_min_y,
                             price_clip_max_y,
                             price_box_vertical_anchor,
-                            price_box_overflow_policy
-                                == CrosshairLabelBoxOverflowPolicy::ClipToAxis,
+                            true,
                         );
                     text_y = resolved_price_label_y;
                     let box_height = (box_bottom - box_top).max(0.0);

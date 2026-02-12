@@ -59,6 +59,12 @@ pub struct PriceScale {
     domain_start: f64,
     domain_end: f64,
     mode: PriceScaleMode,
+    #[serde(default)]
+    inverted: bool,
+    #[serde(default)]
+    top_margin_ratio: f64,
+    #[serde(default)]
+    bottom_margin_ratio: f64,
 }
 
 impl PriceScale {
@@ -87,6 +93,9 @@ impl PriceScale {
             domain_start: price_min,
             domain_end: price_max,
             mode,
+            inverted: false,
+            top_margin_ratio: 0.0,
+            bottom_margin_ratio: 0.0,
         })
     }
 
@@ -171,9 +180,42 @@ impl PriceScale {
         self.mode
     }
 
+    #[must_use]
+    /// Returns whether the pixel mapping direction is inverted.
+    pub fn is_inverted(self) -> bool {
+        self.inverted
+    }
+
+    #[must_use]
+    /// Returns a copy with updated inverted-axis behavior.
+    pub fn with_inverted(mut self, inverted: bool) -> Self {
+        self.inverted = inverted;
+        self
+    }
+
+    #[must_use]
+    pub fn margins(self) -> (f64, f64) {
+        (self.top_margin_ratio, self.bottom_margin_ratio)
+    }
+
+    pub fn with_margins(
+        mut self,
+        top_margin_ratio: f64,
+        bottom_margin_ratio: f64,
+    ) -> ChartResult<Self> {
+        validate_scale_margins(top_margin_ratio, bottom_margin_ratio)?;
+        self.top_margin_ratio = top_margin_ratio;
+        self.bottom_margin_ratio = bottom_margin_ratio;
+        Ok(self)
+    }
+
     /// Rebuilds this scale using the same raw domain and a different mapping mode.
     pub fn with_mode(self, mode: PriceScaleMode) -> ChartResult<Self> {
-        Self::new_with_mode(self.domain_start, self.domain_end, mode)
+        let mut rebuilt = Self::new_with_mode(self.domain_start, self.domain_end, mode)?;
+        rebuilt.inverted = self.inverted;
+        rebuilt.top_margin_ratio = self.top_margin_ratio;
+        rebuilt.bottom_margin_ratio = self.bottom_margin_ratio;
+        Ok(rebuilt)
     }
 
     /// Builds axis ticks in the active transformed domain, then maps back to raw prices.
@@ -217,14 +259,20 @@ impl PriceScale {
             });
         }
 
-        // Price is mapped on the vertical axis, so we reuse LinearScale with
-        // `height` as the logical width and then invert the direction.
-        let axis_viewport = Viewport::new(viewport.height, 1);
         let transformed_price = to_scale_domain(price, self.mode)?;
-        let y_from_bottom = self
-            .linear
-            .domain_to_pixel(transformed_price, axis_viewport)?;
-        Ok(f64::from(viewport.height) - y_from_bottom)
+        let (top_px, bottom_px, plot_height) = resolve_price_axis_margins_px(
+            viewport,
+            self.top_margin_ratio,
+            self.bottom_margin_ratio,
+        )?;
+        let (domain_start, domain_end) = self.linear.domain();
+        let normalized = (transformed_price - domain_start) / (domain_end - domain_start);
+        let y_from_bottom = normalized * plot_height;
+        if self.inverted {
+            Ok(top_px + y_from_bottom)
+        } else {
+            Ok(f64::from(viewport.height) - bottom_px - y_from_bottom)
+        }
     }
 
     pub fn pixel_to_price(self, pixel: f64, viewport: Viewport) -> ChartResult<f64> {
@@ -239,9 +287,19 @@ impl PriceScale {
             return Err(ChartError::InvalidData("pixel must be finite".to_owned()));
         }
 
-        let axis_viewport = Viewport::new(viewport.height, 1);
-        let y_from_bottom = f64::from(viewport.height) - pixel;
-        let transformed_price = self.linear.pixel_to_domain(y_from_bottom, axis_viewport)?;
+        let (top_px, bottom_px, plot_height) = resolve_price_axis_margins_px(
+            viewport,
+            self.top_margin_ratio,
+            self.bottom_margin_ratio,
+        )?;
+        let y_from_bottom = if self.inverted {
+            pixel - top_px
+        } else {
+            (f64::from(viewport.height) - bottom_px) - pixel
+        };
+        let (domain_start, domain_end) = self.linear.domain();
+        let normalized = y_from_bottom / plot_height;
+        let transformed_price = domain_start + normalized * (domain_end - domain_start);
         from_scale_domain(transformed_price, self.mode)
     }
 
@@ -344,6 +402,42 @@ fn normalize_range(start: f64, end: f64, min_span: f64) -> ChartResult<(f64, f64
     }
 
     Ok((start.min(end), start.max(end)))
+}
+
+fn validate_scale_margins(top_margin_ratio: f64, bottom_margin_ratio: f64) -> ChartResult<()> {
+    if !top_margin_ratio.is_finite()
+        || !bottom_margin_ratio.is_finite()
+        || top_margin_ratio < 0.0
+        || bottom_margin_ratio < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "price scale margins must be finite and >= 0".to_owned(),
+        ));
+    }
+    if top_margin_ratio + bottom_margin_ratio >= 1.0 {
+        return Err(ChartError::InvalidData(
+            "price scale margins must sum to < 1".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+fn resolve_price_axis_margins_px(
+    viewport: Viewport,
+    top_margin_ratio: f64,
+    bottom_margin_ratio: f64,
+) -> ChartResult<(f64, f64, f64)> {
+    validate_scale_margins(top_margin_ratio, bottom_margin_ratio)?;
+    let height = f64::from(viewport.height);
+    let top_px = height * top_margin_ratio;
+    let bottom_px = height * bottom_margin_ratio;
+    let plot_height = height - top_px - bottom_px;
+    if !plot_height.is_finite() || plot_height <= 0.0 {
+        return Err(ChartError::InvalidData(
+            "price scale effective plot height must be finite and > 0".to_owned(),
+        ));
+    }
+    Ok((top_px, bottom_px, plot_height))
 }
 
 fn log_ladder_ticks(start: f64, end: f64, tick_count: usize) -> ChartResult<Vec<f64>> {

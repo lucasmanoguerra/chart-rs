@@ -1,14 +1,25 @@
 use chart_rs::ChartError;
-use chart_rs::api::{ChartEngine, ChartEngineConfig};
+use chart_rs::api::{ChartEngine, ChartEngineConfig, TimeScaleNavigationBehavior};
 use chart_rs::core::Viewport;
 use chart_rs::render::NullRenderer;
 
+fn build_engine(time_start: f64, time_end: f64) -> ChartEngine<NullRenderer> {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(1000, 500), time_start, time_end)
+        .with_price_domain(0.0, 1.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine
+        .set_time_scale_navigation_behavior(TimeScaleNavigationBehavior {
+            right_offset_bars: 0.0,
+            bar_spacing_px: None,
+        })
+        .expect("disable default spacing navigation");
+    engine
+}
+
 #[test]
 fn pan_time_visible_by_pixels_translates_visible_range() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine(0.0, 100.0);
 
     engine
         .pan_time_visible_by_pixels(100.0)
@@ -27,10 +38,7 @@ fn pan_time_visible_by_pixels_translates_visible_range() {
 
 #[test]
 fn zoom_time_visible_around_pixel_keeps_anchor_stable() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine(0.0, 100.0);
 
     let anchor_px = 250.0;
     let anchor_time_before = engine.map_pixel_to_x(anchor_px).expect("anchor time");
@@ -49,10 +57,7 @@ fn zoom_time_visible_around_pixel_keeps_anchor_stable() {
 
 #[test]
 fn zoom_time_visible_respects_min_span() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 10.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine(0.0, 10.0);
 
     engine
         .zoom_time_visible_around_time(10_000.0, 5.0, 4.0)
@@ -64,10 +69,7 @@ fn zoom_time_visible_respects_min_span() {
 
 #[test]
 fn zoom_time_visible_rejects_invalid_factor() {
-    let renderer = NullRenderer::default();
-    let config =
-        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 10.0).with_price_domain(0.0, 1.0);
-    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    let mut engine = build_engine(0.0, 10.0);
 
     let err = engine
         .zoom_time_visible_around_time(0.0, 5.0, 1.0)

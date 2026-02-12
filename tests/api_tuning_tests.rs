@@ -1,4 +1,4 @@
-use chart_rs::api::{ChartEngine, ChartEngineConfig};
+use chart_rs::api::{ChartEngine, ChartEngineConfig, TimeScaleNavigationBehavior};
 use chart_rs::core::{DataPoint, OhlcBar, PriceScaleTuning, TimeScaleTuning, Viewport};
 use chart_rs::render::NullRenderer;
 
@@ -8,6 +8,12 @@ fn fit_time_to_data_uses_mixed_sources() {
     let config =
         ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 1.0).with_price_domain(0.0, 1.0);
     let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine
+        .set_time_scale_navigation_behavior(TimeScaleNavigationBehavior {
+            right_offset_bars: 0.0,
+            bar_spacing_px: None,
+        })
+        .expect("disable default spacing navigation");
 
     engine.set_data(vec![DataPoint::new(10.0, 1.0), DataPoint::new(20.0, 2.0)]);
     engine.set_candles(vec![
@@ -37,6 +43,12 @@ fn set_and_reset_time_visible_range() {
     let config =
         ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0).with_price_domain(0.0, 1.0);
     let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine
+        .set_time_scale_navigation_behavior(TimeScaleNavigationBehavior {
+            right_offset_bars: 0.0,
+            bar_spacing_px: None,
+        })
+        .expect("disable default spacing navigation");
 
     engine
         .set_time_visible_range(20.0, 40.0)

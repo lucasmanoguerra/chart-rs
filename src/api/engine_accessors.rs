@@ -42,7 +42,15 @@ impl<R: Renderer> ChartEngine<R> {
                 height: viewport.height,
             });
         }
+        let previous_width = self.viewport.width;
         self.viewport = viewport;
+
+        let mut changed = self.apply_time_scale_resize_behavior(previous_width)?;
+        changed |= self.apply_time_scale_zoom_limit_behavior()?;
+        changed |= self.apply_time_scale_edge_behavior()?;
+        if changed {
+            self.emit_visible_range_changed();
+        }
         Ok(())
     }
 }

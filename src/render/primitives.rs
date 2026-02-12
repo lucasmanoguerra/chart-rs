@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 use crate::error::{ChartError, ChartResult};
 
 /// RGBA color in normalized 0..=1 channel values.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Color {
     pub red: f64,
     pub green: f64,
@@ -43,11 +45,12 @@ impl Color {
 }
 
 /// Stroke pattern for line primitives.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum LineStrokeStyle {
     #[default]
     Solid,
     Dashed,
+    LargeDashed,
     Dotted,
 }
 
