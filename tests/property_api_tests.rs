@@ -352,7 +352,7 @@ proptest! {
 
         let first = engine.snapshot(6.0).expect("first snapshot");
         let second = engine.snapshot(6.0).expect("second snapshot");
-        prop_assert_eq!(first, second);
+        prop_assert_eq!(&first, &second);
 
         prop_assert_eq!(
             first.crosshair_formatter.time_override_mode,
