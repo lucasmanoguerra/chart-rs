@@ -227,6 +227,35 @@ fn price_axis_tick_marks_can_be_hidden() {
 }
 
 #[test]
+fn price_axis_grid_lines_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        show_price_axis_grid_lines: false,
+        grid_line_color: Color::rgb(0.91, 0.23, 0.21),
+        last_price_line_color: Color::rgb(0.11, 0.74, 0.31),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.grid_line_color
+            && line.stroke_width == style.grid_line_width
+            && (line.y1 - line.y2).abs() <= 1e-9
+            && (line.x1 - 0.0).abs() <= 1e-9
+            && (line.x2 - plot_right).abs() <= 1e-9
+    }));
+}
+
+#[test]
 fn last_price_label_padding_right_is_independent_from_axis_label_padding() {
     let renderer = NullRenderer::default();
     let config =

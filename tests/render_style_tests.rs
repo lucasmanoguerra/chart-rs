@@ -65,6 +65,7 @@ fn custom_render_style_is_applied_to_frame() {
         price_axis_width_px: 84.0,
         time_axis_height_px: 28.0,
         show_price_axis_tick_marks: true,
+        show_price_axis_grid_lines: true,
         price_axis_label_padding_right_px: 7.0,
         price_axis_tick_mark_length_px: 8.0,
         show_last_price_line: true,
