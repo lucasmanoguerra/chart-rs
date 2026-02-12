@@ -62,6 +62,9 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_time_label_suffix: Some(":TT"),
         crosshair_price_label_prefix: Some("P:"),
         crosshair_price_label_suffix: Some(":PP"),
+        crosshair_label_numeric_precision: Some(2),
+        crosshair_time_label_numeric_precision: Some(3),
+        crosshair_price_label_numeric_precision: Some(4),
         crosshair_label_box_color: Color::rgb(0.92, 0.95, 0.98),
         crosshair_time_label_box_color: Some(Color::rgb(0.93, 0.86, 0.21)),
         crosshair_price_label_box_color: Some(Color::rgb(0.24, 0.41, 0.89)),
@@ -572,6 +575,54 @@ fn invalid_crosshair_price_label_color_is_rejected() {
 
     let mut style = engine.render_style();
     style.crosshair_price_label_color = Color::rgb(1.1, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_label_numeric_precision_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_label_numeric_precision = Some(13);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_time_label_numeric_precision_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_time_label_numeric_precision = Some(13);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_price_label_numeric_precision_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_price_label_numeric_precision = Some(13);
 
     let err = engine
         .set_render_style(style)

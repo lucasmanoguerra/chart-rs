@@ -2003,6 +2003,106 @@ fn crosshair_axis_label_text_transform_supports_per_axis_overrides() {
 }
 
 #[test]
+fn crosshair_axis_label_numeric_precision_supports_shared_fallback() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 4 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis config");
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.18),
+        crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+        crosshair_label_numeric_precision: Some(1),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let time_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    let price_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_price_label_color)
+        .expect("crosshair price label");
+
+    let time_fraction = time_label.text.split('.').nth(1).expect("time decimals");
+    let price_fraction = price_label
+        .text
+        .trim_end_matches('%')
+        .split('.')
+        .nth(1)
+        .expect("price decimals");
+    assert_eq!(time_fraction.len(), 1);
+    assert_eq!(price_fraction.len(), 1);
+}
+
+#[test]
+fn crosshair_axis_label_numeric_precision_supports_per_axis_overrides() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 4 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis config");
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.18),
+        crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+        crosshair_label_numeric_precision: Some(1),
+        crosshair_time_label_numeric_precision: Some(3),
+        crosshair_price_label_numeric_precision: Some(4),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let time_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    let price_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_price_label_color)
+        .expect("crosshair price label");
+
+    let time_fraction = time_label.text.split('.').nth(1).expect("time decimals");
+    let price_fraction = price_label
+        .text
+        .trim_end_matches('%')
+        .split('.')
+        .nth(1)
+        .expect("price decimals");
+    assert_eq!(time_fraction.len(), 3);
+    assert_eq!(price_fraction.len(), 4);
+}
+
+#[test]
 fn crosshair_time_formatter_override_uses_dedicated_cache_stats() {
     let renderer = NullRenderer::default();
     let config =

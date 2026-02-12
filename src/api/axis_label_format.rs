@@ -107,6 +107,18 @@ pub(super) fn format_time_axis_label(
     }
 }
 
+pub(super) fn format_time_axis_label_with_precision(
+    logical_time: f64,
+    config: TimeAxisLabelConfig,
+    visible_span_abs: f64,
+    precision: u8,
+) -> String {
+    if matches!(config.policy, TimeAxisLabelPolicy::LogicalDecimal { .. }) {
+        return format_axis_decimal(logical_time, usize::from(precision), config.locale);
+    }
+    format_time_axis_label(logical_time, config, visible_span_abs)
+}
+
 fn resolve_session_time_label_pattern(
     pattern: TimeLabelPattern,
     session: Option<TimeAxisSessionConfig>,
@@ -255,6 +267,21 @@ pub(super) fn format_price_axis_label(
             format_axis_decimal(value, precision, config.locale)
         }
     }
+}
+
+pub(super) fn format_price_axis_label_with_precision(
+    value: f64,
+    config: PriceAxisLabelConfig,
+    tick_step_abs: f64,
+    precision: u8,
+) -> String {
+    if !value.is_finite() {
+        return "nan".to_owned();
+    }
+    if precision <= 12 {
+        return format_axis_decimal(value, usize::from(precision), config.locale);
+    }
+    format_price_axis_label(value, config, tick_step_abs)
 }
 
 fn normalize_step_for_precision(step_abs: f64) -> f64 {

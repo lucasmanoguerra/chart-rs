@@ -104,6 +104,12 @@ pub struct RenderStyle {
     pub crosshair_price_label_prefix: Option<&'static str>,
     /// Optional dedicated suffix for crosshair price-axis label text.
     pub crosshair_price_label_suffix: Option<&'static str>,
+    /// Shared numeric precision override for crosshair axis labels when per-axis override is absent.
+    pub crosshair_label_numeric_precision: Option<u8>,
+    /// Optional dedicated numeric precision override for crosshair time-axis labels.
+    pub crosshair_time_label_numeric_precision: Option<u8>,
+    /// Optional dedicated numeric precision override for crosshair price-axis labels.
+    pub crosshair_price_label_numeric_precision: Option<u8>,
     pub crosshair_label_box_color: Color,
     pub crosshair_time_label_box_color: Option<Color>,
     pub crosshair_price_label_box_color: Option<Color>,
@@ -305,6 +311,9 @@ impl Default for RenderStyle {
             crosshair_time_label_suffix: None,
             crosshair_price_label_prefix: None,
             crosshair_price_label_suffix: None,
+            crosshair_label_numeric_precision: None,
+            crosshair_time_label_numeric_precision: None,
+            crosshair_price_label_numeric_precision: None,
             crosshair_label_box_color: Color::rgb(0.94, 0.96, 0.99),
             crosshair_time_label_box_color: None,
             crosshair_price_label_box_color: None,

@@ -2,7 +2,7 @@ use chart_rs::api::{
     ChartEngine, ChartEngineConfig, CrosshairLabelBoxHorizontalAnchor,
     CrosshairLabelBoxOverflowPolicy, CrosshairLabelBoxVerticalAnchor,
     CrosshairLabelBoxVisibilityPriority, CrosshairLabelBoxWidthMode, CrosshairLabelBoxZOrderPolicy,
-    CrosshairMode, RenderStyle,
+    CrosshairMode, RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy,
 };
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, LineStrokeStyle, NullRenderer, TextHAlign};
@@ -324,6 +324,94 @@ proptest! {
         } else {
             prop_assert!(price_text.starts_with("S:") && price_text.ends_with(":S"));
         }
+    }
+
+    #[test]
+    fn crosshair_axis_label_numeric_precision_is_deterministic_per_axis(
+        override_time in any::<bool>(),
+        override_price in any::<bool>(),
+        shared_precision in 0u8..=6u8,
+        time_precision in 0u8..=6u8,
+        price_precision in 0u8..=6u8,
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine
+            .set_time_axis_label_config(TimeAxisLabelConfig {
+                policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 4 },
+                ..TimeAxisLabelConfig::default()
+            })
+            .expect("set time-axis config");
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let style = RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            crosshair_time_label_color: Color::rgb(0.88, 0.22, 0.19),
+            crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+            crosshair_label_numeric_precision: Some(shared_precision),
+            crosshair_time_label_numeric_precision: if override_time {
+                Some(time_precision)
+            } else {
+                None
+            },
+            crosshair_price_label_numeric_precision: if override_price {
+                Some(price_precision)
+            } else {
+                None
+            },
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        engine.pointer_move(640.0, 360.0);
+
+        let first = engine.build_render_frame().expect("first frame");
+        let second = engine.build_render_frame().expect("second frame");
+        prop_assert_eq!(first, second);
+
+        let time_text = first
+            .texts
+            .iter()
+            .find(|text| text.color == style.crosshair_time_label_color)
+            .expect("crosshair time text")
+            .text
+            .as_str();
+        let price_text = first
+            .texts
+            .iter()
+            .find(|text| text.color == style.crosshair_price_label_color)
+            .expect("crosshair price text")
+            .text
+            .trim_end_matches('%');
+        let expected_time_precision = if override_time {
+            time_precision
+        } else {
+            shared_precision
+        };
+        let expected_price_precision = if override_price {
+            price_precision
+        } else {
+            shared_precision
+        };
+
+        let time_fraction = time_text
+            .split('.')
+            .nth(1)
+            .expect("crosshair time decimals must exist");
+        let price_fraction = price_text
+            .split('.')
+            .nth(1)
+            .expect("crosshair price decimals must exist");
+        prop_assert_eq!(time_fraction.len(), usize::from(expected_time_precision));
+        prop_assert_eq!(price_fraction.len(), usize::from(expected_price_precision));
     }
 
     #[test]

@@ -117,6 +117,28 @@ pub(super) fn validate_render_style(style: RenderStyle) -> ChartResult<RenderSty
     }
     style.crosshair_time_label_color.validate()?;
     style.crosshair_price_label_color.validate()?;
+    for (name, precision) in [
+        (
+            "crosshair_label_numeric_precision",
+            style.crosshair_label_numeric_precision,
+        ),
+        (
+            "crosshair_time_label_numeric_precision",
+            style.crosshair_time_label_numeric_precision,
+        ),
+        (
+            "crosshair_price_label_numeric_precision",
+            style.crosshair_price_label_numeric_precision,
+        ),
+    ] {
+        if let Some(precision) = precision {
+            if precision > 12 {
+                return Err(ChartError::InvalidData(format!(
+                    "render style `{name}` must be <= 12"
+                )));
+            }
+        }
+    }
     style.crosshair_label_box_color.validate()?;
     if let Some(color) = style.crosshair_time_label_box_color {
         color.validate()?;

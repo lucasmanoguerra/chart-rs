@@ -5,9 +5,10 @@ use crate::render::{
 };
 
 use super::axis_label_format::{
-    format_price_axis_label, format_time_axis_label, is_major_time_tick,
-    map_price_step_to_display_value, map_price_to_display_value, price_display_mode_suffix,
-    quantize_logical_time_millis, quantize_price_label_value,
+    format_price_axis_label, format_price_axis_label_with_precision, format_time_axis_label,
+    format_time_axis_label_with_precision, is_major_time_tick, map_price_step_to_display_value,
+    map_price_to_display_value, price_display_mode_suffix, quantize_logical_time_millis,
+    quantize_price_label_value,
 };
 use super::axis_ticks::{
     AXIS_PRICE_MIN_SPACING_PX, AXIS_PRICE_TARGET_SPACING_PX, AXIS_TIME_MIN_SPACING_PX,
@@ -91,7 +92,12 @@ impl<R: Renderer> ChartEngine<R> {
         text
     }
 
-    fn format_crosshair_time_axis_label(&self, logical_time: f64, visible_span_abs: f64) -> String {
+    fn format_crosshair_time_axis_label(
+        &self,
+        logical_time: f64,
+        visible_span_abs: f64,
+        precision_override: Option<u8>,
+    ) -> String {
         if let Some(formatter) = &self.crosshair_time_label_formatter {
             let key = TimeLabelCacheKey {
                 profile: super::label_cache::TimeLabelCacheProfile::Custom {
@@ -107,6 +113,13 @@ impl<R: Renderer> ChartEngine<R> {
                 .borrow_mut()
                 .insert(key, value.clone());
             value
+        } else if let Some(precision) = precision_override {
+            format_time_axis_label_with_precision(
+                logical_time,
+                self.time_axis_label_config,
+                visible_span_abs,
+                precision,
+            )
         } else {
             self.format_time_axis_label(logical_time, visible_span_abs)
         }
@@ -117,6 +130,7 @@ impl<R: Renderer> ChartEngine<R> {
         display_price: f64,
         tick_step_abs: f64,
         mode_suffix: &str,
+        precision_override: Option<u8>,
     ) -> String {
         if let Some(formatter) = &self.crosshair_price_label_formatter {
             let key = PriceLabelCacheKey {
@@ -138,6 +152,17 @@ impl<R: Renderer> ChartEngine<R> {
                 .borrow_mut()
                 .insert(key, value.clone());
             value
+        } else if let Some(precision) = precision_override {
+            let mut text = format_price_axis_label_with_precision(
+                display_price,
+                self.price_axis_label_config,
+                tick_step_abs,
+                precision,
+            );
+            if !mode_suffix.is_empty() {
+                text.push_str(mode_suffix);
+            }
+            text
         } else {
             self.format_price_axis_label(display_price, tick_step_abs, mode_suffix)
         }
@@ -571,8 +596,15 @@ impl<R: Renderer> ChartEngine<R> {
                     );
                 let mut time_text_x = crosshair_time_label_x;
                 let mut time_text_h_align = TextHAlign::Center;
+                let time_label_precision = style
+                    .crosshair_time_label_numeric_precision
+                    .or(style.crosshair_label_numeric_precision);
                 let text = Self::apply_crosshair_label_text_transform(
-                    self.format_crosshair_time_axis_label(crosshair_time, visible_span_abs),
+                    self.format_crosshair_time_axis_label(
+                        crosshair_time,
+                        visible_span_abs,
+                        time_label_precision,
+                    ),
                     style
                         .crosshair_time_label_prefix
                         .unwrap_or(style.crosshair_label_prefix),
@@ -763,11 +795,15 @@ impl<R: Renderer> ChartEngine<R> {
                     self.price_axis_label_config.display_mode,
                     fallback_display_base_price,
                 );
+                let price_label_precision = style
+                    .crosshair_price_label_numeric_precision
+                    .or(style.crosshair_label_numeric_precision);
                 let text = Self::apply_crosshair_label_text_transform(
                     self.format_crosshair_price_axis_label(
                         display_price,
                         display_tick_step_abs,
                         display_suffix,
+                        price_label_precision,
                     ),
                     style
                         .crosshair_price_label_prefix
