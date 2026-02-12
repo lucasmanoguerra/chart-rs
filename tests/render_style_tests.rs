@@ -47,6 +47,7 @@ fn custom_render_style_is_applied_to_frame() {
         axis_border_color: Color::rgb(0.2, 0.2, 0.2),
         price_axis_tick_mark_color: Color::rgb(0.7, 0.2, 0.5),
         time_axis_tick_mark_color: Color::rgb(0.2, 0.6, 0.85),
+        time_axis_label_color: Color::rgb(0.85, 0.24, 0.20),
         axis_label_color: Color::rgb(0.0, 0.0, 0.0),
         last_price_line_color: Color::rgb(0.2, 0.2, 0.8),
         last_price_label_color: Color::rgb(0.2, 0.2, 0.8),
@@ -145,6 +146,10 @@ fn custom_render_style_is_applied_to_frame() {
             && (line.y1 - plot_bottom).abs() <= 1e-9
             && line.y2 > line.y1
     }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == chart_rs::render::TextHAlign::Center
+            && text.color == custom_style.time_axis_label_color
+    }));
 }
 
 #[test]
@@ -220,6 +225,22 @@ fn invalid_time_axis_tick_mark_color_is_rejected() {
 
     let mut style = engine.render_style();
     style.time_axis_tick_mark_color = Color::rgb(1.1, 0.2, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_time_axis_label_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_label_color = Color::rgb(1.1, 0.2, 0.2);
 
     let err = engine
         .set_render_style(style)

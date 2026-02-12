@@ -252,6 +252,7 @@ pub struct RenderStyle {
     pub axis_border_color: Color,
     pub price_axis_tick_mark_color: Color,
     pub time_axis_tick_mark_color: Color,
+    pub time_axis_label_color: Color,
     pub axis_label_color: Color,
     pub last_price_line_color: Color,
     pub last_price_label_color: Color,
@@ -337,6 +338,7 @@ impl Default for RenderStyle {
             axis_border_color: Color::rgb(0.82, 0.84, 0.88),
             price_axis_tick_mark_color: Color::rgb(0.82, 0.84, 0.88),
             time_axis_tick_mark_color: Color::rgb(0.82, 0.84, 0.88),
+            time_axis_label_color: Color::rgb(0.10, 0.12, 0.16),
             axis_label_color: Color::rgb(0.10, 0.12, 0.16),
             last_price_line_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_color: Color::rgb(0.16, 0.38, 1.0),
@@ -1827,7 +1829,8 @@ impl<R: Renderer> ChartEngine<R> {
         let price_axis_tick_mark_end_x =
             (plot_right + style.price_axis_tick_mark_length_px).clamp(plot_right, viewport_width);
         let axis_color = style.axis_border_color;
-        let label_color = style.axis_label_color;
+        let time_label_color = style.time_axis_label_color;
+        let price_label_color = style.axis_label_color;
         let time_tick_count =
             axis_tick_target_count(plot_right, AXIS_TIME_TARGET_SPACING_PX, 2, 12);
         let price_tick_count =
@@ -1884,7 +1887,7 @@ impl<R: Renderer> ChartEngine<R> {
                     px,
                     time_label_y,
                     label_font_size_px,
-                    label_color,
+                    time_label_color,
                     TextHAlign::Center,
                 ));
             }
@@ -1981,7 +1984,7 @@ impl<R: Renderer> ChartEngine<R> {
                     price_axis_label_anchor_x,
                     (py - style.price_axis_label_offset_y_px).max(0.0),
                     style.price_axis_label_font_size_px,
-                    label_color,
+                    price_label_color,
                     TextHAlign::Right,
                 ));
             }
@@ -2359,6 +2362,7 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.axis_border_color.validate()?;
     style.price_axis_tick_mark_color.validate()?;
     style.time_axis_tick_mark_color.validate()?;
+    style.time_axis_label_color.validate()?;
     style.axis_label_color.validate()?;
     style.last_price_line_color.validate()?;
     style.last_price_label_color.validate()?;

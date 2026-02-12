@@ -120,6 +120,7 @@ Responsibilities:
 - configurable time-axis regular-label visibility policy (show/hide non-major time labels)
 - configurable time-axis short tick-mark visibility policy (show/hide vertical axis marks)
 - configurable time-axis short tick-mark style policy (dedicated color/width independent from axis border)
+- configurable time-axis label color policy (dedicated label color independent from price-axis labels)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -166,6 +167,7 @@ Render invariants:
 - time-axis regular-label visibility is a deterministic style knob (`show_time_axis_labels`)
 - time-axis short tick-mark visibility is a deterministic style knob (`show_time_axis_tick_marks`)
 - time-axis short tick-mark style is deterministic (`time_axis_tick_mark_color`, `time_axis_tick_mark_width`)
+- time-axis label color is a deterministic style knob (`time_axis_label_color`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

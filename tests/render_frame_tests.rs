@@ -160,6 +160,36 @@ fn time_axis_labels_can_be_hidden() {
 }
 
 #[test]
+fn time_axis_labels_use_dedicated_color() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+
+    let style = RenderStyle {
+        time_axis_label_color: Color::rgb(0.90, 0.30, 0.22),
+        axis_label_color: Color::rgb(0.12, 0.18, 0.26),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center && text.color == style.time_axis_label_color
+    }));
+    assert!(
+        frame.texts.iter().any(|text| {
+            text.h_align == TextHAlign::Right && text.color == style.axis_label_color
+        })
+    );
+}
+
+#[test]
 fn time_axis_tick_marks_can_be_hidden() {
     let renderer = NullRenderer::default();
     let config =

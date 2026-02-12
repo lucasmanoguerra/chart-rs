@@ -41,6 +41,9 @@ and this project adheres to Semantic Versioning.
 - Time-axis tick-mark style parity baseline (`R-032`) with deterministic dedicated color/width controls.
 - New render-style knobs: `time_axis_tick_mark_color` and `time_axis_tick_mark_width`.
 - New render-frame/style tests and criterion benchmark coverage for time-axis tick-mark style behavior.
+- Time-axis label color parity baseline (`R-033`) with deterministic dedicated color control independent from price-axis labels.
+- New render-style knob: `time_axis_label_color`.
+- New render-frame/style tests and criterion benchmark coverage for time-axis label color behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 
