@@ -200,6 +200,33 @@ fn price_axis_insets_apply_to_labels_and_tick_marks() {
 }
 
 #[test]
+fn price_axis_tick_marks_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        show_price_axis_tick_marks: false,
+        price_axis_tick_mark_color: Color::rgb(0.91, 0.23, 0.21),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.price_axis_tick_mark_color
+            && (line.y1 - line.y2).abs() <= 1e-9
+            && (line.x1 - plot_right).abs() <= 1e-9
+            && line.x2 > line.x1
+    }));
+}
+
+#[test]
 fn last_price_label_padding_right_is_independent_from_axis_label_padding() {
     let renderer = NullRenderer::default();
     let config =

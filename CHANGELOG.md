@@ -17,6 +17,9 @@ and this project adheres to Semantic Versioning.
 - Last-price label right-inset parity baseline (`R-024`) with deterministic configurable right-side padding in non-box mode.
 - New render-style knob: `last_price_label_padding_right_px`.
 - New render-frame/style tests and criterion benchmark coverage for last-price label right-inset behavior.
+- Price-axis tick-mark visibility parity baseline (`R-025`) with deterministic show/hide behavior for short axis marks.
+- New render-style knob: `show_price_axis_tick_marks`.
+- New render-frame/style tests and criterion benchmark coverage for tick-mark visibility behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 

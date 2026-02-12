@@ -112,6 +112,7 @@ Responsibilities:
 - configurable price-axis label typography policy (font size and vertical offset from tick position)
 - configurable last-price label vertical offset policy (independent from last-price font-size)
 - configurable last-price label right inset policy (independent from regular price-axis label inset)
+- configurable price-axis tick-mark visibility policy (show/hide short horizontal marks)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -150,6 +151,7 @@ Render invariants:
 - price-axis label font size/offset are deterministic style knobs (`price_axis_label_font_size_px`, `price_axis_label_offset_y_px`)
 - last-price label Y anchor offset is a deterministic style knob (`last_price_label_offset_y_px`)
 - last-price label right inset is a deterministic style knob (`last_price_label_padding_right_px`) for non-box mode
+- price-axis short tick-mark visibility is a deterministic style knob (`show_price_axis_tick_marks`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

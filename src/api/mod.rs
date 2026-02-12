@@ -275,6 +275,7 @@ pub struct RenderStyle {
     pub last_price_label_padding_right_px: f64,
     pub price_axis_width_px: f64,
     pub time_axis_height_px: f64,
+    pub show_price_axis_tick_marks: bool,
     /// Horizontal inset from right edge used by price-axis labels.
     pub price_axis_label_padding_right_px: f64,
     /// Length of short axis tick marks extending into the price-axis panel.
@@ -339,6 +340,7 @@ impl Default for RenderStyle {
             last_price_label_padding_right_px: 6.0,
             price_axis_width_px: 72.0,
             time_axis_height_px: 24.0,
+            show_price_axis_tick_marks: true,
             price_axis_label_padding_right_px: 6.0,
             price_axis_tick_mark_length_px: 6.0,
             show_last_price_line: true,
@@ -1954,14 +1956,16 @@ impl<R: Renderer> ChartEngine<R> {
                 style.grid_line_width,
                 style.grid_line_color,
             ));
-            frame = frame.with_line(LinePrimitive::new(
-                plot_right,
-                py,
-                price_axis_tick_mark_end_x,
-                py,
-                style.price_axis_tick_mark_width,
-                style.price_axis_tick_mark_color,
-            ));
+            if style.show_price_axis_tick_marks {
+                frame = frame.with_line(LinePrimitive::new(
+                    plot_right,
+                    py,
+                    price_axis_tick_mark_end_x,
+                    py,
+                    style.price_axis_tick_mark_width,
+                    style.price_axis_tick_mark_color,
+                ));
+            }
         }
 
         if let Some((last_price, py, marker_line_color, marker_label_color)) = latest_price_marker {
