@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box per-axis visibility-priority parity baseline (`R-064`) with deterministic overlap resolution controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_visibility_priority`, `crosshair_time_label_box_visibility_priority`, and `crosshair_price_label_box_visibility_priority`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis visibility-priority behavior.
 - Crosshair axis-label box per-axis overflow-policy parity baseline (`R-063`) with deterministic independent `ClipToAxis`/`AllowOverflow` controls for time and price label boxes.
 - New render-style knobs: `crosshair_label_box_overflow_policy`, `crosshair_time_label_box_overflow_policy`, and `crosshair_price_label_box_overflow_policy`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis overflow-policy behavior.

@@ -149,6 +149,7 @@ Responsibilities:
 - configurable crosshair axis-label box vertical-anchor policy per axis (independent time/price vertical anchoring with shared fallback)
 - configurable crosshair axis-label box horizontal-anchor policy per axis (independent time/price horizontal anchoring with shared fallback)
 - configurable crosshair axis-label box overflow policy per axis (`ClipToAxis`/`AllowOverflow`) with shared fallback
+- configurable crosshair axis-label box visibility-priority policy per axis (`KeepBoth`/`PreferTime`/`PreferPrice`) for overlap resolution
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -224,6 +225,7 @@ Render invariants:
 - crosshair axis-label box vertical anchor is deterministic per axis (`crosshair_label_box_vertical_anchor`, `crosshair_time_label_box_vertical_anchor`, `crosshair_price_label_box_vertical_anchor`)
 - crosshair axis-label box horizontal anchor is deterministic per axis (`crosshair_label_box_horizontal_anchor`, `crosshair_time_label_box_horizontal_anchor`, `crosshair_price_label_box_horizontal_anchor`)
 - crosshair axis-label box overflow policy is deterministic per axis (`crosshair_label_box_overflow_policy`, `crosshair_time_label_box_overflow_policy`, `crosshair_price_label_box_overflow_policy`)
+- crosshair axis-label box visibility priority is deterministic per axis (`crosshair_label_box_visibility_priority`, `crosshair_time_label_box_visibility_priority`, `crosshair_price_label_box_visibility_priority`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

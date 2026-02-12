@@ -119,6 +119,14 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_price_label_box_overflow_policy: Some(
             chart_rs::api::CrosshairLabelBoxOverflowPolicy::ClipToAxis,
         ),
+        crosshair_label_box_visibility_priority:
+            chart_rs::api::CrosshairLabelBoxVisibilityPriority::KeepBoth,
+        crosshair_time_label_box_visibility_priority: Some(
+            chart_rs::api::CrosshairLabelBoxVisibilityPriority::PreferTime,
+        ),
+        crosshair_price_label_box_visibility_priority: Some(
+            chart_rs::api::CrosshairLabelBoxVisibilityPriority::PreferPrice,
+        ),
         crosshair_label_box_min_width_px: 20.0,
         crosshair_time_label_box_min_width_px: 40.0,
         crosshair_price_label_box_min_width_px: 24.0,

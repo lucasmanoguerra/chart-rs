@@ -1,8 +1,9 @@
 use chart_rs::api::{
     AxisLabelLocale, ChartEngine, ChartEngineConfig, CrosshairLabelBoxHorizontalAnchor,
-    CrosshairLabelBoxOverflowPolicy, CrosshairLabelBoxVerticalAnchor, CrosshairLabelBoxWidthMode,
-    CrosshairMode, LastPriceLabelBoxWidthMode, LastPriceSourceMode, RenderStyle,
-    TimeAxisLabelConfig, TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
+    CrosshairLabelBoxOverflowPolicy, CrosshairLabelBoxVerticalAnchor,
+    CrosshairLabelBoxVisibilityPriority, CrosshairLabelBoxWidthMode, CrosshairMode,
+    LastPriceLabelBoxWidthMode, LastPriceSourceMode, RenderStyle, TimeAxisLabelConfig,
+    TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, NullRenderer, TextHAlign};
@@ -2104,6 +2105,47 @@ fn crosshair_axis_label_box_overflow_policy_is_independent_per_axis() {
     assert!(time_box.y + time_box.height > viewport_height + 1e-9);
     assert!(price_box.y >= -1e-9);
     assert!(price_box.y + price_box.height <= viewport_height + 1e-9);
+}
+
+#[test]
+fn crosshair_axis_label_box_visibility_priority_resolves_overlap_deterministically() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_time_label_box_horizontal_anchor: Some(CrosshairLabelBoxHorizontalAnchor::Right),
+        crosshair_time_label_box_overflow_policy: Some(
+            CrosshairLabelBoxOverflowPolicy::AllowOverflow,
+        ),
+        crosshair_time_label_box_min_width_px: 220.0,
+        crosshair_price_label_box_horizontal_anchor: Some(CrosshairLabelBoxHorizontalAnchor::Left),
+        crosshair_price_label_box_min_width_px: 60.0,
+        crosshair_time_label_box_visibility_priority: Some(
+            CrosshairLabelBoxVisibilityPriority::PreferTime,
+        ),
+        crosshair_price_label_box_visibility_priority: Some(
+            CrosshairLabelBoxVisibilityPriority::PreferPrice,
+        ),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(880.0, 490.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+    assert_eq!(boxes.len(), 1);
+    assert!(boxes[0].x < plot_right);
 }
 
 #[test]

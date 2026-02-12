@@ -278,6 +278,15 @@ pub enum CrosshairLabelBoxOverflowPolicy {
     AllowOverflow,
 }
 
+/// Priority policy used when crosshair time/price label boxes overlap.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CrosshairLabelBoxVisibilityPriority {
+    #[default]
+    KeepBoth,
+    PreferTime,
+    PreferPrice,
+}
+
 /// Style contract for the current render frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderStyle {
@@ -347,6 +356,9 @@ pub struct RenderStyle {
     pub crosshair_label_box_overflow_policy: Option<CrosshairLabelBoxOverflowPolicy>,
     pub crosshair_time_label_box_overflow_policy: Option<CrosshairLabelBoxOverflowPolicy>,
     pub crosshair_price_label_box_overflow_policy: Option<CrosshairLabelBoxOverflowPolicy>,
+    pub crosshair_label_box_visibility_priority: CrosshairLabelBoxVisibilityPriority,
+    pub crosshair_time_label_box_visibility_priority: Option<CrosshairLabelBoxVisibilityPriority>,
+    pub crosshair_price_label_box_visibility_priority: Option<CrosshairLabelBoxVisibilityPriority>,
     pub crosshair_label_box_min_width_px: f64,
     pub crosshair_time_label_box_min_width_px: f64,
     pub crosshair_price_label_box_min_width_px: f64,
@@ -518,6 +530,9 @@ impl Default for RenderStyle {
             crosshair_label_box_overflow_policy: None,
             crosshair_time_label_box_overflow_policy: None,
             crosshair_price_label_box_overflow_policy: None,
+            crosshair_label_box_visibility_priority: CrosshairLabelBoxVisibilityPriority::KeepBoth,
+            crosshair_time_label_box_visibility_priority: None,
+            crosshair_price_label_box_visibility_priority: None,
             crosshair_label_box_min_width_px: 0.0,
             crosshair_time_label_box_min_width_px: 0.0,
             crosshair_price_label_box_min_width_px: 0.0,
@@ -1357,6 +1372,14 @@ impl<R: Renderer> ChartEngine<R> {
             text_y
         };
         (text_y, top, bottom)
+    }
+
+    fn rects_overlap(a: RectPrimitive, b: RectPrimitive) -> bool {
+        let a_right = a.x + a.width;
+        let a_bottom = a.y + a.height;
+        let b_right = b.x + b.width;
+        let b_bottom = b.y + b.height;
+        a.x < b_right && b.x < a_right && a.y < b_bottom && b.y < a_bottom
     }
 
     fn resolve_time_label_cache_profile(&self, visible_span_abs: f64) -> TimeLabelCacheProfile {
@@ -2405,6 +2428,10 @@ impl<R: Renderer> ChartEngine<R> {
                 .snapped_y
                 .unwrap_or(crosshair.y)
                 .clamp(0.0, plot_bottom);
+            let mut time_box_rect: Option<RectPrimitive> = None;
+            let mut time_box_text: Option<TextPrimitive> = None;
+            let mut price_box_rect: Option<RectPrimitive> = None;
+            let mut price_box_text: Option<TextPrimitive> = None;
             if style.show_crosshair_vertical_line {
                 frame = frame.with_line(LinePrimitive::new(
                     crosshair_x,
@@ -2564,10 +2591,10 @@ impl<R: Renderer> ChartEngine<R> {
                             let clamped_corner_radius = time_corner_radius.min(max_corner_radius);
                             rect = rect.with_corner_radius(clamped_corner_radius);
                         }
-                        frame = frame.with_rect(rect);
+                        time_box_rect = Some(rect);
                     }
                 }
-                frame = frame.with_text(TextPrimitive::new(
+                time_box_text = Some(TextPrimitive::new(
                     text,
                     time_text_x,
                     time_label_y,
@@ -2723,10 +2750,10 @@ impl<R: Renderer> ChartEngine<R> {
                             let clamped_corner_radius = price_corner_radius.min(max_corner_radius);
                             rect = rect.with_corner_radius(clamped_corner_radius);
                         }
-                        frame = frame.with_rect(rect);
+                        price_box_rect = Some(rect);
                     }
                 }
-                frame = frame.with_text(TextPrimitive::new(
+                price_box_text = Some(TextPrimitive::new(
                     text,
                     text_x,
                     text_y,
@@ -2734,6 +2761,44 @@ impl<R: Renderer> ChartEngine<R> {
                     price_label_text_color,
                     price_text_h_align,
                 ));
+            }
+
+            if let (Some(time_rect), Some(price_rect)) = (time_box_rect, price_box_rect) {
+                if Self::rects_overlap(time_rect, price_rect) {
+                    let time_priority = style
+                        .crosshair_time_label_box_visibility_priority
+                        .unwrap_or(style.crosshair_label_box_visibility_priority);
+                    let price_priority = style
+                        .crosshair_price_label_box_visibility_priority
+                        .unwrap_or(style.crosshair_label_box_visibility_priority);
+                    match (time_priority, price_priority) {
+                        (
+                            CrosshairLabelBoxVisibilityPriority::PreferTime,
+                            CrosshairLabelBoxVisibilityPriority::PreferPrice,
+                        ) => {}
+                        (CrosshairLabelBoxVisibilityPriority::PreferTime, _) => {
+                            price_box_rect = None;
+                            price_box_text = None;
+                        }
+                        (_, CrosshairLabelBoxVisibilityPriority::PreferPrice) => {
+                            time_box_rect = None;
+                            time_box_text = None;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            if let Some(rect) = time_box_rect {
+                frame = frame.with_rect(rect);
+            }
+            if let Some(rect) = price_box_rect {
+                frame = frame.with_rect(rect);
+            }
+            if let Some(text) = time_box_text {
+                frame = frame.with_text(text);
+            }
+            if let Some(text) = price_box_text {
+                frame = frame.with_text(text);
             }
         }
 
