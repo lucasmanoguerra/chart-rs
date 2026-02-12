@@ -1978,6 +1978,43 @@ fn crosshair_axis_label_box_text_policy_is_independent_per_axis() {
 }
 
 #[test]
+fn crosshair_axis_label_box_fill_color_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.20, 0.20, 0.20),
+        crosshair_time_label_box_color: Some(Color::rgb(0.93, 0.84, 0.20)),
+        crosshair_price_label_box_color: Some(Color::rgb(0.20, 0.39, 0.86)),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    assert!(frame.rects.iter().any(|rect| {
+        rect.x < plot_right
+            && rect.fill_color
+                == style
+                    .crosshair_time_label_box_color
+                    .expect("time box color")
+    }));
+    assert!(frame.rects.iter().any(|rect| {
+        rect.x >= plot_right
+            && rect.fill_color
+                == style
+                    .crosshair_price_label_box_color
+                    .expect("price box color")
+    }));
+}
+
+#[test]
 fn crosshair_axis_label_box_width_mode_full_axis_expands_boxes() {
     let renderer = NullRenderer::default();
     let config =

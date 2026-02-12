@@ -270,6 +270,8 @@ pub struct RenderStyle {
     pub crosshair_time_label_color: Color,
     pub crosshair_price_label_color: Color,
     pub crosshair_label_box_color: Color,
+    pub crosshair_time_label_box_color: Option<Color>,
+    pub crosshair_price_label_box_color: Option<Color>,
     pub crosshair_label_box_text_color: Color,
     pub crosshair_label_box_auto_text_contrast: bool,
     pub crosshair_time_label_box_text_color: Option<Color>,
@@ -427,6 +429,8 @@ impl Default for RenderStyle {
             crosshair_time_label_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_price_label_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_label_box_color: Color::rgb(0.94, 0.96, 0.99),
+            crosshair_time_label_box_color: None,
+            crosshair_price_label_box_color: None,
             crosshair_label_box_text_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_label_box_auto_text_contrast: false,
             crosshair_time_label_box_text_color: None,
@@ -1212,6 +1216,7 @@ impl<R: Renderer> ChartEngine<R> {
     fn resolve_crosshair_label_box_text_color(
         &self,
         fallback_text_color: Color,
+        box_fill_color: Color,
         per_axis_text_color: Option<Color>,
         per_axis_auto_contrast: Option<bool>,
     ) -> Color {
@@ -1225,7 +1230,7 @@ impl<R: Renderer> ChartEngine<R> {
             return fallback_text_color;
         }
 
-        Self::resolve_auto_contrast_text_color(style.crosshair_label_box_color)
+        Self::resolve_auto_contrast_text_color(box_fill_color)
     }
 
     fn resolve_auto_contrast_text_color(box_fill_color: Color) -> Color {
@@ -2321,6 +2326,9 @@ impl<R: Renderer> ChartEngine<R> {
                 ));
             }
             if style.show_crosshair_time_label {
+                let time_box_fill_color = style
+                    .crosshair_time_label_box_color
+                    .unwrap_or(style.crosshair_label_box_color);
                 let crosshair_time = crosshair
                     .snapped_time
                     .unwrap_or(self.time_scale.pixel_to_time(crosshair_x, self.viewport)?);
@@ -2337,6 +2345,7 @@ impl<R: Renderer> ChartEngine<R> {
                 let time_label_text_color = if style.show_crosshair_time_label_box {
                     self.resolve_crosshair_label_box_text_color(
                         style.crosshair_time_label_color,
+                        time_box_fill_color,
                         style.crosshair_time_label_box_text_color,
                         style.crosshair_time_label_box_auto_text_contrast,
                     )
@@ -2373,7 +2382,7 @@ impl<R: Renderer> ChartEngine<R> {
                             box_top,
                             box_width,
                             box_height,
-                            style.crosshair_label_box_color,
+                            time_box_fill_color,
                         );
                         let time_border_width =
                             if style.crosshair_time_label_box_border_width_px > 0.0 {
@@ -2414,6 +2423,9 @@ impl<R: Renderer> ChartEngine<R> {
                 ));
             }
             if style.show_crosshair_price_label {
+                let price_box_fill_color = style
+                    .crosshair_price_label_box_color
+                    .unwrap_or(style.crosshair_label_box_color);
                 let crosshair_price = crosshair.snapped_price.unwrap_or(
                     self.price_scale
                         .pixel_to_price(crosshair_y, self.viewport)?,
@@ -2432,6 +2444,7 @@ impl<R: Renderer> ChartEngine<R> {
                 let price_label_text_color = if style.show_crosshair_price_label_box {
                     self.resolve_crosshair_label_box_text_color(
                         style.crosshair_price_label_color,
+                        price_box_fill_color,
                         style.crosshair_price_label_box_text_color,
                         style.crosshair_price_label_box_auto_text_contrast,
                     )
@@ -2476,7 +2489,7 @@ impl<R: Renderer> ChartEngine<R> {
                             box_top,
                             box_width,
                             box_height,
-                            style.crosshair_label_box_color,
+                            price_box_fill_color,
                         );
                         let price_border_width =
                             if style.crosshair_price_label_box_border_width_px > 0.0 {
@@ -2782,6 +2795,12 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.crosshair_time_label_color.validate()?;
     style.crosshair_price_label_color.validate()?;
     style.crosshair_label_box_color.validate()?;
+    if let Some(color) = style.crosshair_time_label_box_color {
+        color.validate()?;
+    }
+    if let Some(color) = style.crosshair_price_label_box_color {
+        color.validate()?;
+    }
     style.crosshair_label_box_text_color.validate()?;
     if let Some(color) = style.crosshair_time_label_box_text_color {
         color.validate()?;
