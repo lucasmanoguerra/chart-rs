@@ -350,6 +350,10 @@ pub struct RenderStyle {
     pub show_crosshair_time_label_box_border: bool,
     /// Controls visibility of the border stroke for the crosshair price-axis label box.
     pub show_crosshair_price_label_box_border: bool,
+    /// Horizontal inset from left/right plot edges applied to crosshair time-axis label anchor.
+    pub crosshair_time_label_padding_x_px: f64,
+    /// Horizontal inset from right edge used by crosshair price-axis label when box mode is disabled.
+    pub crosshair_price_label_padding_right_px: f64,
     /// Horizontal inset from right edge used by price-axis labels.
     pub price_axis_label_padding_right_px: f64,
     /// Length of short axis tick marks extending into the price-axis panel.
@@ -461,6 +465,8 @@ impl Default for RenderStyle {
             show_crosshair_price_label_box: true,
             show_crosshair_time_label_box_border: true,
             show_crosshair_price_label_box_border: true,
+            crosshair_time_label_padding_x_px: 0.0,
+            crosshair_price_label_padding_right_px: 6.0,
             price_axis_label_padding_right_px: 6.0,
             price_axis_tick_mark_length_px: 6.0,
             show_last_price_line: true,
@@ -2275,6 +2281,13 @@ impl<R: Renderer> ChartEngine<R> {
                 let crosshair_time = crosshair
                     .snapped_time
                     .unwrap_or(self.time_scale.pixel_to_time(crosshair_x, self.viewport)?);
+                let time_label_padding_x = style
+                    .crosshair_time_label_padding_x_px
+                    .clamp(0.0, plot_right * 0.5);
+                let crosshair_time_label_x = crosshair_x.clamp(
+                    time_label_padding_x,
+                    (plot_right - time_label_padding_x).max(time_label_padding_x),
+                );
                 let text = self.format_time_axis_label(crosshair_time, visible_span_abs);
                 let time_label_y = (plot_bottom + style.crosshair_time_label_offset_y_px)
                     .min((viewport_height - style.crosshair_axis_label_font_size_px).max(0.0));
@@ -2296,7 +2309,7 @@ impl<R: Renderer> ChartEngine<R> {
                     };
                     let box_width = requested_box_width.clamp(0.0, plot_right);
                     let max_left = (plot_right - box_width).max(0.0);
-                    let box_left = (crosshair_x - box_width * 0.5).clamp(0.0, max_left);
+                    let box_left = (crosshair_time_label_x - box_width * 0.5).clamp(0.0, max_left);
                     let box_top = (time_label_y - style.crosshair_label_box_padding_y_px)
                         .clamp(plot_bottom, viewport_height);
                     let box_bottom = (time_label_y
@@ -2332,7 +2345,7 @@ impl<R: Renderer> ChartEngine<R> {
                 }
                 frame = frame.with_text(TextPrimitive::new(
                     text,
-                    crosshair_x,
+                    crosshair_time_label_x,
                     time_label_y,
                     style.crosshair_axis_label_font_size_px,
                     time_label_text_color,
@@ -2360,7 +2373,10 @@ impl<R: Renderer> ChartEngine<R> {
                 } else {
                     style.crosshair_price_label_color
                 };
-                let mut text_x = price_axis_label_anchor_x;
+                let crosshair_price_label_anchor_x = (viewport_width
+                    - style.crosshair_price_label_padding_right_px)
+                    .clamp(plot_right, viewport_width);
+                let mut text_x = crosshair_price_label_anchor_x;
                 if style.show_crosshair_price_label_box {
                     let axis_panel_left = plot_right;
                     let axis_panel_width = (viewport_width - axis_panel_left).max(0.0);
@@ -2761,6 +2777,13 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
             "render style `time_axis_label_offset_y_px` must be finite and >= 0".to_owned(),
         ));
     }
+    if !style.crosshair_time_label_padding_x_px.is_finite()
+        || style.crosshair_time_label_padding_x_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_time_label_padding_x_px` must be finite and >= 0".to_owned(),
+        ));
+    }
     if !style.crosshair_time_label_offset_y_px.is_finite()
         || style.crosshair_time_label_offset_y_px < 0.0
     {
@@ -2832,6 +2855,14 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     if !style.price_axis_label_offset_y_px.is_finite() || style.price_axis_label_offset_y_px < 0.0 {
         return Err(ChartError::InvalidData(
             "render style `price_axis_label_offset_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.crosshair_price_label_padding_right_px.is_finite()
+        || style.crosshair_price_label_padding_right_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_price_label_padding_right_px` must be finite and >= 0"
+                .to_owned(),
         ));
     }
     if !style.crosshair_price_label_offset_y_px.is_finite()

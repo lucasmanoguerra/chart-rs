@@ -111,6 +111,8 @@ fn custom_render_style_is_applied_to_frame() {
         show_crosshair_price_label_box: true,
         show_crosshair_time_label_box_border: true,
         show_crosshair_price_label_box_border: true,
+        crosshair_time_label_padding_x_px: 3.0,
+        crosshair_price_label_padding_right_px: 9.0,
         price_axis_label_padding_right_px: 7.0,
         price_axis_tick_mark_length_px: 8.0,
         show_last_price_line: true,
@@ -683,6 +685,38 @@ fn invalid_crosshair_time_axis_label_offset_y_is_rejected() {
 }
 
 #[test]
+fn invalid_crosshair_time_axis_label_padding_x_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_time_label_padding_x_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_time_axis_label_padding_x_non_finite_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_time_label_padding_x_px = f64::NAN;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
 fn invalid_major_time_label_offset_y_is_rejected() {
     let renderer = NullRenderer::default();
     let config =
@@ -787,6 +821,38 @@ fn invalid_crosshair_price_axis_label_offset_y_is_rejected() {
 
     let mut style = engine.render_style();
     style.crosshair_price_label_offset_y_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_price_axis_label_padding_right_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_price_label_padding_right_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_price_axis_label_padding_right_non_finite_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_price_label_padding_right_px = f64::INFINITY;
 
     let err = engine
         .set_render_style(style)

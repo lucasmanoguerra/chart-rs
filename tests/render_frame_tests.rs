@@ -1635,6 +1635,44 @@ fn crosshair_axis_labels_use_dedicated_vertical_offsets() {
 }
 
 #[test]
+fn crosshair_axis_labels_use_dedicated_horizontal_insets() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.17),
+        crosshair_price_label_color: Color::rgb(0.16, 0.40, 0.86),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_padding_x_px: 40.0,
+        crosshair_price_label_padding_right_px: 14.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(2.0, 177.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let expected_time_label_x = style.crosshair_time_label_padding_x_px;
+    let expected_price_label_x = (viewport_width - style.crosshair_price_label_padding_right_px)
+        .clamp(plot_right, viewport_width);
+
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_time_label_color
+            && text.h_align == TextHAlign::Center
+            && (text.x - expected_time_label_x).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_price_label_color
+            && text.h_align == TextHAlign::Right
+            && (text.x - expected_price_label_x).abs() <= 1e-9
+    }));
+}
+
+#[test]
 fn crosshair_axis_labels_use_snapped_values_in_magnet_mode() {
     let renderer = NullRenderer::default();
     let config =
