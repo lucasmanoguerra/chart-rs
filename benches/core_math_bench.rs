@@ -1,7 +1,10 @@
 use chart_rs::api::{
-    AxisLabelLocale, ChartEngine, ChartEngineConfig, LastPriceLabelBoxWidthMode,
-    LastPriceSourceMode, PriceAxisDisplayMode, PriceAxisLabelConfig, PriceAxisLabelPolicy,
-    RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
+    AxisLabelLocale, ChartEngine, ChartEngineConfig, CrosshairLabelBoxHorizontalAnchor,
+    CrosshairLabelBoxOverflowPolicy, CrosshairLabelBoxVerticalAnchor,
+    CrosshairLabelBoxVisibilityPriority, CrosshairLabelBoxWidthMode, CrosshairLabelBoxZOrderPolicy,
+    LastPriceLabelBoxWidthMode, LastPriceSourceMode, PriceAxisDisplayMode, PriceAxisLabelConfig,
+    PriceAxisLabelPolicy, RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy,
+    TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{
     DataPoint, LinearScale, OhlcBar, PriceScale, PriceScaleMode, TimeScale, Viewport,
@@ -13,9 +16,10 @@ use chart_rs::extensions::{
     place_markers_on_candles,
 };
 use chart_rs::interaction::{CrosshairMode, KineticPanConfig};
-use chart_rs::render::{Color, NullRenderer};
+use chart_rs::render::{Color, LineStrokeStyle, NullRenderer, TextHAlign};
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
+use std::sync::Arc;
 
 fn bench_linear_scale_round_trip(c: &mut Criterion) {
     let viewport = Viewport::new(1920, 1080);
@@ -359,6 +363,1347 @@ fn bench_crosshair_modes_pointer_move(c: &mut Criterion) {
             engine_normal.pointer_move(black_box(750.0), black_box(300.0));
         })
     });
+}
+
+fn bench_crosshair_render_lines(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_line_color: Color::rgb(0.88, 0.27, 0.19),
+            crosshair_line_width: 2.0,
+            crosshair_horizontal_line_width: None,
+            crosshair_vertical_line_width: None,
+            show_crosshair_horizontal_line: true,
+            show_crosshair_vertical_line: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_render_lines", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_render_line_style_per_axis(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_line_style: LineStrokeStyle::Solid,
+            crosshair_horizontal_line_style: Some(LineStrokeStyle::Dotted),
+            crosshair_vertical_line_style: Some(LineStrokeStyle::Dashed),
+            show_crosshair_horizontal_line: true,
+            show_crosshair_vertical_line: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_render_line_style_per_axis", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_render_line_color_per_axis(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_line_color: Color::rgb(0.29, 0.37, 0.52),
+            crosshair_horizontal_line_color: Some(Color::rgb(0.87, 0.27, 0.19)),
+            crosshair_vertical_line_color: Some(Color::rgb(0.20, 0.42, 0.88)),
+            show_crosshair_horizontal_line: true,
+            show_crosshair_vertical_line: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_render_line_color_per_axis", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_render_line_width_per_axis(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_line_width: 1.0,
+            crosshair_horizontal_line_width: Some(2.5),
+            crosshair_vertical_line_width: Some(1.5),
+            show_crosshair_horizontal_line: true,
+            show_crosshair_vertical_line: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_render_line_width_per_axis", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_render_lines_shared_visibility_gate(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_lines: false,
+            show_crosshair_horizontal_line: true,
+            show_crosshair_vertical_line: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_render_lines_shared_visibility_gate", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_labels_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_time_label_color: Color::rgb(0.89, 0.29, 0.18),
+            crosshair_price_label_color: Color::rgb(0.19, 0.41, 0.88),
+            crosshair_axis_label_font_size_px: 12.0,
+            show_crosshair_time_label: true,
+            show_crosshair_price_label: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_labels_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_formatter_overrides_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("T:{value:.2}")));
+    engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("P:{value:.2}")));
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_formatter_overrides_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_formatter_override_cache_hot(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("T:{value:.2}")));
+    engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("P:{value:.2}")));
+    engine.pointer_move(800.0, 320.0);
+    let _ = engine.build_render_frame().expect("warm cache");
+
+    c.bench_function("crosshair_axis_label_formatter_override_cache_hot", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_text_transform_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            crosshair_label_prefix: "S:",
+            crosshair_label_suffix: ":S",
+            crosshair_time_label_prefix: Some("T:"),
+            crosshair_time_label_suffix: Some(":T"),
+            crosshair_price_label_prefix: Some("P:"),
+            crosshair_price_label_suffix: Some(":P"),
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_text_transform_per_axis_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_numeric_precision_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 4 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis config");
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            crosshair_label_numeric_precision: Some(1),
+            crosshair_time_label_numeric_precision: Some(3),
+            crosshair_price_label_numeric_precision: Some(4),
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function(
+        "crosshair_axis_label_numeric_precision_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_formatter_context_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+        format!("T:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+        format!("P:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function(
+        "crosshair_axis_label_formatter_context_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_formatter_context_cache_hot(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+        format!("T:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+        format!("P:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(800.0, 320.0);
+    let _ = engine.build_render_frame().expect("warm cache");
+
+    c.bench_function("crosshair_axis_label_formatter_context_cache_hot", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_formatter_context_lifecycle_transitions(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+        format!("T:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+        format!("P:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(800.0, 320.0);
+    let _ = engine.build_render_frame().expect("warm cache");
+
+    let mut flip = false;
+    c.bench_function(
+        "crosshair_axis_label_formatter_context_lifecycle_transitions",
+        |b| {
+            b.iter(|| {
+                flip = !flip;
+                if flip {
+                    engine.set_crosshair_mode(CrosshairMode::Magnet);
+                    engine
+                        .set_time_visible_range(0.0, 4_500.0)
+                        .expect("set visible range");
+                } else {
+                    engine.set_crosshair_mode(CrosshairMode::Normal);
+                    engine
+                        .set_time_visible_range(250.0, 5_000.0)
+                        .expect("set visible range");
+                }
+                engine.pointer_move(800.0, 320.0);
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_boxes_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_boxes_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_boxes_border_radius_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+            crosshair_label_box_border_color: Color::rgb(0.14, 0.19, 0.33),
+            crosshair_label_box_border_width_px: 1.5,
+            crosshair_label_box_corner_radius_px: 4.0,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_boxes_border_radius_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_boxes_auto_contrast_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_color: Color::rgb(0.95, 0.95, 0.95),
+            crosshair_label_box_text_color: Color::rgb(0.9, 0.2, 0.2),
+            crosshair_label_box_auto_text_contrast: true,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_boxes_auto_contrast_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_boxes_full_axis_width_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+            crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FullAxis,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_boxes_full_axis_width_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_box_width_mode_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
+            crosshair_time_label_box_width_mode: Some(CrosshairLabelBoxWidthMode::FullAxis),
+            crosshair_price_label_box_width_mode: Some(CrosshairLabelBoxWidthMode::FitText),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_box_width_mode_per_axis_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_box_text_policy_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_color: Color::rgb(0.95, 0.95, 0.95),
+            crosshair_label_box_text_color: Color::rgb(0.9, 0.2, 0.2),
+            crosshair_label_box_auto_text_contrast: false,
+            crosshair_time_label_box_text_color: Some(Color::rgb(0.12, 0.76, 0.33)),
+            crosshair_price_label_box_text_color: Some(Color::rgb(0.22, 0.41, 0.90)),
+            crosshair_time_label_box_auto_text_contrast: Some(true),
+            crosshair_price_label_box_auto_text_contrast: Some(false),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function(
+        "crosshair_axis_label_box_text_policy_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_box_fill_color_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_color: Color::rgb(0.2, 0.2, 0.2),
+            crosshair_time_label_box_color: Some(Color::rgb(0.93, 0.84, 0.20)),
+            crosshair_price_label_box_color: Some(Color::rgb(0.20, 0.39, 0.86)),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_box_fill_color_per_axis_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_box_min_width_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
+            crosshair_time_label_box_min_width_px: 160.0,
+            crosshair_price_label_box_min_width_px: 36.0,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_box_min_width_per_axis_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_box_text_alignment_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_time_label_box_text_h_align: Some(TextHAlign::Left),
+            crosshair_price_label_box_text_h_align: Some(TextHAlign::Center),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function(
+        "crosshair_axis_label_box_text_alignment_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_box_vertical_anchor_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_time_label_box_vertical_anchor: Some(CrosshairLabelBoxVerticalAnchor::Top),
+            crosshair_price_label_box_vertical_anchor: Some(
+                CrosshairLabelBoxVerticalAnchor::Bottom,
+            ),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function(
+        "crosshair_axis_label_box_vertical_anchor_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_box_horizontal_anchor_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_time_label_box_horizontal_anchor: Some(
+                CrosshairLabelBoxHorizontalAnchor::Left,
+            ),
+            crosshair_price_label_box_horizontal_anchor: Some(
+                CrosshairLabelBoxHorizontalAnchor::Center,
+            ),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function(
+        "crosshair_axis_label_box_horizontal_anchor_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_box_overflow_policy_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_time_label_box_overflow_policy: Some(
+                CrosshairLabelBoxOverflowPolicy::AllowOverflow,
+            ),
+            crosshair_price_label_box_overflow_policy: Some(
+                CrosshairLabelBoxOverflowPolicy::ClipToAxis,
+            ),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 896.0);
+
+    c.bench_function(
+        "crosshair_axis_label_box_overflow_policy_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_box_visibility_priority_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_time_label_box_horizontal_anchor: Some(
+                CrosshairLabelBoxHorizontalAnchor::Right,
+            ),
+            crosshair_time_label_box_overflow_policy: Some(
+                CrosshairLabelBoxOverflowPolicy::AllowOverflow,
+            ),
+            crosshair_time_label_box_min_width_px: 260.0,
+            crosshair_price_label_box_horizontal_anchor: Some(
+                CrosshairLabelBoxHorizontalAnchor::Left,
+            ),
+            crosshair_price_label_box_min_width_px: 60.0,
+            crosshair_time_label_box_visibility_priority: Some(
+                CrosshairLabelBoxVisibilityPriority::PreferTime,
+            ),
+            crosshair_price_label_box_visibility_priority: Some(
+                CrosshairLabelBoxVisibilityPriority::PreferPrice,
+            ),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(1594.0, 896.0);
+
+    c.bench_function(
+        "crosshair_axis_label_box_visibility_priority_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_box_clip_margin_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_time_label_box_overflow_policy: Some(
+                CrosshairLabelBoxOverflowPolicy::ClipToAxis,
+            ),
+            crosshair_price_label_box_overflow_policy: Some(
+                CrosshairLabelBoxOverflowPolicy::ClipToAxis,
+            ),
+            crosshair_time_label_box_clip_margin_px: 12.0,
+            crosshair_price_label_box_clip_margin_px: 6.0,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(1594.0, 896.0);
+
+    c.bench_function(
+        "crosshair_axis_label_box_clip_margin_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_box_stabilization_step_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            crosshair_time_label_box_stabilization_step_px: 4.0,
+            crosshair_price_label_box_stabilization_step_px: 3.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(1594.4, 896.6);
+
+    c.bench_function(
+        "crosshair_axis_label_box_stabilization_step_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_box_z_order_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_time_label_box_overflow_policy: Some(
+                CrosshairLabelBoxOverflowPolicy::AllowOverflow,
+            ),
+            crosshair_time_label_box_min_width_px: 260.0,
+            crosshair_price_label_box_min_width_px: 60.0,
+            crosshair_time_label_box_z_order_policy: Some(
+                CrosshairLabelBoxZOrderPolicy::TimeAbovePrice,
+            ),
+            crosshair_price_label_box_z_order_policy: Some(
+                CrosshairLabelBoxZOrderPolicy::PriceAboveTime,
+            ),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(1594.0, 896.0);
+
+    c.bench_function("crosshair_axis_label_box_z_order_per_axis_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_boxes_border_visibility_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+            crosshair_label_box_border_color: Color::rgb(0.14, 0.19, 0.33),
+            crosshair_label_box_border_width_px: 1.5,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            show_crosshair_time_label_box_border: false,
+            show_crosshair_price_label_box_border: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_boxes_border_visibility_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_labels_vertical_offset_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            crosshair_time_label_offset_y_px: 9.0,
+            crosshair_price_label_offset_y_px: 11.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_axis_labels_vertical_offset_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_labels_horizontal_inset_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            crosshair_time_label_padding_x_px: 12.0,
+            crosshair_price_label_padding_right_px: 14.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(3.0, 320.0);
+
+    c.bench_function("crosshair_axis_labels_horizontal_inset_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_labels_font_size_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            crosshair_time_label_font_size_px: 14.0,
+            crosshair_price_label_font_size_px: 10.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(3.0, 320.0);
+
+    c.bench_function("crosshair_axis_labels_font_size_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_box_padding_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
+            crosshair_time_label_box_padding_x_px: 16.0,
+            crosshair_time_label_box_padding_y_px: 6.0,
+            crosshair_price_label_box_padding_x_px: 4.0,
+            crosshair_price_label_box_padding_y_px: 1.0,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(3.0, 320.0);
+
+    c.bench_function("crosshair_axis_label_box_padding_per_axis_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_crosshair_axis_label_box_border_style_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_time_label_box_border_color: Color::rgb(0.75, 0.28, 0.19),
+            crosshair_price_label_box_border_color: Color::rgb(0.19, 0.39, 0.85),
+            crosshair_time_label_box_border_width_px: 2.0,
+            crosshair_price_label_box_border_width_px: 1.0,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(3.0, 320.0);
+
+    c.bench_function(
+        "crosshair_axis_label_box_border_style_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
+fn bench_crosshair_axis_label_box_corner_radius_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_corner_radius_px: 0.0,
+            crosshair_time_label_box_corner_radius_px: 2.0,
+            crosshair_price_label_box_corner_radius_px: 5.0,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(3.0, 320.0);
+
+    c.bench_function(
+        "crosshair_axis_label_box_corner_radius_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
 }
 
 fn bench_wheel_zoom_step(c: &mut Criterion) {
@@ -1655,6 +3000,42 @@ criterion_group!(
     bench_marker_placement_5k,
     bench_plugin_dispatch_pointer_move,
     bench_crosshair_modes_pointer_move,
+    bench_crosshair_render_lines,
+    bench_crosshair_render_line_style_per_axis,
+    bench_crosshair_render_line_color_per_axis,
+    bench_crosshair_render_line_width_per_axis,
+    bench_crosshair_render_lines_shared_visibility_gate,
+    bench_crosshair_axis_labels_render,
+    bench_crosshair_axis_label_formatter_overrides_render,
+    bench_crosshair_axis_label_formatter_override_cache_hot,
+    bench_crosshair_axis_label_text_transform_per_axis_render,
+    bench_crosshair_axis_label_numeric_precision_per_axis_render,
+    bench_crosshair_axis_label_formatter_context_per_axis_render,
+    bench_crosshair_axis_label_formatter_context_cache_hot,
+    bench_crosshair_axis_label_formatter_context_lifecycle_transitions,
+    bench_crosshair_axis_label_boxes_render,
+    bench_crosshair_axis_label_boxes_border_radius_render,
+    bench_crosshair_axis_label_boxes_auto_contrast_render,
+    bench_crosshair_axis_label_boxes_full_axis_width_render,
+    bench_crosshair_axis_label_box_width_mode_per_axis_render,
+    bench_crosshair_axis_label_box_text_policy_per_axis_render,
+    bench_crosshair_axis_label_box_fill_color_per_axis_render,
+    bench_crosshair_axis_label_box_min_width_per_axis_render,
+    bench_crosshair_axis_label_box_text_alignment_per_axis_render,
+    bench_crosshair_axis_label_box_vertical_anchor_per_axis_render,
+    bench_crosshair_axis_label_box_horizontal_anchor_per_axis_render,
+    bench_crosshair_axis_label_box_overflow_policy_per_axis_render,
+    bench_crosshair_axis_label_box_visibility_priority_per_axis_render,
+    bench_crosshair_axis_label_box_clip_margin_per_axis_render,
+    bench_crosshair_axis_label_box_stabilization_step_per_axis_render,
+    bench_crosshair_axis_label_box_z_order_per_axis_render,
+    bench_crosshair_axis_label_boxes_border_visibility_render,
+    bench_crosshair_axis_labels_vertical_offset_render,
+    bench_crosshair_axis_labels_horizontal_inset_render,
+    bench_crosshair_axis_labels_font_size_render,
+    bench_crosshair_axis_label_box_padding_per_axis_render,
+    bench_crosshair_axis_label_box_border_style_per_axis_render,
+    bench_crosshair_axis_label_box_corner_radius_per_axis_render,
     bench_wheel_zoom_step,
     bench_wheel_pan_step,
     bench_kinetic_pan_step,

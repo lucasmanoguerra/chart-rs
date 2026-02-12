@@ -42,6 +42,15 @@ impl Color {
     }
 }
 
+/// Stroke pattern for line primitives.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LineStrokeStyle {
+    #[default]
+    Solid,
+    Dashed,
+    Dotted,
+}
+
 /// Draw command for one line segment in pixel space.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LinePrimitive {
@@ -51,6 +60,7 @@ pub struct LinePrimitive {
     pub y2: f64,
     pub stroke_width: f64,
     pub color: Color,
+    pub stroke_style: LineStrokeStyle,
 }
 
 impl LinePrimitive {
@@ -63,7 +73,14 @@ impl LinePrimitive {
             y2,
             stroke_width,
             color,
+            stroke_style: LineStrokeStyle::Solid,
         }
+    }
+
+    #[must_use]
+    pub fn with_stroke_style(mut self, stroke_style: LineStrokeStyle) -> Self {
+        self.stroke_style = stroke_style;
+        self
     }
 
     pub fn validate(self) -> ChartResult<()> {

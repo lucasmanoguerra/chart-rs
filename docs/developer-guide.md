@@ -9,6 +9,7 @@ For governance and quality rules, read:
 For architecture and parity status, read:
 - `docs/architecture.md`
 - `docs/parity-v5.1-checklist.md`
+- `docs/gtk-relm4-crosshair-formatters.md`
 
 ## 1) Local Setup
 
@@ -91,6 +92,36 @@ Interaction invariants:
 ### `src/api`
 Main public facade (`ChartEngine`, `ChartEngineConfig`).
 
+Key files:
+- `mod.rs` (engine orchestration, state transitions, frame assembly)
+- `render_style.rs` (style enums + `RenderStyle` default contract)
+- `axis_config.rs` (time/price axis formatter config and policy types)
+- `axis_label_format.rs` (axis label formatting, display transforms, and quantization helpers)
+- `label_cache.rs` (label cache keys/profiles, cache stores, and cache stats/types)
+- `validation.rs` (render/axis config validation functions)
+- `axis_ticks.rs` (axis tick density/spacing selection helpers)
+- `data_window.rs` (visible-window expansion and marker window filtering helpers)
+- `data_controller.rs` (public data-series mutation methods)
+- `engine_accessors.rs` (public engine metadata/data/viewport accessor methods)
+- `axis_label_controller.rs` (public time/price axis label config controller methods)
+- `interaction_validation.rs` (kinetic-pan validation helpers)
+- `price_resolver.rs` (latest/previous price sample and marker color/text resolution helpers)
+- `layout_helpers.rs` (crosshair/axis label layout math helpers)
+- `snap_resolver.rs` (crosshair nearest-sample snapping helpers for points/candles)
+- `cache_profile.rs` (time/price label cache-profile resolution helpers)
+- `plugin_dispatch.rs` (plugin event context/build + dispatch helpers)
+- `plugin_registry.rs` (public plugin lifecycle/registry methods)
+- `interaction_controller.rs` (public crosshair/pan/kinetic interaction controller methods)
+- `scale_access.rs` (public time-scale mapping/range accessor methods)
+- `time_scale_controller.rs` (public time-scale range/pan/zoom/fit controller methods)
+- `series_projection.rs` (public series geometry/markers projection methods)
+- `snapshot_controller.rs` (public snapshot serialization/state export methods)
+- `json_contract.rs` (versioned snapshot/diagnostics JSON contracts and backward-compatible parsers)
+- `render_frame_builder.rs` (render-frame assembly and axis/crosshair label formatting helpers)
+- `label_formatter_controller.rs` (public axis/crosshair label formatter + label-cache lifecycle methods and cache stats/clear APIs)
+- `visible_window_access.rs` (public visible-window point/candle accessor methods)
+- `price_scale_access.rs` (public price-scale map/domain/mode/autoscale methods)
+
 Responsibilities:
 - orchestration between core + interaction + renderer
 - time visible range controls and fit-to-data
@@ -101,6 +132,7 @@ Responsibilities:
 - price-axis formatter policy + display-mode + custom formatter injection
 - zoom-aware adaptive time-axis formatting and label-cache metrics
 - price-axis label-cache metrics for redraw hot paths (`price_label_cache_stats`)
+- crosshair axis-label formatter override cache metrics for redraw hot paths (`crosshair_time_label_cache_stats`, `crosshair_price_label_cache_stats`)
 - latest-price marker controls (line/label style + visibility toggles)
 - latest-price label exclusion radius to avoid overlapping price-axis labels
 - optional trend-aware last-price marker color policy (up/down/neutral)
@@ -129,6 +161,51 @@ Responsibilities:
 - configurable major time-axis tick-mark visibility policy (show/hide major axis marks independently from regular time-axis ticks)
 - configurable time-axis border visibility policy (show/hide bottom axis border independently from right price-axis border)
 - configurable price-axis border visibility policy (show/hide right axis border independently from bottom time-axis border)
+- configurable crosshair guide-line render policy (dedicated color/width and independent horizontal/vertical visibility toggles)
+- configurable crosshair guide-line combined visibility gate policy (`show_crosshair_lines`) applied together with per-axis visibility toggles
+- configurable crosshair axis-label render policy (dedicated time/price label colors, font size, and independent time/price visibility toggles)
+- configurable crosshair axis-label formatter override policy per axis (independent time/price formatter overrides with fallback to axis formatter policies)
+- configurable crosshair axis-label text-transform policy per axis (shared prefix/suffix fallback plus independent time/price prefix/suffix overrides)
+- configurable crosshair axis-label numeric-precision policy per axis (shared precision fallback plus independent time/price precision overrides)
+- configurable crosshair axis-label formatter context policy per axis (visible span + source mode for context-aware time/price formatter overrides)
+- configurable crosshair axis-label formatter context cache-key policy per axis (context-aware formatter caches partition by source mode and visible span)
+- configurable crosshair axis-label formatter context invalidation lifecycle (context-aware formatter caches clear on crosshair-mode and visible-range transitions)
+- snapshot/export parity for crosshair formatter lifecycle state (override mode per axis and formatter generations)
+- hardened crosshair formatter lifecycle introspection API (`crosshair_*_label_formatter_override_mode`, `crosshair_label_formatter_generations`) for host-side state diagnostics
+- consolidated crosshair formatter diagnostics API (`crosshair_formatter_diagnostics`, `clear_crosshair_formatter_caches`) for per-axis mode/generation/cache observability
+- snapshot/diagnostics coherence hardening tests for crosshair formatter lifecycle state (`tests/api_snapshot_tests.rs`, `tests/property_api_tests.rs`)
+- versioned JSON export contracts and backward-compatible parsers for snapshot/diagnostics payloads (`snapshot_json_contract_v1_pretty`, `crosshair_formatter_diagnostics_json_contract_v1_pretty`, `EngineSnapshot::from_json_compat_str`, `CrosshairFormatterDiagnostics::from_json_compat_str`)
+- technical API contract matrix for legacy/context crosshair formatters per axis (`docs/crosshair-formatter-contract-matrix.md`)
+- lifecycle-transition benchmark coverage for context-aware crosshair formatter cache-hot behavior (`benches/core_math_bench.rs`)
+- property-based lifecycle coverage for crosshair formatter transitions (legacy/context set/clear, context invalidation triggers, snapshot parity)
+- GTK4/Relm4 integration reference for context-aware crosshair formatter lifecycle wiring (`docs/gtk-relm4-crosshair-formatters.md`)
+- GTK4 adapter diagnostics bridge hooks for host observability pipelines (`set_crosshair_diagnostics_hook`, `set_snapshot_json_hook`)
+- local manual examples for API/interaction parity checks (`examples/README.md`)
+- configurable crosshair axis-label box policy (deterministic fit-text boxes with dedicated fill, padding, and independent time/price visibility toggles)
+- configurable crosshair axis-label box border/radius policy (deterministic border width/color and corner-radius styling)
+- configurable crosshair axis-label box text policy (manual text color or automatic contrast from box fill luminance)
+- configurable crosshair axis-label box width-mode policy (`FitText`/`FullAxis`) with shared default and optional per-axis overrides
+- configurable crosshair axis-label box border visibility policy (independent time/price border toggles)
+- configurable crosshair axis-label vertical-offset policy (independent time/price Y offsets)
+- configurable crosshair axis-label horizontal-inset policy (independent time/price X insets)
+- configurable crosshair axis-label font-size policy (independent time/price font sizes)
+- configurable crosshair axis-label box padding policy per axis (independent time/price X/Y padding)
+- configurable crosshair axis-label box border-style policy per axis (independent time/price border color/width)
+- configurable crosshair axis-label box corner-radius policy per axis (independent time/price corner radii)
+- configurable crosshair axis-label box text policy per axis (independent time/price manual text color and auto-contrast toggles)
+- configurable crosshair axis-label box fill-color policy per axis (independent time/price fill colors)
+- configurable crosshair axis-label box min-width policy per axis (independent time/price minimum-width constraints)
+- configurable crosshair axis-label box text-alignment policy per axis (independent time/price text alignment with shared fallback)
+- configurable crosshair axis-label box vertical-anchor policy per axis (independent time/price vertical anchoring with shared fallback)
+- configurable crosshair axis-label box horizontal-anchor policy per axis (independent time/price horizontal anchoring with shared fallback)
+- configurable crosshair axis-label box overflow policy per axis (`ClipToAxis`/`AllowOverflow`) with shared fallback
+- configurable crosshair axis-label box visibility-priority policy per axis (`KeepBoth`/`PreferTime`/`PreferPrice`) for overlap resolution
+- configurable crosshair axis-label box clipping-margin policy per axis (independent time/price clip insets when using `ClipToAxis`)
+- configurable crosshair axis-label box jitter-stabilization policy per axis (independent time/price position quantization step in px)
+- configurable crosshair axis-label box z-order policy per axis (`PriceAboveTime`/`TimeAbovePrice`) with shared fallback
+- configurable crosshair guide-line stroke-style policy per axis (`Solid`/`Dashed`/`Dotted`) with shared fallback
+- configurable crosshair guide-line color policy per axis (independent horizontal/vertical colors with shared fallback to `crosshair_line_color`)
+- configurable crosshair guide-line width policy per axis (independent horizontal/vertical widths with shared fallback to `crosshair_line_width`)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -184,6 +261,35 @@ Render invariants:
 - major time-axis tick-mark visibility is a deterministic style knob (`show_major_time_tick_marks`)
 - time-axis border visibility is a deterministic style knob (`show_time_axis_border`)
 - price-axis border visibility is a deterministic style knob (`show_price_axis_border`)
+- crosshair guide lines are deterministic style knobs (`crosshair_line_color`, `crosshair_line_width`, `show_crosshair_horizontal_line`, `show_crosshair_vertical_line`)
+- crosshair axis labels are deterministic style knobs (`crosshair_time_label_color`, `crosshair_price_label_color`, `crosshair_axis_label_font_size_px`, `show_crosshair_time_label`, `show_crosshair_price_label`)
+- crosshair axis-label text transform is deterministic per axis (`crosshair_label_prefix`, `crosshair_label_suffix`, `crosshair_time_label_prefix`, `crosshair_time_label_suffix`, `crosshair_price_label_prefix`, `crosshair_price_label_suffix`)
+- crosshair axis-label numeric precision is deterministic per axis (`crosshair_label_numeric_precision`, `crosshair_time_label_numeric_precision`, `crosshair_price_label_numeric_precision`)
+- crosshair axis-label boxes are deterministic style knobs (`crosshair_label_box_color`, `crosshair_label_box_padding_x_px`, `crosshair_label_box_padding_y_px`, `show_crosshair_time_label_box`, `show_crosshair_price_label_box`)
+- crosshair axis-label boxes support deterministic border/radius style knobs (`crosshair_label_box_border_width_px`, `crosshair_label_box_border_color`, `crosshair_label_box_corner_radius_px`)
+- crosshair axis-label box text color is deterministic with manual/auto-contrast policy (`crosshair_label_box_text_color`, `crosshair_label_box_auto_text_contrast`)
+- crosshair axis-label boxes support deterministic width mode selection with shared default and per-axis overrides (`crosshair_label_box_width_mode`, `crosshair_time_label_box_width_mode`, `crosshair_price_label_box_width_mode`)
+- crosshair axis-label box border visibility is deterministic per axis (`show_crosshair_time_label_box_border`, `show_crosshair_price_label_box_border`)
+- crosshair axis-label vertical offsets are deterministic per axis (`crosshair_time_label_offset_y_px`, `crosshair_price_label_offset_y_px`)
+- crosshair axis-label horizontal insets are deterministic per axis (`crosshair_time_label_padding_x_px`, `crosshair_price_label_padding_right_px`)
+- crosshair axis-label font sizes are deterministic per axis (`crosshair_time_label_font_size_px`, `crosshair_price_label_font_size_px`)
+- crosshair axis-label box paddings are deterministic per axis (`crosshair_time_label_box_padding_x_px`, `crosshair_time_label_box_padding_y_px`, `crosshair_price_label_box_padding_x_px`, `crosshair_price_label_box_padding_y_px`)
+- crosshair axis-label box border styles are deterministic per axis (`crosshair_time_label_box_border_color`, `crosshair_time_label_box_border_width_px`, `crosshair_price_label_box_border_color`, `crosshair_price_label_box_border_width_px`)
+- crosshair axis-label box corner radii are deterministic per axis (`crosshair_time_label_box_corner_radius_px`, `crosshair_price_label_box_corner_radius_px`)
+- crosshair axis-label box text policy is deterministic per axis (`crosshair_time_label_box_text_color`, `crosshair_price_label_box_text_color`, `crosshair_time_label_box_auto_text_contrast`, `crosshair_price_label_box_auto_text_contrast`)
+- crosshair axis-label box fill colors are deterministic per axis (`crosshair_time_label_box_color`, `crosshair_price_label_box_color`)
+- crosshair axis-label box min-widths are deterministic per axis (`crosshair_label_box_min_width_px`, `crosshair_time_label_box_min_width_px`, `crosshair_price_label_box_min_width_px`)
+- crosshair axis-label box text alignment is deterministic per axis (`crosshair_label_box_text_h_align`, `crosshair_time_label_box_text_h_align`, `crosshair_price_label_box_text_h_align`)
+- crosshair axis-label box vertical anchor is deterministic per axis (`crosshair_label_box_vertical_anchor`, `crosshair_time_label_box_vertical_anchor`, `crosshair_price_label_box_vertical_anchor`)
+- crosshair axis-label box horizontal anchor is deterministic per axis (`crosshair_label_box_horizontal_anchor`, `crosshair_time_label_box_horizontal_anchor`, `crosshair_price_label_box_horizontal_anchor`)
+- crosshair axis-label box overflow policy is deterministic per axis (`crosshair_label_box_overflow_policy`, `crosshair_time_label_box_overflow_policy`, `crosshair_price_label_box_overflow_policy`)
+- crosshair axis-label box visibility priority is deterministic per axis (`crosshair_label_box_visibility_priority`, `crosshair_time_label_box_visibility_priority`, `crosshair_price_label_box_visibility_priority`)
+- crosshair axis-label box clipping margin is deterministic per axis (`crosshair_label_box_clip_margin_px`, `crosshair_time_label_box_clip_margin_px`, `crosshair_price_label_box_clip_margin_px`)
+- crosshair axis-label box stabilization step is deterministic per axis (`crosshair_label_box_stabilization_step_px`, `crosshair_time_label_box_stabilization_step_px`, `crosshair_price_label_box_stabilization_step_px`)
+- crosshair axis-label box z-order is deterministic per axis (`crosshair_label_box_z_order_policy`, `crosshair_time_label_box_z_order_policy`, `crosshair_price_label_box_z_order_policy`)
+- crosshair guide-line stroke style is deterministic per axis (`crosshair_line_style`, `crosshair_horizontal_line_style`, `crosshair_vertical_line_style`)
+- crosshair guide-line color is deterministic per axis (`crosshair_line_color`, `crosshair_horizontal_line_color`, `crosshair_vertical_line_color`)
+- crosshair guide-line width is deterministic per axis (`crosshair_line_width`, `crosshair_horizontal_line_width`, `crosshair_vertical_line_width`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

@@ -3,7 +3,7 @@ use pango::FontDescription;
 use std::f64::consts::{FRAC_PI_2, PI};
 
 use crate::error::{ChartError, ChartResult};
-use crate::render::{Color, RenderFrame, Renderer, TextHAlign};
+use crate::render::{Color, LineStrokeStyle, RenderFrame, Renderer, TextHAlign};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CairoRenderStats {
@@ -92,6 +92,7 @@ impl CairoRenderer {
         for line in &frame.lines {
             apply_color(context, line.color);
             context.set_line_width(line.stroke_width);
+            apply_line_stroke_style(context, line.stroke_style, line.stroke_width);
             context.move_to(line.x1, line.y1);
             context.line_to(line.x2, line.y2);
             context
@@ -165,6 +166,14 @@ impl CairoContextRenderer for CairoRenderer {
 
 fn apply_color(context: &Context, color: Color) {
     context.set_source_rgba(color.red, color.green, color.blue, color.alpha);
+}
+
+fn apply_line_stroke_style(context: &Context, stroke_style: LineStrokeStyle, stroke_width: f64) {
+    match stroke_style {
+        LineStrokeStyle::Solid => context.set_dash(&[], 0.0),
+        LineStrokeStyle::Dashed => context.set_dash(&[stroke_width * 6.0, stroke_width * 4.0], 0.0),
+        LineStrokeStyle::Dotted => context.set_dash(&[stroke_width, stroke_width * 2.0], 0.0),
+    }
 }
 
 fn append_rect_path(context: &Context, rect: crate::render::RectPrimitive) {

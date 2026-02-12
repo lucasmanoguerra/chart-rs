@@ -1,10 +1,13 @@
 use chart_rs::api::{
-    AxisLabelLocale, ChartEngine, ChartEngineConfig, LastPriceLabelBoxWidthMode,
-    LastPriceSourceMode, RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy,
-    TimeAxisSessionConfig, TimeAxisTimeZone,
+    AxisLabelLocale, ChartEngine, ChartEngineConfig, CrosshairLabelBoxHorizontalAnchor,
+    CrosshairLabelBoxOverflowPolicy, CrosshairLabelBoxVerticalAnchor,
+    CrosshairLabelBoxVisibilityPriority, CrosshairLabelBoxWidthMode, CrosshairLabelBoxZOrderPolicy,
+    CrosshairLabelSourceMode, CrosshairMode, LastPriceLabelBoxWidthMode, LastPriceSourceMode,
+    RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{DataPoint, Viewport};
-use chart_rs::render::{Color, NullRenderer, TextHAlign};
+use chart_rs::render::{Color, LineStrokeStyle, NullRenderer, TextHAlign};
+use std::sync::Arc;
 
 #[test]
 fn build_render_frame_includes_series_and_axis_primitives() {
@@ -1413,4 +1416,2225 @@ fn last_price_label_box_fit_text_respects_min_width_and_padding() {
             && text.text == "20.00"
             && (text.x - expected_text_x).abs() <= 1e-9
     }));
+}
+
+#[test]
+fn crosshair_lines_follow_pointer_in_normal_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_color: Color::rgb(0.93, 0.28, 0.17),
+        crosshair_line_width: 2.5,
+        crosshair_horizontal_line_width: None,
+        crosshair_vertical_line_width: None,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 333.0_f64.clamp(0.0, plot_right);
+    let expected_y = 177.0_f64.clamp(0.0, plot_bottom);
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.x1 - expected_x).abs() <= 1e-9
+            && (line.x2 - expected_x).abs() <= 1e-9
+            && (line.y1 - 0.0).abs() <= 1e-9
+            && (line.y2 - plot_bottom).abs() <= 1e-9
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.y1 - expected_y).abs() <= 1e-9
+            && (line.y2 - expected_y).abs() <= 1e-9
+            && (line.x1 - 0.0).abs() <= 1e-9
+            && (line.x2 - plot_right).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_lines_use_snapped_coordinates_in_magnet_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+    let style = RenderStyle {
+        crosshair_line_color: Color::rgb(0.24, 0.44, 0.89),
+        crosshair_line_width: 1.75,
+        crosshair_horizontal_line_width: None,
+        crosshair_vertical_line_width: None,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(171.0, 300.0);
+
+    let crosshair = engine.crosshair_state();
+    let expected_x = crosshair
+        .snapped_x
+        .expect("magnet crosshair should snap to nearest sample x");
+    let expected_y = crosshair
+        .snapped_y
+        .expect("magnet crosshair should snap to nearest sample y");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.x1 - expected_x.clamp(0.0, plot_right)).abs() <= 1e-9
+            && (line.x2 - expected_x.clamp(0.0, plot_right)).abs() <= 1e-9
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.y1 - expected_y.clamp(0.0, plot_bottom)).abs() <= 1e-9
+            && (line.y2 - expected_y.clamp(0.0, plot_bottom)).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_line_visibility_toggles_are_independent() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_color: Color::rgb(0.88, 0.21, 0.29),
+        crosshair_line_width: 2.0,
+        crosshair_horizontal_line_width: None,
+        crosshair_vertical_line_width: None,
+        show_crosshair_horizontal_line: true,
+        show_crosshair_vertical_line: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.y1 - line.y2).abs() <= 1e-9
+    }));
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_line_shared_visibility_toggle_disables_both_axes() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_color: Color::rgb(0.88, 0.21, 0.29),
+        crosshair_line_width: 2.0,
+        show_crosshair_lines: false,
+        show_crosshair_horizontal_line: true,
+        show_crosshair_vertical_line: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && (line.stroke_width - style.crosshair_line_width).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_line_style_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_style: LineStrokeStyle::Solid,
+        crosshair_horizontal_line_style: Some(LineStrokeStyle::Dotted),
+        crosshair_vertical_line_style: Some(LineStrokeStyle::Dashed),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
+
+    let vertical = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
+        .expect("vertical crosshair line");
+    assert_eq!(vertical.stroke_style, LineStrokeStyle::Dashed);
+
+    let horizontal = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
+        .expect("horizontal crosshair line");
+    assert_eq!(horizontal.stroke_style, LineStrokeStyle::Dotted);
+}
+
+#[test]
+fn crosshair_line_style_shared_policy_applies_without_per_axis_overrides() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_style: LineStrokeStyle::Dashed,
+        crosshair_horizontal_line_style: None,
+        crosshair_vertical_line_style: None,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
+
+    let vertical = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
+        .expect("vertical crosshair line");
+    let horizontal = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
+        .expect("horizontal crosshair line");
+    assert_eq!(vertical.stroke_style, LineStrokeStyle::Dashed);
+    assert_eq!(horizontal.stroke_style, LineStrokeStyle::Dashed);
+}
+
+#[test]
+fn crosshair_line_width_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_width: 1.0,
+        crosshair_horizontal_line_width: Some(3.0),
+        crosshair_vertical_line_width: Some(2.0),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
+
+    let vertical = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
+        .expect("vertical crosshair line");
+    assert!((vertical.stroke_width - 2.0).abs() <= 1e-9);
+
+    let horizontal = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
+        .expect("horizontal crosshair line");
+    assert!((horizontal.stroke_width - 3.0).abs() <= 1e-9);
+}
+
+#[test]
+fn crosshair_line_width_shared_policy_applies_without_per_axis_overrides() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_width: 2.5,
+        crosshair_horizontal_line_width: None,
+        crosshair_vertical_line_width: None,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
+
+    let vertical = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
+        .expect("vertical crosshair line");
+    let horizontal = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
+        .expect("horizontal crosshair line");
+    assert!((vertical.stroke_width - 2.5).abs() <= 1e-9);
+    assert!((horizontal.stroke_width - 2.5).abs() <= 1e-9);
+}
+
+#[test]
+fn crosshair_line_color_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_color: Color::rgb(0.21, 0.31, 0.43),
+        crosshair_horizontal_line_color: Some(Color::rgb(0.88, 0.27, 0.19)),
+        crosshair_vertical_line_color: Some(Color::rgb(0.19, 0.40, 0.84)),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
+
+    let vertical = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
+        .expect("vertical crosshair line");
+    assert_eq!(
+        vertical.color,
+        style
+            .crosshair_vertical_line_color
+            .expect("vertical override color")
+    );
+
+    let horizontal = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
+        .expect("horizontal crosshair line");
+    assert_eq!(
+        horizontal.color,
+        style
+            .crosshair_horizontal_line_color
+            .expect("horizontal override color")
+    );
+}
+
+#[test]
+fn crosshair_line_color_shared_policy_applies_without_per_axis_overrides() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_color: Color::rgb(0.84, 0.30, 0.18),
+        crosshair_horizontal_line_color: None,
+        crosshair_vertical_line_color: None,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 260.0_f64.clamp(0.0, plot_right);
+    let expected_y = 210.0_f64.clamp(0.0, plot_bottom);
+
+    let vertical = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.x1 - expected_x).abs() <= 1e-9
+                && (line.x2 - expected_x).abs() <= 1e-9
+                && (line.y1 - 0.0).abs() <= 1e-9
+                && (line.y2 - plot_bottom).abs() <= 1e-9
+        })
+        .expect("vertical crosshair line");
+    let horizontal = frame
+        .lines
+        .iter()
+        .find(|line| {
+            (line.y1 - expected_y).abs() <= 1e-9
+                && (line.y2 - expected_y).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - plot_right).abs() <= 1e-9
+        })
+        .expect("horizontal crosshair line");
+    assert_eq!(vertical.color, style.crosshair_line_color);
+    assert_eq!(horizontal.color, style.crosshair_line_color);
+}
+
+#[test]
+fn crosshair_axis_labels_follow_pointer_in_normal_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 2 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis formatter");
+
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.17),
+        crosshair_price_label_color: Color::rgb(0.16, 0.40, 0.86),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_font_size_px: 12.0,
+        crosshair_price_label_font_size_px: 13.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 333.0_f64.clamp(0.0, plot_right);
+    let expected_y = 177.0_f64.clamp(0.0, plot_bottom);
+    let expected_time = engine
+        .map_pixel_to_x(expected_x)
+        .expect("pixel to logical time map");
+    let expected_price = engine
+        .map_pixel_to_price(expected_y)
+        .expect("pixel to price map");
+    let expected_time_text = format!("{expected_time:.2}");
+    let expected_price_text = format!("{expected_price:.2}");
+
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_time_label_color
+            && text.h_align == TextHAlign::Center
+            && text.text == expected_time_text
+            && (text.x - expected_x).abs() <= 1e-9
+            && (text.font_size_px - style.crosshair_time_label_font_size_px).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_price_label_color
+            && text.h_align == TextHAlign::Right
+            && text.text == expected_price_text
+            && (text.y - (expected_y - style.crosshair_price_label_offset_y_px).max(0.0)).abs()
+                <= 1e-9
+            && (text.font_size_px - style.crosshair_price_label_font_size_px).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_time_label_formatter_override_is_applied_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 2 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis formatter");
+
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.89, 0.24, 0.20),
+        crosshair_price_label_color: Color::rgb(0.20, 0.43, 0.88),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("XTIME:{value:.1}")));
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let crosshair_time_text = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    assert!(crosshair_time_text.text.starts_with("XTIME:"));
+}
+
+#[test]
+fn crosshair_price_label_formatter_override_is_applied_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(10.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_price_axis_label_config(chart_rs::api::PriceAxisLabelConfig {
+            display_mode: chart_rs::api::PriceAxisDisplayMode::Percentage {
+                base_price: Some(25.0),
+            },
+            ..chart_rs::api::PriceAxisLabelConfig::default()
+        })
+        .expect("set price-axis formatter");
+
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.89, 0.24, 0.20),
+        crosshair_price_label_color: Color::rgb(0.20, 0.43, 0.88),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_price_label_formatter(Arc::new(|_| "XP".to_owned()));
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let crosshair_price_text = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_price_label_color)
+        .expect("crosshair price label");
+    assert_eq!(crosshair_price_text.text, "XP%");
+}
+
+#[test]
+fn clearing_crosshair_formatter_overrides_falls_back_to_default_policy() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.89, 0.24, 0.20),
+        crosshair_price_label_color: Color::rgb(0.20, 0.43, 0.88),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_time_label_formatter(Arc::new(|_| "XTIME".to_owned()));
+    engine.clear_crosshair_time_label_formatter();
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let crosshair_time_text = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    assert_ne!(crosshair_time_text.text, "XTIME");
+}
+
+#[test]
+fn crosshair_axis_label_text_transform_supports_shared_fallback() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.18),
+        crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+        crosshair_label_prefix: "[[",
+        crosshair_label_suffix: "]]",
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let time_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    let price_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_price_label_color)
+        .expect("crosshair price label");
+
+    assert!(time_label.text.starts_with("[[") && time_label.text.ends_with("]]"));
+    assert!(price_label.text.starts_with("[[") && price_label.text.ends_with("]]"));
+}
+
+#[test]
+fn crosshair_axis_label_text_transform_supports_per_axis_overrides() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.18),
+        crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+        crosshair_label_prefix: "S:",
+        crosshair_label_suffix: ":S",
+        crosshair_time_label_prefix: Some("T:"),
+        crosshair_time_label_suffix: Some(":T"),
+        crosshair_price_label_prefix: Some("P:"),
+        crosshair_price_label_suffix: Some(":P"),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let time_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    let price_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_price_label_color)
+        .expect("crosshair price label");
+
+    assert!(time_label.text.starts_with("T:") && time_label.text.ends_with(":T"));
+    assert!(price_label.text.starts_with("P:") && price_label.text.ends_with(":P"));
+}
+
+#[test]
+fn crosshair_axis_label_numeric_precision_supports_shared_fallback() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 4 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis config");
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.18),
+        crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+        crosshair_label_numeric_precision: Some(1),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let time_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    let price_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_price_label_color)
+        .expect("crosshair price label");
+
+    let time_fraction = time_label.text.split('.').nth(1).expect("time decimals");
+    let price_fraction = price_label
+        .text
+        .trim_end_matches('%')
+        .split('.')
+        .nth(1)
+        .expect("price decimals");
+    assert_eq!(time_fraction.len(), 1);
+    assert_eq!(price_fraction.len(), 1);
+}
+
+#[test]
+fn crosshair_axis_label_numeric_precision_supports_per_axis_overrides() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 4 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis config");
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.18),
+        crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+        crosshair_label_numeric_precision: Some(1),
+        crosshair_time_label_numeric_precision: Some(3),
+        crosshair_price_label_numeric_precision: Some(4),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let time_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_time_label_color)
+        .expect("crosshair time label");
+    let price_label = frame
+        .texts
+        .iter()
+        .find(|text| text.color == style.crosshair_price_label_color)
+        .expect("crosshair price label");
+
+    let time_fraction = time_label.text.split('.').nth(1).expect("time decimals");
+    let price_fraction = price_label
+        .text
+        .trim_end_matches('%')
+        .split('.')
+        .nth(1)
+        .expect("price decimals");
+    assert_eq!(time_fraction.len(), 3);
+    assert_eq!(price_fraction.len(), 4);
+}
+
+#[test]
+fn crosshair_time_formatter_context_includes_span_and_source_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.89, 0.24, 0.20),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+        let source = match context.source_mode {
+            CrosshairLabelSourceMode::SnappedData => "snapped",
+            CrosshairLabelSourceMode::PointerProjected => "projected",
+        };
+        format!("CTX:{value:.1}:{source}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let text = frame
+        .texts
+        .iter()
+        .find(|label| label.color == style.crosshair_time_label_color)
+        .expect("time label");
+    assert!(text.text.starts_with("CTX:"));
+    assert!(text.text.contains(":projected:100.0"));
+}
+
+#[test]
+fn crosshair_price_formatter_context_includes_span_and_source_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Magnet);
+    engine.set_data(vec![
+        DataPoint::new(20.0, 10.0),
+        DataPoint::new(40.0, 20.0),
+        DataPoint::new(60.0, 30.0),
+    ]);
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_price_label_color: Color::rgb(0.20, 0.43, 0.88),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+        let source = match context.source_mode {
+            CrosshairLabelSourceMode::SnappedData => "snapped",
+            CrosshairLabelSourceMode::PointerProjected => "projected",
+        };
+        format!("PC:{value:.1}:{source}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let text = frame
+        .texts
+        .iter()
+        .find(|label| label.color == style.crosshair_price_label_color)
+        .expect("price label");
+    assert!(text.text.starts_with("PC:"));
+    assert!(text.text.contains(":snapped:100.0"));
+}
+
+#[test]
+fn crosshair_context_formatter_has_priority_over_legacy_formatter() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.89, 0.24, 0.20),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_time_label_formatter(Arc::new(|_| "LEGACY".to_owned()));
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|_, _| "CTX".to_owned()));
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let text = frame
+        .texts
+        .iter()
+        .find(|label| label.color == style.crosshair_time_label_color)
+        .expect("time label");
+    assert_eq!(text.text, "CTX");
+}
+
+#[test]
+fn crosshair_context_time_formatter_cache_key_includes_source_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(20.0, 10.0),
+        DataPoint::new(40.0, 20.0),
+        DataPoint::new(60.0, 30.0),
+    ]);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+        let source = match context.source_mode {
+            CrosshairLabelSourceMode::SnappedData => "S",
+            CrosshairLabelSourceMode::PointerProjected => "P",
+        };
+        format!("T:{value:.2}:{source}:{:.1}", context.visible_span_abs)
+    }));
+    engine.clear_crosshair_time_label_cache();
+    engine.pointer_move(333.0, 177.0);
+
+    engine.set_crosshair_mode(CrosshairMode::Magnet);
+    let _ = engine.build_render_frame().expect("magnet first");
+    let magnet_stats_1 = engine.crosshair_time_label_cache_stats();
+    let _ = engine.build_render_frame().expect("magnet second");
+    let magnet_stats_2 = engine.crosshair_time_label_cache_stats();
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine.pointer_move(333.0, 177.0);
+    let _ = engine.build_render_frame().expect("normal first");
+    let normal_stats = engine.crosshair_time_label_cache_stats();
+
+    assert!(magnet_stats_1.misses >= 1);
+    assert!(magnet_stats_2.hits > magnet_stats_1.hits);
+    assert!(normal_stats.misses > magnet_stats_2.misses);
+}
+
+#[test]
+fn crosshair_context_price_formatter_cache_key_includes_visible_span() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+        format!("P:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.clear_crosshair_price_label_cache();
+    engine.pointer_move(333.0, 177.0);
+
+    let _ = engine.build_render_frame().expect("span 100 first");
+    let span_100_stats_1 = engine.crosshair_price_label_cache_stats();
+    let _ = engine.build_render_frame().expect("span 100 second");
+    let span_100_stats_2 = engine.crosshair_price_label_cache_stats();
+
+    engine
+        .set_time_visible_range(0.0, 50.0)
+        .expect("set visible range");
+    let _ = engine.build_render_frame().expect("span 50 first");
+    let span_50_stats = engine.crosshair_price_label_cache_stats();
+
+    assert!(span_100_stats_1.misses >= 1);
+    assert!(span_100_stats_2.hits > span_100_stats_1.hits);
+    assert!(span_50_stats.misses > span_100_stats_2.misses);
+}
+
+#[test]
+fn crosshair_context_formatter_cache_is_cleared_on_crosshair_mode_change() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+        format!("T:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(333.0, 177.0);
+    let _ = engine.build_render_frame().expect("build frame");
+    assert!(engine.crosshair_time_label_cache_stats().size >= 1);
+
+    engine.set_crosshair_mode(CrosshairMode::Magnet);
+
+    assert_eq!(engine.crosshair_time_label_cache_stats().size, 0);
+}
+
+#[test]
+fn crosshair_context_formatter_cache_is_cleared_on_visible_range_change() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+        format!("P:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(333.0, 177.0);
+    let _ = engine.build_render_frame().expect("build frame");
+    assert!(engine.crosshair_price_label_cache_stats().size >= 1);
+
+    engine
+        .set_time_visible_range(10.0, 70.0)
+        .expect("set visible range");
+
+    assert_eq!(engine.crosshair_price_label_cache_stats().size, 0);
+}
+
+#[test]
+fn crosshair_time_formatter_override_uses_dedicated_cache_stats() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("T:{value:.2}")));
+    engine.clear_crosshair_time_label_cache();
+    engine.pointer_move(333.0, 177.0);
+
+    let _ = engine.build_render_frame().expect("first frame");
+    let first_stats = engine.crosshair_time_label_cache_stats();
+    let _ = engine.build_render_frame().expect("second frame");
+    let second_stats = engine.crosshair_time_label_cache_stats();
+
+    assert!(first_stats.misses >= 1);
+    assert!(second_stats.hits >= first_stats.hits);
+}
+
+#[test]
+fn crosshair_price_formatter_override_uses_dedicated_cache_stats() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("P:{value:.2}")));
+    engine.clear_crosshair_price_label_cache();
+    engine.pointer_move(333.0, 177.0);
+
+    let _ = engine.build_render_frame().expect("first frame");
+    let first_stats = engine.crosshair_price_label_cache_stats();
+    let _ = engine.build_render_frame().expect("second frame");
+    let second_stats = engine.crosshair_price_label_cache_stats();
+
+    assert!(first_stats.misses >= 1);
+    assert!(second_stats.hits >= first_stats.hits);
+}
+
+#[test]
+fn crosshair_axis_labels_use_dedicated_vertical_offsets() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.17),
+        crosshair_price_label_color: Color::rgb(0.16, 0.40, 0.86),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_offset_y_px: 11.0,
+        crosshair_price_label_offset_y_px: 13.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 333.0_f64.clamp(0.0, plot_right);
+    let expected_y = 177.0_f64.clamp(0.0, plot_bottom);
+    let expected_time_label_y = (plot_bottom + style.crosshair_time_label_offset_y_px)
+        .min((viewport_height - style.crosshair_time_label_font_size_px).max(0.0));
+    let expected_price_label_y = (expected_y - style.crosshair_price_label_offset_y_px).max(0.0);
+
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_time_label_color
+            && text.h_align == TextHAlign::Center
+            && (text.x - expected_x).abs() <= 1e-9
+            && (text.y - expected_time_label_y).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_price_label_color
+            && text.h_align == TextHAlign::Right
+            && (text.y - expected_price_label_y).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_axis_labels_use_dedicated_horizontal_insets() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.17),
+        crosshair_price_label_color: Color::rgb(0.16, 0.40, 0.86),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_padding_x_px: 40.0,
+        crosshair_price_label_padding_right_px: 14.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(2.0, 177.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let expected_time_label_x = style.crosshair_time_label_padding_x_px;
+    let expected_price_label_x = (viewport_width - style.crosshair_price_label_padding_right_px)
+        .clamp(plot_right, viewport_width);
+
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_time_label_color
+            && text.h_align == TextHAlign::Center
+            && (text.x - expected_time_label_x).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_price_label_color
+            && text.h_align == TextHAlign::Right
+            && (text.x - expected_price_label_x).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_axis_labels_use_dedicated_font_sizes() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.17),
+        crosshair_price_label_color: Color::rgb(0.16, 0.40, 0.86),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_font_size_px: 14.0,
+        crosshair_price_label_font_size_px: 10.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_time_label_color
+            && text.h_align == TextHAlign::Center
+            && (text.font_size_px - style.crosshair_time_label_font_size_px).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_price_label_color
+            && text.h_align == TextHAlign::Right
+            && (text.font_size_px - style.crosshair_price_label_font_size_px).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_axis_labels_use_snapped_values_in_magnet_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 2 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis formatter");
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.83, 0.29, 0.17),
+        crosshair_price_label_color: Color::rgb(0.21, 0.44, 0.86),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(171.0, 300.0);
+
+    let crosshair = engine.crosshair_state();
+    let snapped_time = crosshair
+        .snapped_time
+        .expect("magnet crosshair should expose snapped time");
+    let snapped_price = crosshair
+        .snapped_price
+        .expect("magnet crosshair should expose snapped price");
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_time_label_color
+            && text.h_align == TextHAlign::Center
+            && text.text == format!("{snapped_time:.2}")
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_price_label_color
+            && text.h_align == TextHAlign::Right
+            && text.text == format!("{snapped_price:.2}")
+    }));
+}
+
+#[test]
+fn crosshair_axis_label_visibility_toggles_are_independent() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.82, 0.30, 0.17),
+        crosshair_price_label_color: Color::rgb(0.19, 0.41, 0.89),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        show_crosshair_time_label: false,
+        show_crosshair_price_label: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(
+        !frame
+            .texts
+            .iter()
+            .any(|text| text.color == style.crosshair_time_label_color)
+    );
+    assert!(
+        frame
+            .texts
+            .iter()
+            .any(|text| text.color == style.crosshair_price_label_color)
+    );
+}
+
+#[test]
+fn crosshair_axis_label_boxes_render_on_time_and_price_axes() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.94, 0.83, 0.18),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let box_count = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .count();
+    assert_eq!(
+        box_count, 2,
+        "expected time and price crosshair label boxes"
+    );
+}
+
+#[test]
+fn crosshair_axis_label_box_visibility_toggles_are_independent() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.91, 0.35, 0.21),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let crosshair_boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+    assert_eq!(crosshair_boxes.len(), 1);
+    assert!(crosshair_boxes[0].x >= plot_right);
+}
+
+#[test]
+fn crosshair_axis_label_boxes_apply_border_and_corner_radius() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.93, 0.84, 0.20),
+        crosshair_label_box_border_color: Color::rgb(0.15, 0.20, 0.35),
+        crosshair_label_box_border_width_px: 1.5,
+        crosshair_label_box_corner_radius_px: 4.0,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+    assert_eq!(boxes.len(), 2);
+    assert!(boxes.iter().all(|rect| {
+        (rect.border_width - style.crosshair_label_box_border_width_px).abs() <= 1e-9
+            && rect.border_color == style.crosshair_label_box_border_color
+            && rect.corner_radius > 0.0
+    }));
+}
+
+#[test]
+fn crosshair_axis_label_box_auto_text_contrast_uses_dark_text_on_bright_fill() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.95, 0.95, 0.95),
+        crosshair_label_box_text_color: Color::rgb(1.0, 0.0, 0.0),
+        crosshair_label_box_auto_text_contrast: true,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+    let expected = Color::rgb(0.06, 0.08, 0.11);
+
+    assert!(
+        frame
+            .texts
+            .iter()
+            .any(|text| text.h_align == TextHAlign::Center && text.color == expected)
+    );
+    assert!(
+        frame
+            .texts
+            .iter()
+            .any(|text| text.h_align == TextHAlign::Right && text.color == expected)
+    );
+}
+
+#[test]
+fn crosshair_axis_label_box_manual_text_color_is_used_when_auto_contrast_disabled() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_label_box_text_color: Color::rgb(0.91, 0.27, 0.18),
+        crosshair_label_box_auto_text_contrast: false,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center && text.color == style.crosshair_label_box_text_color
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right && text.color == style.crosshair_label_box_text_color
+    }));
+}
+
+#[test]
+fn crosshair_axis_label_box_text_policy_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_label_box_text_color: Color::rgb(0.95, 0.95, 0.95),
+        crosshair_label_box_auto_text_contrast: false,
+        crosshair_time_label_box_text_color: Some(Color::rgb(0.12, 0.76, 0.33)),
+        crosshair_price_label_box_text_color: Some(Color::rgb(0.22, 0.41, 0.90)),
+        crosshair_time_label_box_auto_text_contrast: Some(false),
+        crosshair_price_label_box_auto_text_contrast: Some(false),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center
+            && text.color
+                == style
+                    .crosshair_time_label_box_text_color
+                    .expect("time color")
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.color
+                == style
+                    .crosshair_price_label_box_text_color
+                    .expect("price color")
+    }));
+}
+
+#[test]
+fn crosshair_axis_label_box_text_alignment_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_label_box_text_color: Color::rgb(0.95, 0.95, 0.95),
+        crosshair_label_box_auto_text_contrast: false,
+        crosshair_time_label_box_text_color: Some(Color::rgb(0.12, 0.76, 0.33)),
+        crosshair_price_label_box_text_color: Some(Color::rgb(0.22, 0.41, 0.90)),
+        crosshair_time_label_box_auto_text_contrast: Some(false),
+        crosshair_price_label_box_auto_text_contrast: Some(false),
+        crosshair_time_label_box_text_h_align: Some(TextHAlign::Left),
+        crosshair_price_label_box_text_h_align: Some(TextHAlign::Center),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.texts.iter().any(|text| {
+        text.color
+            == style
+                .crosshair_time_label_box_text_color
+                .expect("time color")
+            && text.h_align == TextHAlign::Left
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.color
+            == style
+                .crosshair_price_label_box_text_color
+                .expect("price color")
+            && text.h_align == TextHAlign::Center
+    }));
+}
+
+#[test]
+fn crosshair_axis_label_box_horizontal_anchor_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_time_label_box_horizontal_anchor: Some(CrosshairLabelBoxHorizontalAnchor::Left),
+        crosshair_price_label_box_horizontal_anchor: Some(
+            CrosshairLabelBoxHorizontalAnchor::Center,
+        ),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let axis_panel_width = (viewport_width - plot_right).max(0.0);
+    let time_box = frame
+        .rects
+        .iter()
+        .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x < plot_right)
+        .expect("time box present");
+    let price_box = frame
+        .rects
+        .iter()
+        .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x >= plot_right)
+        .expect("price box present");
+
+    assert!(time_box.x >= 200.0);
+    assert!(
+        (price_box.x - (plot_right + (axis_panel_width - price_box.width) * 0.5)).abs() <= 1e-9
+    );
+}
+
+#[test]
+fn crosshair_axis_label_box_overflow_policy_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_time_label_box_vertical_anchor: Some(CrosshairLabelBoxVerticalAnchor::Top),
+        crosshair_price_label_box_vertical_anchor: Some(CrosshairLabelBoxVerticalAnchor::Bottom),
+        crosshair_time_label_box_padding_y_px: 24.0,
+        crosshair_price_label_box_padding_y_px: 24.0,
+        crosshair_time_label_box_overflow_policy: Some(
+            CrosshairLabelBoxOverflowPolicy::AllowOverflow,
+        ),
+        crosshair_price_label_box_overflow_policy: Some(
+            CrosshairLabelBoxOverflowPolicy::ClipToAxis,
+        ),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 490.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let time_box = frame
+        .rects
+        .iter()
+        .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x < plot_right)
+        .expect("time box present");
+    let price_box = frame
+        .rects
+        .iter()
+        .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x >= plot_right)
+        .expect("price box present");
+
+    assert!(time_box.y + time_box.height > viewport_height + 1e-9);
+    assert!(price_box.y >= -1e-9);
+    assert!(price_box.y + price_box.height <= viewport_height + 1e-9);
+}
+
+#[test]
+fn crosshair_axis_label_box_visibility_priority_resolves_overlap_deterministically() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_time_label_box_horizontal_anchor: Some(CrosshairLabelBoxHorizontalAnchor::Right),
+        crosshair_time_label_box_overflow_policy: Some(
+            CrosshairLabelBoxOverflowPolicy::AllowOverflow,
+        ),
+        crosshair_time_label_box_min_width_px: 220.0,
+        crosshair_price_label_box_horizontal_anchor: Some(CrosshairLabelBoxHorizontalAnchor::Right),
+        crosshair_price_label_box_overflow_policy: Some(
+            CrosshairLabelBoxOverflowPolicy::AllowOverflow,
+        ),
+        crosshair_price_label_box_min_width_px: 140.0,
+        crosshair_label_box_visibility_priority: CrosshairLabelBoxVisibilityPriority::PreferTime,
+        crosshair_time_label_box_visibility_priority: None,
+        crosshair_price_label_box_visibility_priority: None,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(880.0, 490.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+    assert_eq!(boxes.len(), 2);
+    assert!(boxes.iter().any(|rect| rect.x < plot_right));
+    assert!(boxes.iter().any(|rect| rect.x >= plot_right));
+}
+
+#[test]
+fn crosshair_axis_label_box_clip_margin_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_time_label_box_overflow_policy: Some(CrosshairLabelBoxOverflowPolicy::ClipToAxis),
+        crosshair_price_label_box_overflow_policy: Some(
+            CrosshairLabelBoxOverflowPolicy::ClipToAxis,
+        ),
+        crosshair_time_label_box_clip_margin_px: 8.0,
+        crosshair_price_label_box_clip_margin_px: 9.0,
+        crosshair_time_label_box_horizontal_anchor: Some(CrosshairLabelBoxHorizontalAnchor::Left),
+        crosshair_price_label_box_horizontal_anchor: Some(CrosshairLabelBoxHorizontalAnchor::Right),
+        crosshair_time_label_box_vertical_anchor: Some(CrosshairLabelBoxVerticalAnchor::Top),
+        crosshair_price_label_box_vertical_anchor: Some(CrosshairLabelBoxVerticalAnchor::Bottom),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(2.0, 498.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let time_box = frame
+        .rects
+        .iter()
+        .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x < plot_right)
+        .expect("time box present");
+    let price_box = frame
+        .rects
+        .iter()
+        .find(|rect| rect.fill_color == style.crosshair_label_box_color && rect.x >= plot_right)
+        .expect("price box present");
+
+    assert!(time_box.x >= 8.0 - 1e-9);
+    assert!(time_box.y >= plot_bottom + 8.0 - 1e-9);
+    assert!(price_box.x >= plot_right + 9.0 - 1e-9);
+    assert!(price_box.x + price_box.width <= viewport_width - 9.0 + 1e-9);
+    assert!(price_box.y >= 9.0 - 1e-9);
+    assert!(price_box.y + price_box.height <= viewport_height - 9.0 + 1e-9);
+}
+
+#[test]
+fn crosshair_axis_label_box_stabilization_step_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_label_box_stabilization_step_px: 0.0,
+        crosshair_time_label_box_stabilization_step_px: 4.0,
+        crosshair_price_label_box_stabilization_step_px: 3.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(263.3, 217.4);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let time_text = frame
+        .texts
+        .iter()
+        .find(|text| text.h_align == TextHAlign::Center)
+        .expect("time text present");
+    let price_text = frame
+        .texts
+        .iter()
+        .find(|text| text.h_align == TextHAlign::Right)
+        .expect("price text present");
+
+    let time_units = time_text.x / style.crosshair_time_label_box_stabilization_step_px;
+    let price_units = price_text.y / style.crosshair_price_label_box_stabilization_step_px;
+    assert!((time_units - time_units.round()).abs() <= 1e-9);
+    assert!((price_units - price_units.round()).abs() <= 1e-9);
+}
+
+#[test]
+fn crosshair_axis_label_box_z_order_is_deterministic_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_time_label_box_color: Some(Color::rgb(0.93, 0.84, 0.20)),
+        crosshair_price_label_box_color: Some(Color::rgb(0.20, 0.39, 0.86)),
+        crosshair_time_label_box_text_color: Some(Color::rgb(0.12, 0.76, 0.33)),
+        crosshair_price_label_box_text_color: Some(Color::rgb(0.22, 0.41, 0.90)),
+        crosshair_time_label_box_auto_text_contrast: Some(false),
+        crosshair_price_label_box_auto_text_contrast: Some(false),
+        crosshair_label_box_z_order_policy: CrosshairLabelBoxZOrderPolicy::PriceAboveTime,
+        crosshair_time_label_box_z_order_policy: Some(
+            CrosshairLabelBoxZOrderPolicy::TimeAbovePrice,
+        ),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let time_rect_index = frame
+        .rects
+        .iter()
+        .position(|rect| {
+            rect.fill_color == style.crosshair_time_label_box_color.expect("time fill")
+        })
+        .expect("time rect");
+    let price_rect_index = frame
+        .rects
+        .iter()
+        .position(|rect| {
+            rect.fill_color == style.crosshair_price_label_box_color.expect("price fill")
+        })
+        .expect("price rect");
+    assert!(time_rect_index > price_rect_index);
+
+    let time_text_index = frame
+        .texts
+        .iter()
+        .position(|text| {
+            text.color
+                == style
+                    .crosshair_time_label_box_text_color
+                    .expect("time text")
+        })
+        .expect("time text");
+    let price_text_index = frame
+        .texts
+        .iter()
+        .position(|text| {
+            text.color
+                == style
+                    .crosshair_price_label_box_text_color
+                    .expect("price text")
+        })
+        .expect("price text");
+    assert!(time_text_index > price_text_index);
+}
+
+#[test]
+fn crosshair_axis_label_box_vertical_anchor_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_time_label_box_color: Some(Color::rgb(0.81, 0.30, 0.17)),
+        crosshair_price_label_box_color: Some(Color::rgb(0.17, 0.41, 0.86)),
+        crosshair_time_label_box_text_color: Some(Color::rgb(0.96, 0.91, 0.12)),
+        crosshair_price_label_box_text_color: Some(Color::rgb(0.11, 0.95, 0.37)),
+        crosshair_time_label_box_auto_text_contrast: Some(false),
+        crosshair_price_label_box_auto_text_contrast: Some(false),
+        crosshair_time_label_box_vertical_anchor: Some(CrosshairLabelBoxVerticalAnchor::Top),
+        crosshair_price_label_box_vertical_anchor: Some(CrosshairLabelBoxVerticalAnchor::Bottom),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let time_text = frame
+        .texts
+        .iter()
+        .find(|text| {
+            text.color
+                == style
+                    .crosshair_time_label_box_text_color
+                    .expect("time text color override")
+        })
+        .expect("time text present");
+    let price_text = frame
+        .texts
+        .iter()
+        .find(|text| {
+            text.color
+                == style
+                    .crosshair_price_label_box_text_color
+                    .expect("price text color override")
+        })
+        .expect("price text present");
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let time_box = frame
+        .rects
+        .iter()
+        .find(|rect| {
+            rect.fill_color
+                == style
+                    .crosshair_time_label_box_color
+                    .expect("time fill color override")
+                && rect.x < plot_right
+        })
+        .expect("time box present");
+    let price_box = frame
+        .rects
+        .iter()
+        .find(|rect| {
+            rect.fill_color
+                == style
+                    .crosshair_price_label_box_color
+                    .expect("price fill color override")
+                && rect.x >= plot_right
+        })
+        .expect("price box present");
+
+    assert!(
+        (time_text.y - (time_box.y + style.crosshair_time_label_box_padding_y_px)).abs() <= 1e-9
+    );
+    assert!(
+        (price_text.y
+            - (price_box.y + price_box.height
+                - style.crosshair_price_label_box_padding_y_px
+                - style.crosshair_price_label_font_size_px))
+            .abs()
+            <= 1e-9
+    );
+}
+
+#[test]
+fn crosshair_axis_label_box_fill_color_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.20, 0.20, 0.20),
+        crosshair_time_label_box_color: Some(Color::rgb(0.93, 0.84, 0.20)),
+        crosshair_price_label_box_color: Some(Color::rgb(0.20, 0.39, 0.86)),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    assert!(frame.rects.iter().any(|rect| {
+        rect.x < plot_right
+            && rect.fill_color
+                == style
+                    .crosshair_time_label_box_color
+                    .expect("time box color")
+    }));
+    assert!(frame.rects.iter().any(|rect| {
+        rect.x >= plot_right
+            && rect.fill_color
+                == style
+                    .crosshair_price_label_box_color
+                    .expect("price box color")
+    }));
+}
+
+#[test]
+fn crosshair_axis_label_box_width_mode_full_axis_expands_boxes() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+        crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FullAxis,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let axis_panel_width = (viewport_width - plot_right).max(0.0);
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+
+    assert_eq!(boxes.len(), 2);
+    assert!(boxes.iter().any(|rect| {
+        (rect.x - 0.0).abs() <= 1e-9
+            && (rect.width - plot_right).abs() <= 1e-9
+            && rect.y >= plot_bottom - 1e-9
+    }));
+    assert!(boxes.iter().any(|rect| {
+        (rect.x - plot_right).abs() <= 1e-9
+            && (rect.width - axis_panel_width).abs() <= 1e-9
+            && rect.y <= plot_bottom + 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_axis_label_box_width_mode_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+        crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
+        crosshair_time_label_box_width_mode: Some(CrosshairLabelBoxWidthMode::FullAxis),
+        crosshair_price_label_box_width_mode: Some(CrosshairLabelBoxWidthMode::FitText),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let axis_panel_width = (viewport_width - plot_right).max(0.0);
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+
+    assert_eq!(boxes.len(), 2);
+    let time_box = boxes
+        .iter()
+        .find(|rect| rect.x < plot_right)
+        .expect("time box present");
+    assert!((time_box.x - 0.0).abs() <= 1e-9);
+    assert!((time_box.width - plot_right).abs() <= 1e-9);
+
+    let price_box = boxes
+        .iter()
+        .find(|rect| rect.x >= plot_right)
+        .expect("price box present");
+    assert!(price_box.width < axis_panel_width);
+}
+
+#[test]
+fn crosshair_axis_label_box_min_width_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+        crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
+        crosshair_label_box_min_width_px: 0.0,
+        crosshair_time_label_box_min_width_px: 120.0,
+        crosshair_price_label_box_min_width_px: 20.0,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+
+    assert_eq!(boxes.len(), 2);
+    let time_box = boxes
+        .iter()
+        .find(|rect| rect.x < plot_right)
+        .expect("time box present");
+    assert!(time_box.width >= style.crosshair_time_label_box_min_width_px - 1e-9);
+
+    let price_box = boxes
+        .iter()
+        .find(|rect| rect.x >= plot_right)
+        .expect("price box present");
+    assert!(price_box.width >= style.crosshair_price_label_box_min_width_px - 1e-9);
+    assert!(time_box.width > price_box.width);
+}
+
+#[test]
+fn crosshair_axis_label_box_border_visibility_toggles_are_independent() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+        crosshair_label_box_border_color: Color::rgb(0.15, 0.20, 0.35),
+        crosshair_label_box_border_width_px: 1.5,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        show_crosshair_time_label_box_border: false,
+        show_crosshair_price_label_box_border: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+    assert_eq!(boxes.len(), 2);
+    assert!(boxes.iter().any(|rect| {
+        rect.x < plot_right
+            && rect.border_width == 0.0
+            && rect.border_color == Color::rgba(0.0, 0.0, 0.0, 0.0)
+    }));
+    assert!(boxes.iter().any(|rect| {
+        rect.x >= plot_right
+            && (rect.border_width - style.crosshair_label_box_border_width_px).abs() <= 1e-9
+            && rect.border_color == style.crosshair_label_box_border_color
+    }));
+}
+
+#[test]
+fn crosshair_axis_label_box_border_style_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        show_crosshair_time_label_box_border: true,
+        show_crosshair_price_label_box_border: true,
+        crosshair_time_label_box_border_color: Color::rgb(0.78, 0.28, 0.19),
+        crosshair_price_label_box_border_color: Color::rgb(0.18, 0.37, 0.84),
+        crosshair_time_label_box_border_width_px: 2.0,
+        crosshair_price_label_box_border_width_px: 1.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+    assert_eq!(boxes.len(), 2);
+
+    let time_box = boxes
+        .iter()
+        .find(|rect| rect.x < plot_right)
+        .expect("time box present");
+    assert!((time_box.border_width - style.crosshair_time_label_box_border_width_px).abs() <= 1e-9);
+    assert_eq!(
+        time_box.border_color,
+        style.crosshair_time_label_box_border_color
+    );
+
+    let price_box = boxes
+        .iter()
+        .find(|rect| rect.x >= plot_right)
+        .expect("price box present");
+    assert!(
+        (price_box.border_width - style.crosshair_price_label_box_border_width_px).abs() <= 1e-9
+    );
+    assert_eq!(
+        price_box.border_color,
+        style.crosshair_price_label_box_border_color
+    );
+}
+
+#[test]
+fn crosshair_axis_label_box_corner_radius_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+        crosshair_label_box_corner_radius_px: 0.0,
+        crosshair_time_label_box_corner_radius_px: 0.0,
+        crosshair_price_label_box_corner_radius_px: 5.0,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+    assert_eq!(boxes.len(), 2);
+
+    let time_box = boxes
+        .iter()
+        .find(|rect| rect.x < plot_right)
+        .expect("time box present");
+    assert_eq!(time_box.corner_radius, 0.0);
+
+    let price_box = boxes
+        .iter()
+        .find(|rect| rect.x >= plot_right)
+        .expect("price box present");
+    assert!(price_box.corner_radius > 0.0);
+    assert!(price_box.corner_radius <= (price_box.width.min(price_box.height)) * 0.5 + 1e-9);
+}
+
+#[test]
+fn crosshair_axis_label_box_padding_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+        crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
+        crosshair_time_label_box_padding_x_px: 20.0,
+        crosshair_time_label_box_padding_y_px: 8.0,
+        crosshair_price_label_box_padding_x_px: 4.0,
+        crosshair_price_label_box_padding_y_px: 1.0,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+    assert_eq!(boxes.len(), 2);
+    let time_box = boxes
+        .iter()
+        .find(|rect| rect.x < plot_right)
+        .expect("time box present");
+    let price_box = boxes
+        .iter()
+        .find(|rect| rect.x >= plot_right)
+        .expect("price box present");
+    assert!(
+        time_box.width > price_box.width,
+        "time box should be wider due to larger horizontal padding"
+    );
+    assert!(
+        time_box.height > price_box.height,
+        "time box should be taller due to larger vertical padding"
+    );
 }

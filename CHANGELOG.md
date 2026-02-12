@@ -8,6 +8,144 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- GTK/Relm4 diagnostics bridge parity baseline (`R-089`) with adapter hooks to publish crosshair formatter diagnostics and versioned snapshot JSON during draw lifecycle.
+- New GTK adapter APIs: `set_crosshair_diagnostics_hook`, `clear_crosshair_diagnostics_hook`, `set_snapshot_json_hook`, `clear_snapshot_json_hook`, `crosshair_formatter_diagnostics_json_contract_v1_pretty`, and `snapshot_json_contract_v1_pretty`.
+- Snapshot/diagnostics schema guard parity baseline (`R-088`) with backward-compatible JSON parsers that accept both legacy raw payloads and versioned contract wrappers.
+- New compatibility APIs: `EngineSnapshot::from_json_compat_str` and `CrosshairFormatterDiagnostics::from_json_compat_str`.
+- Crosshair diagnostics JSON export parity baseline (`R-087`) with stable raw and versioned (`v1`) export contracts.
+- New JSON contract APIs: `snapshot_json_contract_v1_pretty`, `crosshair_formatter_diagnostics_json_pretty`, and `crosshair_formatter_diagnostics_json_contract_v1_pretty`.
+- New contract payload types: `EngineSnapshotJsonContractV1`, `CrosshairFormatterDiagnosticsJsonContractV1`, and schema constants `ENGINE_SNAPSHOT_JSON_SCHEMA_V1` / `CROSSHAIR_DIAGNOSTICS_JSON_SCHEMA_V1`.
+- Crosshair snapshot/diagnostics coherence hardening parity baseline (`R-086`) with integration/property assertions that `EngineSnapshot.crosshair_formatter` and `crosshair_formatter_diagnostics()` remain mode/generation-aligned across lifecycle transitions.
+- New snapshot/diagnostics coherence tests in `tests/api_snapshot_tests.rs` and `tests/property_api_tests.rs`.
+- Crosshair legacy/context API contract matrix parity baseline (`R-085`) with explicit per-axis lifecycle/action mapping for mode, storage slots, and generation semantics.
+- New technical document: `docs/crosshair-formatter-contract-matrix.md`.
+- Crosshair lifecycle-transition benchmark parity baseline (`R-084`) with deterministic context-cache hot-path coverage under crosshair-mode/visible-range changes.
+- New benchmark: `bench_crosshair_axis_label_formatter_context_lifecycle_transitions` in `benches/core_math_bench.rs`.
+- Crosshair formatter diagnostics parity baseline (`R-083`) with consolidated per-axis override-mode, generation, and cache-stat observability APIs.
+- New API methods: `crosshair_formatter_diagnostics` and `clear_crosshair_formatter_caches`.
+- New diagnostics contract: `CrosshairFormatterDiagnostics`.
+- GTK4/Relm4 integration docs parity baseline (`R-082`) with practical context-aware crosshair formatter wiring guidance for host applications.
+- New integration document: `docs/gtk-relm4-crosshair-formatters.md`.
+- Crosshair formatter lifecycle property-coverage parity baseline (`R-081`) with deterministic mixed-transition scenarios for legacy/context overrides, invalidation triggers, and snapshot export roundtrip.
+- New property-test coverage for crosshair formatter lifecycle and snapshot parity (`tests/property_api_tests.rs`).
+- Crosshair axis-label formatter API hardening parity baseline (`R-080`) with deterministic override-mode and generation introspection per axis.
+- New API methods: `crosshair_time_label_formatter_override_mode`, `crosshair_price_label_formatter_override_mode`, and `crosshair_label_formatter_generations`.
+- Crosshair axis-label formatter snapshot/export parity baseline (`R-079`) with deterministic snapshot fields for per-axis override mode and formatter generations.
+- New snapshot contracts: `CrosshairFormatterOverrideMode` and `CrosshairFormatterSnapshot` included in `EngineSnapshot`.
+- New snapshot test coverage for crosshair formatter state export/roundtrip behavior.
+- Crosshair axis-label formatter context invalidation lifecycle parity baseline (`R-078`) with deterministic cache invalidation on crosshair-mode and visible-range transitions.
+- New render-frame test coverage for crosshair formatter-context cache lifecycle invalidation behavior.
+- Crosshair axis-label formatter context cache-key parity baseline (`R-077`) with deterministic per-axis cache partitioning by formatter generation, source mode, visible span, and quantized label inputs.
+- New render-frame/property tests and criterion benchmark coverage for crosshair formatter-context cache-key behavior.
+- Crosshair axis-label formatter context parity baseline (`R-076`) with deterministic per-axis context delivery (visible span and source mode) for crosshair formatter overrides.
+- New API methods: `set_crosshair_time_label_formatter_with_context`, `clear_crosshair_time_label_formatter_with_context`, `set_crosshair_price_label_formatter_with_context`, and `clear_crosshair_price_label_formatter_with_context`.
+- New public context contracts: `CrosshairTimeLabelFormatterContext`, `CrosshairPriceLabelFormatterContext`, and `CrosshairLabelSourceMode`.
+- New render-frame/property tests and criterion benchmark coverage for crosshair axis-label formatter-context behavior.
+- Crosshair axis-label numeric precision parity baseline (`R-075`) with deterministic shared precision fallback plus independent per-axis precision overrides for time/price crosshair labels.
+- New render-style knobs: `crosshair_label_numeric_precision`, `crosshair_time_label_numeric_precision`, and `crosshair_price_label_numeric_precision`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label numeric-precision behavior.
+- Crosshair axis-label text transform parity baseline (`R-074`) with deterministic shared prefix/suffix fallback plus independent per-axis overrides for time/price crosshair labels.
+- New render-style knobs: `crosshair_label_prefix`, `crosshair_label_suffix`, `crosshair_time_label_prefix`, `crosshair_time_label_suffix`, `crosshair_price_label_prefix`, and `crosshair_price_label_suffix`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label text-transform behavior.
+- Crosshair axis-label formatter fallback/cache parity baseline (`R-073`) with deterministic per-axis cache policy for formatter overrides.
+- New API methods: `crosshair_time_label_cache_stats`, `clear_crosshair_time_label_cache`, `crosshair_price_label_cache_stats`, and `clear_crosshair_price_label_cache`.
+- New render-frame/property tests and criterion benchmark coverage for crosshair formatter override cache-hot behavior.
+- Crosshair axis-label formatter override parity baseline (`R-072`) with deterministic independent formatter overrides for time and price crosshair labels.
+- New API methods: `set_crosshair_time_label_formatter`, `clear_crosshair_time_label_formatter`, `set_crosshair_price_label_formatter`, and `clear_crosshair_price_label_formatter`.
+- New render-frame/property tests and criterion benchmark coverage for crosshair axis-label formatter override behavior.
+- Crosshair guide-line combined visibility gate parity baseline (`R-071`) with deterministic shared visibility control composed with per-axis line toggles.
+- New render-style knob: `show_crosshair_lines` combined with `show_crosshair_horizontal_line` and `show_crosshair_vertical_line`.
+- New render-frame/style/property tests and criterion benchmark coverage for shared crosshair guide-line visibility gating behavior.
+- Crosshair guide-line per-axis width parity baseline (`R-070`) with deterministic independent width controls for horizontal and vertical crosshair lines.
+- New render-style knobs: `crosshair_horizontal_line_width` and `crosshair_vertical_line_width` with shared fallback to `crosshair_line_width`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair guide-line per-axis width behavior.
+- Crosshair guide-line per-axis color parity baseline (`R-069`) with deterministic independent color controls for horizontal and vertical crosshair lines.
+- New render-style knobs: `crosshair_horizontal_line_color` and `crosshair_vertical_line_color` with shared fallback to `crosshair_line_color`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair guide-line per-axis color behavior.
+- Crosshair guide-line per-axis stroke-style parity baseline (`R-068`) with deterministic independent dash-pattern controls for horizontal and vertical crosshair lines.
+- New render-style knobs: `crosshair_line_style`, `crosshair_horizontal_line_style`, and `crosshair_vertical_line_style`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair guide-line per-axis stroke-style behavior.
+
+### Changed
+- Internal API modularization: moved render-style enums and `RenderStyle` default contract from `src/api/mod.rs` into `src/api/render_style.rs` with unchanged public re-exports.
+- Internal API modularization: moved axis formatter policies/configs into `src/api/axis_config.rs`, axis-label formatting/quantization helpers into `src/api/axis_label_format.rs`, axis tick/window helpers into `src/api/axis_ticks.rs` and `src/api/data_window.rs`, data mutation methods into `src/api/data_controller.rs`, engine metadata/data/viewport accessor methods into `src/api/engine_accessors.rs`, axis label config controller methods into `src/api/axis_label_controller.rs`, price-resolution helpers into `src/api/price_resolver.rs`, layout helpers into `src/api/layout_helpers.rs`, crosshair snap helpers into `src/api/snap_resolver.rs`, cache-profile helpers into `src/api/cache_profile.rs`, plugin dispatch helpers into `src/api/plugin_dispatch.rs`, plugin registry methods into `src/api/plugin_registry.rs`, interaction controller methods into `src/api/interaction_controller.rs`, label formatter/cache lifecycle methods into `src/api/label_formatter_controller.rs`, scale-access methods into `src/api/scale_access.rs`, time-scale range/pan/zoom/fit controller methods into `src/api/time_scale_controller.rs`, series geometry/marker projection methods into `src/api/series_projection.rs`, snapshot serialization/state export methods into `src/api/snapshot_controller.rs`, render-frame assembly and axis/crosshair label formatting helpers into `src/api/render_frame_builder.rs`, visible-window access methods into `src/api/visible_window_access.rs`, price-scale access methods into `src/api/price_scale_access.rs`, interaction validation into `src/api/interaction_validation.rs`, label-cache types/logic into `src/api/label_cache.rs`, and validation routines into `src/api/validation.rs` with unchanged public re-exports.
+
+### Added
+- Crosshair axis-label box per-axis z-order parity baseline (`R-067`) with deterministic independent draw-order controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_z_order_policy`, `crosshair_time_label_box_z_order_policy`, and `crosshair_price_label_box_z_order_policy`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis z-order behavior.
+- Crosshair axis-label box per-axis jitter-stabilization parity baseline (`R-066`) with deterministic independent position-quantization controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_stabilization_step_px`, `crosshair_time_label_box_stabilization_step_px`, and `crosshair_price_label_box_stabilization_step_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis jitter-stabilization behavior.
+- Crosshair axis-label box per-axis clipping-margin parity baseline (`R-065`) with deterministic independent clip-inset controls for time and price label boxes under `ClipToAxis`.
+- New render-style knobs: `crosshair_label_box_clip_margin_px`, `crosshair_time_label_box_clip_margin_px`, and `crosshair_price_label_box_clip_margin_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis clipping-margin behavior.
+- Crosshair axis-label box per-axis visibility-priority parity baseline (`R-064`) with deterministic overlap resolution controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_visibility_priority`, `crosshair_time_label_box_visibility_priority`, and `crosshair_price_label_box_visibility_priority`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis visibility-priority behavior.
+- Crosshair axis-label box per-axis overflow-policy parity baseline (`R-063`) with deterministic independent `ClipToAxis`/`AllowOverflow` controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_overflow_policy`, `crosshair_time_label_box_overflow_policy`, and `crosshair_price_label_box_overflow_policy`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis overflow-policy behavior.
+- Crosshair axis-label box per-axis horizontal-anchor parity baseline (`R-062`) with deterministic independent horizontal anchoring controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_horizontal_anchor`, `crosshair_time_label_box_horizontal_anchor`, and `crosshair_price_label_box_horizontal_anchor`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis horizontal-anchor behavior.
+- Crosshair axis-label box per-axis vertical-anchor parity baseline (`R-061`) with deterministic independent vertical anchoring controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_vertical_anchor`, `crosshair_time_label_box_vertical_anchor`, and `crosshair_price_label_box_vertical_anchor`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis vertical-anchor behavior.
+- Crosshair axis-label box per-axis text-alignment parity baseline (`R-060`) with deterministic independent alignment controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_text_h_align`, `crosshair_time_label_box_text_h_align`, and `crosshair_price_label_box_text_h_align`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis text-alignment behavior.
+- Crosshair axis-label box per-axis min-width parity baseline (`R-059`) with deterministic independent minimum-width controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_min_width_px`, `crosshair_time_label_box_min_width_px`, and `crosshair_price_label_box_min_width_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis min-width behavior.
+- Crosshair axis-label box per-axis fill-color parity baseline (`R-058`) with deterministic independent time/price box fill controls and shared fallback compatibility.
+- New render-style knobs: `crosshair_time_label_box_color` and `crosshair_price_label_box_color`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis fill-color behavior.
+- Crosshair axis-label box per-axis text-policy parity baseline (`R-057`) with deterministic independent manual text-color and auto-contrast controls for time and price label boxes.
+- New render-style knobs: `crosshair_time_label_box_text_color`, `crosshair_price_label_box_text_color`, `crosshair_time_label_box_auto_text_contrast`, and `crosshair_price_label_box_auto_text_contrast`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis text-policy behavior.
+- Crosshair axis-label box per-axis width-mode parity baseline (`R-056`) with deterministic independent `FitText`/`FullAxis` controls for time and price label boxes.
+- New render-style knobs: `crosshair_time_label_box_width_mode` and `crosshair_price_label_box_width_mode` with fallback to shared `crosshair_label_box_width_mode`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis width-mode behavior.
+- Crosshair axis-label box per-axis corner-radius parity baseline (`R-055`) with deterministic independent corner-radius controls for time and price label boxes.
+- New render-style knobs: `crosshair_time_label_box_corner_radius_px` and `crosshair_price_label_box_corner_radius_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis corner-radius behavior.
+- Crosshair axis-label box per-axis border-style parity baseline (`R-054`) with deterministic independent border color/width controls for time and price label boxes.
+- New render-style knobs: `crosshair_time_label_box_border_color`, `crosshair_time_label_box_border_width_px`, `crosshair_price_label_box_border_color`, and `crosshair_price_label_box_border_width_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis border-style behavior.
+- Crosshair axis-label box per-axis padding parity baseline (`R-053`) with deterministic independent X/Y padding controls for time and price label boxes.
+- New render-style knobs: `crosshair_time_label_box_padding_x_px`, `crosshair_time_label_box_padding_y_px`, `crosshair_price_label_box_padding_x_px`, and `crosshair_price_label_box_padding_y_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis padding behavior.
+- Crosshair axis-label font-size parity baseline (`R-052`) with deterministic dedicated font-size controls for time and price crosshair labels.
+- New render-style knobs: `crosshair_time_label_font_size_px` and `crosshair_price_label_font_size_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label font-size behavior.
+- Crosshair axis-label horizontal-inset parity baseline (`R-051`) with deterministic dedicated horizontal inset controls for time and price crosshair labels.
+- New render-style knobs: `crosshair_time_label_padding_x_px` and `crosshair_price_label_padding_right_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label horizontal-inset behavior.
+- Crosshair axis-label vertical-offset parity baseline (`R-050`) with deterministic dedicated Y-offset controls for time and price crosshair labels.
+- New render-style knobs: `crosshair_time_label_offset_y_px` and `crosshair_price_label_offset_y_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label vertical-offset behavior.
+- Crosshair axis-label box border-visibility parity baseline (`R-049`) with deterministic independent border toggles for time and price axis labels.
+- New render-style knobs: `show_crosshair_time_label_box_border` and `show_crosshair_price_label_box_border`.
+- New render-frame/property tests and criterion benchmark coverage for crosshair axis-label box border-visibility behavior.
+- Crosshair axis-label box width-mode parity baseline (`R-048`) with deterministic `FitText`/`FullAxis` layout behavior on time/price axis panels.
+- New render-style knob: `crosshair_label_box_width_mode` with `CrosshairLabelBoxWidthMode::{FitText, FullAxis}`.
+- New render-frame/property tests and criterion benchmark coverage for crosshair axis-label box width-mode behavior.
+- Crosshair axis-label box auto-contrast text parity baseline (`R-047`) with deterministic luminance-driven text color policy and manual text-color override.
+- New render-style knobs: `crosshair_label_box_text_color` and `crosshair_label_box_auto_text_contrast`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box text-contrast behavior.
+- Crosshair axis-label box border/radius parity baseline (`R-046`) with deterministic border width/color and corner-radius styling.
+- New render-style knobs: `crosshair_label_box_border_width_px`, `crosshair_label_box_border_color`, and `crosshair_label_box_corner_radius_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label border/radius behavior.
+- Crosshair axis-label box parity baseline (`R-045`) with deterministic fit-text background boxes for crosshair time/price axis labels.
+- New render-style knobs: `crosshair_label_box_color`, `crosshair_label_box_padding_x_px`, `crosshair_label_box_padding_y_px`, `show_crosshair_time_label_box`, and `show_crosshair_price_label_box`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box behavior.
+- Crosshair axis-label parity baseline (`R-044`) with deterministic time/price crosshair labels projected into axis panels.
+- New render-style knobs: `crosshair_time_label_color`, `crosshair_price_label_color`, `crosshair_axis_label_font_size_px`, `show_crosshair_time_label`, and `show_crosshair_price_label`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label render behavior.
+- Crosshair guide-line parity baseline (`R-043`) with deterministic plot-pane horizontal/vertical crosshair line rendering.
+- New render-style knobs: `crosshair_line_color`, `crosshair_line_width`, `show_crosshair_horizontal_line`, and `show_crosshair_vertical_line`.
+- New render-frame/style tests and criterion benchmark coverage for crosshair guide-line render behavior.
 - Price-axis label typography parity baseline (`R-022`) with deterministic configurable axis-label font size and vertical offset.
 - New render-style knobs: `price_axis_label_font_size_px` and `price_axis_label_offset_y_px`.
 - New render-frame/style tests and criterion benchmark coverage for price-axis label typography behavior.

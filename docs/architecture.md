@@ -15,6 +15,7 @@
   - backend implementations
 - `api`
   - Rust-idiomatic public interface
+  - split into focused submodules (for example `api::render_style`, `api::axis_config`, `api::axis_label_format`, `api::axis_ticks`, `api::data_window`, `api::data_controller`, `api::engine_accessors`, `api::axis_label_controller`, `api::price_resolver`, `api::layout_helpers`, `api::snap_resolver`, `api::cache_profile`, `api::plugin_dispatch`, `api::plugin_registry`, `api::interaction_controller`, `api::label_formatter_controller`, `api::scale_access`, `api::time_scale_controller`, `api::series_projection`, `api::snapshot_controller`, `api::json_contract`, `api::render_frame_builder`, `api::visible_window_access`, `api::price_scale_access`, `api::label_cache`, `api::validation`, `api::interaction_validation`) to keep responsibilities narrow
 - `platform_gtk` (feature-gated)
   - GTK4/Relm4 adapter
 - `extensions`
@@ -103,8 +104,50 @@ Tuning contracts:
 - major time-axis tick-mark visibility is a deterministic style-level control independent from regular time-axis tick marks
 - time-axis border visibility is a deterministic style-level control independent from right-side price-axis border visibility
 - price-axis border visibility is a deterministic style-level control independent from bottom time-axis border visibility
+- crosshair guide-line color/width and horizontal/vertical visibility are deterministic style-level controls resolved from interaction state
+- crosshair guide-line color is independently configurable per axis with shared fallback (`crosshair_horizontal_line_color`, `crosshair_vertical_line_color`, `crosshair_line_color`)
+- crosshair guide-line width is independently configurable per axis with shared fallback (`crosshair_horizontal_line_width`, `crosshair_vertical_line_width`, `crosshair_line_width`)
+- crosshair guide-line visibility supports deterministic shared gating with per-axis toggles (`show_crosshair_lines && show_crosshair_{horizontal,vertical}_line`)
+- crosshair time/price axis-label color, font-size, and visibility are deterministic style-level controls resolved from interaction snap state
+- crosshair time/price axis labels support deterministic independent formatter overrides with fallback to axis formatter policies
+- crosshair time/price axis labels support deterministic prefix/suffix text transforms with shared fallback and per-axis overrides
+- crosshair time/price axis labels support deterministic numeric-precision overrides with shared fallback and per-axis controls
+- crosshair time/price formatter overrides can receive deterministic context (visible span + source mode) without leaking interaction internals into renderer backends
+- context-aware crosshair formatter caches partition deterministically by formatter generation, source mode, visible span, and quantized label inputs
+- context-aware crosshair formatter caches are invalidated on crosshair-mode and visible-range lifecycle transitions to keep cache state bounded and deterministic
+- engine snapshots export deterministic crosshair formatter lifecycle state (per-axis override mode + generation counters) for regression/debug tooling
+- formatter lifecycle introspection is exposed via explicit API accessors so host adapters can observe mode/generation without touching internals
+- a consolidated diagnostics surface exposes per-axis formatter mode/generation/cache state for host debug and health probes
+- a technical contract matrix documents legacy/context per-axis formatter lifecycle semantics and snapshot/diagnostics coherence expectations (`docs/crosshair-formatter-contract-matrix.md`)
+- snapshot/diagnostics exports support versioned JSON contracts with schema guards plus backward-compatible parsing of legacy raw payloads
+- property-level lifecycle tests cover formatter mode transitions, context invalidation boundaries, and snapshot export determinism
+- GTK4/Relm4 adapter flows should treat crosshair formatter updates as explicit message-driven state transitions (pointer/mode/range events) and may bridge diagnostics/snapshot contract payloads through draw-time hooks for host observability
+- crosshair time/price axis-label boxes support deterministic fit-text sizing with style-level fill/padding and independent per-axis visibility controls
+- crosshair axis-label boxes support deterministic border/radius styling with clamped corner geometry for backend-stable output
+- crosshair axis-label boxes support deterministic manual or auto-contrast text-color resolution without backend-specific text-measurement dependencies
+- crosshair axis-label boxes support deterministic width-mode resolution (`FitText`/`FullAxis`) with shared default and per-axis overrides
+- crosshair axis-label box border visibility can be toggled deterministically and independently for time/price axis labels
+- crosshair axis-label anchor Y offsets are deterministic and independently configurable for time/price labels
+- crosshair axis-label horizontal insets are deterministic and independently configurable for time/price labels
+- crosshair axis-label font sizes are deterministic and independently configurable for time/price labels
+- crosshair axis-label box paddings are deterministic and independently configurable per axis/panel
+- crosshair axis-label box border style is deterministic and independently configurable per axis/panel
+- crosshair axis-label box corner radius is deterministic and independently configurable per axis/panel
+- crosshair axis-label box text policy is deterministic and independently configurable per axis/panel
+- crosshair axis-label box fill color is deterministic and independently configurable per axis/panel
+- crosshair axis-label box minimum width is deterministic and independently configurable per axis/panel
+- crosshair axis-label box text alignment is deterministic and independently configurable per axis/panel
+- crosshair axis-label box vertical anchor is deterministic and independently configurable per axis/panel
+- crosshair axis-label box horizontal anchor is deterministic and independently configurable per axis/panel
+- crosshair axis-label box overflow policy is deterministic and independently configurable per axis/panel
+- crosshair axis-label box visibility priority is deterministic and independently configurable per axis/panel
+- crosshair axis-label box clipping margin is deterministic and independently configurable per axis/panel
+- crosshair axis-label box stabilization step is deterministic and independently configurable per axis/panel
+- crosshair axis-label box z-order is deterministic and independently configurable per axis/panel
+- crosshair guide-line stroke style is deterministic and independently configurable per axis/panel
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
+- in-engine crosshair override formatter caching keeps per-axis override redraw behavior deterministic with explicit fallback to axis-label cache paths
 - plot and price-axis panels are styled through a deterministic render-style contract
 - `render` backends execute primitives only (no scale math or interaction decisions)
 - `cairo-backend` supports:
