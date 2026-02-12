@@ -305,6 +305,8 @@ pub struct RenderStyle {
     pub crosshair_time_label_box_border_width_px: f64,
     pub crosshair_price_label_box_border_width_px: f64,
     pub crosshair_label_box_corner_radius_px: f64,
+    pub crosshair_time_label_box_corner_radius_px: f64,
+    pub crosshair_price_label_box_corner_radius_px: f64,
     pub last_price_line_width: f64,
     pub major_time_label_font_size_px: f64,
     /// Font size used by regular (non-major) time-axis labels.
@@ -451,6 +453,8 @@ impl Default for RenderStyle {
             crosshair_time_label_box_border_width_px: 0.0,
             crosshair_price_label_box_border_width_px: 0.0,
             crosshair_label_box_corner_radius_px: 0.0,
+            crosshair_time_label_box_corner_radius_px: 0.0,
+            crosshair_price_label_box_corner_radius_px: 0.0,
             last_price_line_width: 1.25,
             major_time_label_font_size_px: 12.0,
             time_axis_label_font_size_px: 11.0,
@@ -2360,11 +2364,15 @@ impl<R: Renderer> ChartEngine<R> {
                         if style.show_crosshair_time_label_box_border && time_border_width > 0.0 {
                             rect = rect.with_border(time_border_width, time_border_color);
                         }
-                        if style.crosshair_label_box_corner_radius_px > 0.0 {
+                        let time_corner_radius =
+                            if style.crosshair_time_label_box_corner_radius_px > 0.0 {
+                                style.crosshair_time_label_box_corner_radius_px
+                            } else {
+                                style.crosshair_label_box_corner_radius_px
+                            };
+                        if time_corner_radius > 0.0 {
                             let max_corner_radius = (box_width.min(box_height)) * 0.5;
-                            let clamped_corner_radius = style
-                                .crosshair_label_box_corner_radius_px
-                                .min(max_corner_radius);
+                            let clamped_corner_radius = time_corner_radius.min(max_corner_radius);
                             rect = rect.with_corner_radius(clamped_corner_radius);
                         }
                         frame = frame.with_rect(rect);
@@ -2452,11 +2460,15 @@ impl<R: Renderer> ChartEngine<R> {
                         if style.show_crosshair_price_label_box_border && price_border_width > 0.0 {
                             rect = rect.with_border(price_border_width, price_border_color);
                         }
-                        if style.crosshair_label_box_corner_radius_px > 0.0 {
+                        let price_corner_radius =
+                            if style.crosshair_price_label_box_corner_radius_px > 0.0 {
+                                style.crosshair_price_label_box_corner_radius_px
+                            } else {
+                                style.crosshair_label_box_corner_radius_px
+                            };
+                        if price_corner_radius > 0.0 {
                             let max_corner_radius = (box_width.min(box_height)) * 0.5;
-                            let clamped_corner_radius = style
-                                .crosshair_label_box_corner_radius_px
-                                .min(max_corner_radius);
+                            let clamped_corner_radius = price_corner_radius.min(max_corner_radius);
                             rect = rect.with_corner_radius(clamped_corner_radius);
                         }
                         frame = frame.with_rect(rect);
@@ -2903,6 +2915,22 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `crosshair_label_box_corner_radius_px` must be finite and >= 0"
+                .to_owned(),
+        ));
+    }
+    if !style.crosshair_time_label_box_corner_radius_px.is_finite()
+        || style.crosshair_time_label_box_corner_radius_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_time_label_box_corner_radius_px` must be finite and >= 0"
+                .to_owned(),
+        ));
+    }
+    if !style.crosshair_price_label_box_corner_radius_px.is_finite()
+        || style.crosshair_price_label_box_corner_radius_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_price_label_box_corner_radius_px` must be finite and >= 0"
                 .to_owned(),
         ));
     }

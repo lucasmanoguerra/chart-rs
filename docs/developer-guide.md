@@ -141,6 +141,7 @@ Responsibilities:
 - configurable crosshair axis-label font-size policy (independent time/price font sizes)
 - configurable crosshair axis-label box padding policy per axis (independent time/price X/Y padding)
 - configurable crosshair axis-label box border-style policy per axis (independent time/price border color/width)
+- configurable crosshair axis-label box corner-radius policy per axis (independent time/price corner radii)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -208,6 +209,7 @@ Render invariants:
 - crosshair axis-label font sizes are deterministic per axis (`crosshair_time_label_font_size_px`, `crosshair_price_label_font_size_px`)
 - crosshair axis-label box paddings are deterministic per axis (`crosshair_time_label_box_padding_x_px`, `crosshair_time_label_box_padding_y_px`, `crosshair_price_label_box_padding_x_px`, `crosshair_price_label_box_padding_y_px`)
 - crosshair axis-label box border styles are deterministic per axis (`crosshair_time_label_box_border_color`, `crosshair_time_label_box_border_width_px`, `crosshair_price_label_box_border_color`, `crosshair_price_label_box_border_width_px`)
+- crosshair axis-label box corner radii are deterministic per axis (`crosshair_time_label_box_corner_radius_px`, `crosshair_price_label_box_corner_radius_px`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow
