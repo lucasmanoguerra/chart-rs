@@ -287,6 +287,14 @@ pub enum CrosshairLabelBoxVisibilityPriority {
     PreferPrice,
 }
 
+/// Z-order policy used when rendering crosshair time/price axis-label boxes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CrosshairLabelBoxZOrderPolicy {
+    #[default]
+    PriceAboveTime,
+    TimeAbovePrice,
+}
+
 /// Style contract for the current render frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderStyle {
@@ -362,6 +370,9 @@ pub struct RenderStyle {
     pub crosshair_label_box_visibility_priority: CrosshairLabelBoxVisibilityPriority,
     pub crosshair_time_label_box_visibility_priority: Option<CrosshairLabelBoxVisibilityPriority>,
     pub crosshair_price_label_box_visibility_priority: Option<CrosshairLabelBoxVisibilityPriority>,
+    pub crosshair_label_box_z_order_policy: CrosshairLabelBoxZOrderPolicy,
+    pub crosshair_time_label_box_z_order_policy: Option<CrosshairLabelBoxZOrderPolicy>,
+    pub crosshair_price_label_box_z_order_policy: Option<CrosshairLabelBoxZOrderPolicy>,
     pub crosshair_label_box_stabilization_step_px: f64,
     pub crosshair_time_label_box_stabilization_step_px: f64,
     pub crosshair_price_label_box_stabilization_step_px: f64,
@@ -542,6 +553,9 @@ impl Default for RenderStyle {
             crosshair_label_box_visibility_priority: CrosshairLabelBoxVisibilityPriority::KeepBoth,
             crosshair_time_label_box_visibility_priority: None,
             crosshair_price_label_box_visibility_priority: None,
+            crosshair_label_box_z_order_policy: CrosshairLabelBoxZOrderPolicy::PriceAboveTime,
+            crosshair_time_label_box_z_order_policy: None,
+            crosshair_price_label_box_z_order_policy: None,
             crosshair_label_box_stabilization_step_px: 0.0,
             crosshair_time_label_box_stabilization_step_px: 0.0,
             crosshair_price_label_box_stabilization_step_px: 0.0,
@@ -2903,17 +2917,42 @@ impl<R: Renderer> ChartEngine<R> {
                     }
                 }
             }
-            if let Some(rect) = time_box_rect {
-                frame = frame.with_rect(rect);
+            let mut z_order_policy = style.crosshair_label_box_z_order_policy;
+            if let Some(time_policy) = style.crosshair_time_label_box_z_order_policy {
+                z_order_policy = time_policy;
             }
-            if let Some(rect) = price_box_rect {
-                frame = frame.with_rect(rect);
+            if let Some(price_policy) = style.crosshair_price_label_box_z_order_policy {
+                z_order_policy = price_policy;
             }
-            if let Some(text) = time_box_text {
-                frame = frame.with_text(text);
-            }
-            if let Some(text) = price_box_text {
-                frame = frame.with_text(text);
+            match z_order_policy {
+                CrosshairLabelBoxZOrderPolicy::PriceAboveTime => {
+                    if let Some(rect) = time_box_rect {
+                        frame = frame.with_rect(rect);
+                    }
+                    if let Some(rect) = price_box_rect {
+                        frame = frame.with_rect(rect);
+                    }
+                    if let Some(text) = time_box_text {
+                        frame = frame.with_text(text);
+                    }
+                    if let Some(text) = price_box_text {
+                        frame = frame.with_text(text);
+                    }
+                }
+                CrosshairLabelBoxZOrderPolicy::TimeAbovePrice => {
+                    if let Some(rect) = price_box_rect {
+                        frame = frame.with_rect(rect);
+                    }
+                    if let Some(rect) = time_box_rect {
+                        frame = frame.with_rect(rect);
+                    }
+                    if let Some(text) = price_box_text {
+                        frame = frame.with_text(text);
+                    }
+                    if let Some(text) = time_box_text {
+                        frame = frame.with_text(text);
+                    }
+                }
             }
         }
 

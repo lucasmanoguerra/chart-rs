@@ -1,9 +1,10 @@
 use chart_rs::api::{
     AxisLabelLocale, ChartEngine, ChartEngineConfig, CrosshairLabelBoxHorizontalAnchor,
     CrosshairLabelBoxOverflowPolicy, CrosshairLabelBoxVerticalAnchor,
-    CrosshairLabelBoxVisibilityPriority, CrosshairLabelBoxWidthMode, LastPriceLabelBoxWidthMode,
-    LastPriceSourceMode, PriceAxisDisplayMode, PriceAxisLabelConfig, PriceAxisLabelPolicy,
-    RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
+    CrosshairLabelBoxVisibilityPriority, CrosshairLabelBoxWidthMode, CrosshairLabelBoxZOrderPolicy,
+    LastPriceLabelBoxWidthMode, LastPriceSourceMode, PriceAxisDisplayMode, PriceAxisLabelConfig,
+    PriceAxisLabelPolicy, RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy,
+    TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{
     DataPoint, LinearScale, OhlcBar, PriceScale, PriceScaleMode, TimeScale, Viewport,
@@ -988,6 +989,48 @@ fn bench_crosshair_axis_label_box_stabilization_step_per_axis_render(c: &mut Cri
             })
         },
     );
+}
+
+fn bench_crosshair_axis_label_box_z_order_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_time_label_box_overflow_policy: Some(
+                CrosshairLabelBoxOverflowPolicy::AllowOverflow,
+            ),
+            crosshair_time_label_box_min_width_px: 260.0,
+            crosshair_price_label_box_min_width_px: 60.0,
+            crosshair_time_label_box_z_order_policy: Some(
+                CrosshairLabelBoxZOrderPolicy::TimeAbovePrice,
+            ),
+            crosshair_price_label_box_z_order_policy: Some(
+                CrosshairLabelBoxZOrderPolicy::PriceAboveTime,
+            ),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(1594.0, 896.0);
+
+    c.bench_function("crosshair_axis_label_box_z_order_per_axis_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
 }
 
 fn bench_crosshair_axis_label_boxes_border_visibility_render(c: &mut Criterion) {
@@ -2547,6 +2590,7 @@ criterion_group!(
     bench_crosshair_axis_label_box_visibility_priority_per_axis_render,
     bench_crosshair_axis_label_box_clip_margin_per_axis_render,
     bench_crosshair_axis_label_box_stabilization_step_per_axis_render,
+    bench_crosshair_axis_label_box_z_order_per_axis_render,
     bench_crosshair_axis_label_boxes_border_visibility_render,
     bench_crosshair_axis_labels_vertical_offset_render,
     bench_crosshair_axis_labels_horizontal_inset_render,

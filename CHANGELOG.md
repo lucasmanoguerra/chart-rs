@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box per-axis z-order parity baseline (`R-067`) with deterministic independent draw-order controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_z_order_policy`, `crosshair_time_label_box_z_order_policy`, and `crosshair_price_label_box_z_order_policy`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis z-order behavior.
 - Crosshair axis-label box per-axis jitter-stabilization parity baseline (`R-066`) with deterministic independent position-quantization controls for time and price label boxes.
 - New render-style knobs: `crosshair_label_box_stabilization_step_px`, `crosshair_time_label_box_stabilization_step_px`, and `crosshair_price_label_box_stabilization_step_px`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis jitter-stabilization behavior.

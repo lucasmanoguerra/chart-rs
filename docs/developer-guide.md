@@ -152,6 +152,7 @@ Responsibilities:
 - configurable crosshair axis-label box visibility-priority policy per axis (`KeepBoth`/`PreferTime`/`PreferPrice`) for overlap resolution
 - configurable crosshair axis-label box clipping-margin policy per axis (independent time/price clip insets when using `ClipToAxis`)
 - configurable crosshair axis-label box jitter-stabilization policy per axis (independent time/price position quantization step in px)
+- configurable crosshair axis-label box z-order policy per axis (`PriceAboveTime`/`TimeAbovePrice`) with shared fallback
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -230,6 +231,7 @@ Render invariants:
 - crosshair axis-label box visibility priority is deterministic per axis (`crosshair_label_box_visibility_priority`, `crosshair_time_label_box_visibility_priority`, `crosshair_price_label_box_visibility_priority`)
 - crosshair axis-label box clipping margin is deterministic per axis (`crosshair_label_box_clip_margin_px`, `crosshair_time_label_box_clip_margin_px`, `crosshair_price_label_box_clip_margin_px`)
 - crosshair axis-label box stabilization step is deterministic per axis (`crosshair_label_box_stabilization_step_px`, `crosshair_time_label_box_stabilization_step_px`, `crosshair_price_label_box_stabilization_step_px`)
+- crosshair axis-label box z-order is deterministic per axis (`crosshair_label_box_z_order_policy`, `crosshair_time_label_box_z_order_policy`, `crosshair_price_label_box_z_order_policy`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

@@ -130,6 +130,14 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_price_label_box_visibility_priority: Some(
             chart_rs::api::CrosshairLabelBoxVisibilityPriority::PreferPrice,
         ),
+        crosshair_label_box_z_order_policy:
+            chart_rs::api::CrosshairLabelBoxZOrderPolicy::PriceAboveTime,
+        crosshair_time_label_box_z_order_policy: Some(
+            chart_rs::api::CrosshairLabelBoxZOrderPolicy::TimeAbovePrice,
+        ),
+        crosshair_price_label_box_z_order_policy: Some(
+            chart_rs::api::CrosshairLabelBoxZOrderPolicy::PriceAboveTime,
+        ),
         crosshair_label_box_stabilization_step_px: 0.0,
         crosshair_time_label_box_stabilization_step_px: 4.0,
         crosshair_price_label_box_stabilization_step_px: 3.0,

@@ -126,6 +126,7 @@ Tuning contracts:
 - crosshair axis-label box visibility priority is deterministic and independently configurable per axis/panel
 - crosshair axis-label box clipping margin is deterministic and independently configurable per axis/panel
 - crosshair axis-label box stabilization step is deterministic and independently configurable per axis/panel
+- crosshair axis-label box z-order is deterministic and independently configurable per axis/panel
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract
