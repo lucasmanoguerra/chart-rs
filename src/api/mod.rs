@@ -309,6 +309,9 @@ pub struct RenderStyle {
     pub crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode,
     pub crosshair_time_label_box_width_mode: Option<CrosshairLabelBoxWidthMode>,
     pub crosshair_price_label_box_width_mode: Option<CrosshairLabelBoxWidthMode>,
+    pub crosshair_label_box_min_width_px: f64,
+    pub crosshair_time_label_box_min_width_px: f64,
+    pub crosshair_price_label_box_min_width_px: f64,
     pub crosshair_label_box_border_width_px: f64,
     pub crosshair_time_label_box_border_width_px: f64,
     pub crosshair_price_label_box_border_width_px: f64,
@@ -465,6 +468,9 @@ impl Default for RenderStyle {
             crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
             crosshair_time_label_box_width_mode: None,
             crosshair_price_label_box_width_mode: None,
+            crosshair_label_box_min_width_px: 0.0,
+            crosshair_time_label_box_min_width_px: 0.0,
+            crosshair_price_label_box_min_width_px: 0.0,
             crosshair_label_box_border_width_px: 0.0,
             crosshair_time_label_box_border_width_px: 0.0,
             crosshair_price_label_box_border_width_px: 0.0,
@@ -2360,13 +2366,20 @@ impl<R: Renderer> ChartEngine<R> {
                     let time_box_width_mode = style
                         .crosshair_time_label_box_width_mode
                         .unwrap_or(style.crosshair_label_box_width_mode);
+                    let time_box_min_width = if style.crosshair_time_label_box_min_width_px > 0.0 {
+                        style.crosshair_time_label_box_min_width_px
+                    } else {
+                        style.crosshair_label_box_min_width_px
+                    };
                     let requested_box_width = match time_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => plot_right,
                         CrosshairLabelBoxWidthMode::FitText => {
                             estimated_text_width + 2.0 * style.crosshair_time_label_box_padding_x_px
                         }
                     };
-                    let box_width = requested_box_width.clamp(0.0, plot_right);
+                    let box_width = requested_box_width
+                        .max(time_box_min_width)
+                        .clamp(0.0, plot_right);
                     let max_left = (plot_right - box_width).max(0.0);
                     let box_left = (crosshair_time_label_x - box_width * 0.5).clamp(0.0, max_left);
                     let box_top = (time_label_y - style.crosshair_time_label_box_padding_y_px)
@@ -2465,6 +2478,12 @@ impl<R: Renderer> ChartEngine<R> {
                     let price_box_width_mode = style
                         .crosshair_price_label_box_width_mode
                         .unwrap_or(style.crosshair_label_box_width_mode);
+                    let price_box_min_width = if style.crosshair_price_label_box_min_width_px > 0.0
+                    {
+                        style.crosshair_price_label_box_min_width_px
+                    } else {
+                        style.crosshair_label_box_min_width_px
+                    };
                     let requested_box_width = match price_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => axis_panel_width,
                         CrosshairLabelBoxWidthMode::FitText => {
@@ -2472,7 +2491,9 @@ impl<R: Renderer> ChartEngine<R> {
                                 + 2.0 * style.crosshair_price_label_box_padding_x_px
                         }
                     };
-                    let box_width = requested_box_width.clamp(0.0, axis_panel_width);
+                    let box_width = requested_box_width
+                        .max(price_box_min_width)
+                        .clamp(0.0, axis_panel_width);
                     let box_left = (viewport_width - box_width).max(axis_panel_left);
                     let box_top = (text_y - style.crosshair_price_label_box_padding_y_px)
                         .clamp(0.0, viewport_height);
@@ -2943,6 +2964,29 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `crosshair_label_box_padding_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.crosshair_label_box_min_width_px.is_finite()
+        || style.crosshair_label_box_min_width_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_label_box_min_width_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.crosshair_time_label_box_min_width_px.is_finite()
+        || style.crosshair_time_label_box_min_width_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_time_label_box_min_width_px` must be finite and >= 0"
+                .to_owned(),
+        ));
+    }
+    if !style.crosshair_price_label_box_min_width_px.is_finite()
+        || style.crosshair_price_label_box_min_width_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_price_label_box_min_width_px` must be finite and >= 0"
+                .to_owned(),
         ));
     }
     if !style.crosshair_label_box_border_width_px.is_finite()

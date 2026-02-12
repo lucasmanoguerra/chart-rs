@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box per-axis min-width parity baseline (`R-059`) with deterministic independent minimum-width controls for time and price label boxes.
+- New render-style knobs: `crosshair_label_box_min_width_px`, `crosshair_time_label_box_min_width_px`, and `crosshair_price_label_box_min_width_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis min-width behavior.
 - Crosshair axis-label box per-axis fill-color parity baseline (`R-058`) with deterministic independent time/price box fill controls and shared fallback compatibility.
 - New render-style knobs: `crosshair_time_label_box_color` and `crosshair_price_label_box_color`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis fill-color behavior.
