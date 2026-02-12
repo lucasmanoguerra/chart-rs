@@ -23,6 +23,7 @@ impl<R: Renderer> ChartEngine<R> {
     }
 
     pub(super) fn emit_visible_range_changed(&mut self) {
+        self.clear_crosshair_context_formatter_caches_if_needed();
         let (start, end) = self.time_scale.visible_range();
         self.emit_plugin_event(PluginEvent::VisibleRangeChanged { start, end });
     }

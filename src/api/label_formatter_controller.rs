@@ -7,6 +7,15 @@ use super::{
 };
 
 impl<R: Renderer> ChartEngine<R> {
+    pub(super) fn clear_crosshair_context_formatter_caches_if_needed(&self) {
+        if self.crosshair_time_label_formatter_with_context.is_some() {
+            self.crosshair_time_label_cache.borrow_mut().clear();
+        }
+        if self.crosshair_price_label_formatter_with_context.is_some() {
+            self.crosshair_price_label_cache.borrow_mut().clear();
+        }
+    }
+
     pub fn set_time_label_formatter(&mut self, formatter: TimeLabelFormatterFn) {
         self.time_label_formatter = Some(formatter);
         self.time_label_formatter_generation =

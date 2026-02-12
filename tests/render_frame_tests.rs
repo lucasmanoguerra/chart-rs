@@ -2290,6 +2290,64 @@ fn crosshair_context_price_formatter_cache_key_includes_visible_span() {
 }
 
 #[test]
+fn crosshair_context_formatter_cache_is_cleared_on_crosshair_mode_change() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+        format!("T:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(333.0, 177.0);
+    let _ = engine.build_render_frame().expect("build frame");
+    assert!(engine.crosshair_time_label_cache_stats().size >= 1);
+
+    engine.set_crosshair_mode(CrosshairMode::Magnet);
+
+    assert_eq!(engine.crosshair_time_label_cache_stats().size, 0);
+}
+
+#[test]
+fn crosshair_context_formatter_cache_is_cleared_on_visible_range_change() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_render_style(RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+        format!("P:{value:.2}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(333.0, 177.0);
+    let _ = engine.build_render_frame().expect("build frame");
+    assert!(engine.crosshair_price_label_cache_stats().size >= 1);
+
+    engine
+        .set_time_visible_range(10.0, 70.0)
+        .expect("set visible range");
+
+    assert_eq!(engine.crosshair_price_label_cache_stats().size, 0);
+}
+
+#[test]
 fn crosshair_time_formatter_override_uses_dedicated_cache_stats() {
     let renderer = NullRenderer::default();
     let config =

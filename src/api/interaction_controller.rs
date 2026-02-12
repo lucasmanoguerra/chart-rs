@@ -19,6 +19,7 @@ impl<R: Renderer> ChartEngine<R> {
     }
 
     pub fn set_crosshair_mode(&mut self, mode: CrosshairMode) {
+        self.clear_crosshair_context_formatter_caches_if_needed();
         self.interaction.set_crosshair_mode(mode);
     }
 

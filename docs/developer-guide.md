@@ -167,6 +167,7 @@ Responsibilities:
 - configurable crosshair axis-label numeric-precision policy per axis (shared precision fallback plus independent time/price precision overrides)
 - configurable crosshair axis-label formatter context policy per axis (visible span + source mode for context-aware time/price formatter overrides)
 - configurable crosshair axis-label formatter context cache-key policy per axis (context-aware formatter caches partition by source mode and visible span)
+- configurable crosshair axis-label formatter context invalidation lifecycle (context-aware formatter caches clear on crosshair-mode and visible-range transitions)
 - configurable crosshair axis-label box policy (deterministic fit-text boxes with dedicated fill, padding, and independent time/price visibility toggles)
 - configurable crosshair axis-label box border/radius policy (deterministic border width/color and corner-radius styling)
 - configurable crosshair axis-label box text policy (manual text color or automatic contrast from box fill luminance)
