@@ -56,6 +56,9 @@ and this project adheres to Semantic Versioning.
 - Major time-axis tick-mark style parity baseline (`R-037`) with deterministic dedicated color/width controls independent from regular time-axis tick marks.
 - New render-style knobs: `major_time_tick_mark_color` and `major_time_tick_mark_width`.
 - New render-frame/style tests and criterion benchmark coverage for major tick-mark style behavior.
+- Major time-axis tick-mark length parity baseline (`R-038`) with deterministic dedicated length control independent from regular time-axis tick marks.
+- New render-style knob: `major_time_tick_mark_length_px`.
+- New render-frame/style tests and criterion benchmark coverage for major tick-mark length behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 

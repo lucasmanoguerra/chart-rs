@@ -701,8 +701,10 @@ fn bench_major_time_tick_mark_style_render(c: &mut Criterion) {
         .set_render_style(RenderStyle {
             time_axis_tick_mark_color: Color::rgb(0.19, 0.28, 0.42),
             time_axis_tick_mark_width: 1.5,
+            time_axis_tick_mark_length_px: 4.0,
             major_time_tick_mark_color: Color::rgb(0.87, 0.30, 0.20),
             major_time_tick_mark_width: 2.75,
+            major_time_tick_mark_length_px: 9.0,
             ..engine.render_style()
         })
         .expect("set major tick-mark style");
