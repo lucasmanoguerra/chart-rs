@@ -6,8 +6,8 @@ use tracing::{debug, trace};
 
 use crate::core::{
     AreaGeometry, BarGeometry, BaselineGeometry, CandleGeometry, DataPoint, HistogramBar,
-    LineSegment, OhlcBar, PriceScale, PriceScaleMode, PriceScaleTuning, TimeScale, TimeScaleTuning,
-    Viewport, candles_in_time_window, points_in_time_window, project_area_geometry, project_bars,
+    LineSegment, OhlcBar, PriceScale, PriceScaleMode, TimeScale, TimeScaleTuning, Viewport,
+    candles_in_time_window, points_in_time_window, project_area_geometry, project_bars,
     project_baseline_geometry, project_candles, project_histogram_bars, project_line_segments,
 };
 use crate::error::{ChartError, ChartResult};
@@ -77,6 +77,7 @@ mod cache_profile;
 mod interaction_controller;
 mod plugin_dispatch;
 mod price_resolver;
+mod price_scale_access;
 mod scale_access;
 mod snap_resolver;
 mod visible_window_access;
@@ -633,67 +634,6 @@ impl<R: Renderer> ChartEngine<R> {
         self.time_scale
             .fit_to_mixed_data(&self.points, &self.candles, tuning)?;
         self.emit_visible_range_changed();
-        Ok(())
-    }
-
-    /// Maps a raw price value into pixel Y under the active price scale mode.
-    pub fn map_price_to_pixel(&self, price: f64) -> ChartResult<f64> {
-        self.price_scale.price_to_pixel(price, self.viewport)
-    }
-
-    /// Maps a pixel Y coordinate back into a raw price value.
-    pub fn map_pixel_to_price(&self, pixel: f64) -> ChartResult<f64> {
-        self.price_scale.pixel_to_price(pixel, self.viewport)
-    }
-
-    #[must_use]
-    pub fn price_domain(&self) -> (f64, f64) {
-        self.price_scale.domain()
-    }
-
-    /// Returns the active price scale mapping mode.
-    #[must_use]
-    pub fn price_scale_mode(&self) -> PriceScaleMode {
-        self.price_scale_mode
-    }
-
-    /// Switches the price scale mapping mode while preserving the current raw domain.
-    ///
-    /// When switching to `PriceScaleMode::Log`, the current domain must be strictly positive.
-    pub fn set_price_scale_mode(&mut self, mode: PriceScaleMode) -> ChartResult<()> {
-        self.price_scale = self.price_scale.with_mode(mode)?;
-        self.price_scale_mode = mode;
-        Ok(())
-    }
-
-    pub fn autoscale_price_from_data(&mut self) -> ChartResult<()> {
-        self.autoscale_price_from_data_tuned(PriceScaleTuning::default())
-    }
-
-    /// Autoscales price domain from points with explicit tuning.
-    pub fn autoscale_price_from_data_tuned(&mut self, tuning: PriceScaleTuning) -> ChartResult<()> {
-        if self.points.is_empty() {
-            return Ok(());
-        }
-        self.price_scale =
-            PriceScale::from_data_tuned_with_mode(&self.points, tuning, self.price_scale_mode)?;
-        Ok(())
-    }
-
-    pub fn autoscale_price_from_candles(&mut self) -> ChartResult<()> {
-        self.autoscale_price_from_candles_tuned(PriceScaleTuning::default())
-    }
-
-    /// Autoscales price domain from candles with explicit tuning.
-    pub fn autoscale_price_from_candles_tuned(
-        &mut self,
-        tuning: PriceScaleTuning,
-    ) -> ChartResult<()> {
-        if self.candles.is_empty() {
-            return Ok(());
-        }
-        self.price_scale =
-            PriceScale::from_ohlc_tuned_with_mode(&self.candles, tuning, self.price_scale_mode)?;
         Ok(())
     }
 

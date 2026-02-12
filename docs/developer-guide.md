@@ -109,6 +109,7 @@ Key files:
 - `interaction_controller.rs` (public crosshair/pan/kinetic interaction controller methods)
 - `scale_access.rs` (public time-scale mapping/range accessor methods)
 - `visible_window_access.rs` (public visible-window point/candle accessor methods)
+- `price_scale_access.rs` (public price-scale map/domain/mode/autoscale methods)
 
 Responsibilities:
 - orchestration between core + interaction + renderer
