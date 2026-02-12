@@ -402,16 +402,18 @@ proptest! {
             shared_precision
         };
 
-        let time_fraction = time_text
-            .split('.')
-            .nth(1)
-            .expect("crosshair time decimals must exist");
-        let price_fraction = price_text
-            .split('.')
-            .nth(1)
-            .expect("crosshair price decimals must exist");
-        prop_assert_eq!(time_fraction.len(), usize::from(expected_time_precision));
-        prop_assert_eq!(price_fraction.len(), usize::from(expected_price_precision));
+        let time_fraction_len = time_text.split('.').nth(1).map(str::len).unwrap_or(0);
+        let price_fraction_len = price_text.split('.').nth(1).map(str::len).unwrap_or(0);
+        if expected_time_precision == 0 {
+            prop_assert_eq!(time_fraction_len, 0);
+        } else {
+            prop_assert_eq!(time_fraction_len, usize::from(expected_time_precision));
+        }
+        if expected_price_precision == 0 {
+            prop_assert_eq!(price_fraction_len, 0);
+        } else {
+            prop_assert_eq!(price_fraction_len, usize::from(expected_price_precision));
+        }
     }
 
     #[test]
