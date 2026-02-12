@@ -15,7 +15,7 @@
   - backend implementations
 - `api`
   - Rust-idiomatic public interface
-  - split into focused submodules (for example `api::render_style`, `api::axis_config`, `api::axis_label_format`, `api::label_cache`, `api::validation`) to keep responsibilities narrow
+  - split into focused submodules (for example `api::render_style`, `api::axis_config`, `api::axis_label_format`, `api::axis_ticks`, `api::data_window`, `api::label_cache`, `api::validation`, `api::interaction_validation`) to keep responsibilities narrow
 - `platform_gtk` (feature-gated)
   - GTK4/Relm4 adapter
 - `extensions`

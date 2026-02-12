@@ -98,6 +98,9 @@ Key files:
 - `axis_label_format.rs` (axis label formatting, display transforms, and quantization helpers)
 - `label_cache.rs` (label cache keys/profiles, cache stores, and cache stats/types)
 - `validation.rs` (render/axis config validation functions)
+- `axis_ticks.rs` (axis tick density/spacing selection helpers)
+- `data_window.rs` (visible-window expansion and marker window filtering helpers)
+- `interaction_validation.rs` (kinetic-pan validation helpers)
 
 Responsibilities:
 - orchestration between core + interaction + renderer
