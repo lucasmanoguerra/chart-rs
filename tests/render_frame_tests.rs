@@ -246,6 +246,56 @@ fn major_time_axis_labels_can_be_hidden() {
 }
 
 #[test]
+fn major_time_axis_labels_use_dedicated_color() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)
+        .with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1_704_205_800.0, 10.0),
+        DataPoint::new(1_704_205_860.0, 11.0),
+        DataPoint::new(1_704_205_920.0, 12.0),
+        DataPoint::new(1_704_205_980.0, 13.0),
+        DataPoint::new(1_704_206_040.0, 12.5),
+        DataPoint::new(1_704_206_100.0, 12.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcDateTime {
+                show_seconds: false,
+            },
+            timezone: TimeAxisTimeZone::FixedOffsetMinutes { minutes: -300 },
+            session: Some(TimeAxisSessionConfig {
+                start_hour: 9,
+                start_minute: 30,
+                end_hour: 16,
+                end_minute: 0,
+            }),
+        })
+        .expect("set session/time-axis config");
+
+    let style = RenderStyle {
+        time_axis_label_color: Color::rgb(0.17, 0.27, 0.43),
+        major_time_label_color: Color::rgb(0.89, 0.31, 0.18),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center
+            && text.text == "2024-01-02 09:30"
+            && text.color == style.major_time_label_color
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center
+            && text.text != "2024-01-02 09:30"
+            && text.color == style.time_axis_label_color
+    }));
+}
+
+#[test]
 fn major_time_axis_grid_lines_can_be_hidden() {
     let renderer = NullRenderer::default();
     let config = ChartEngineConfig::new(Viewport::new(900, 420), 1_704_205_800.0, 1_704_206_100.0)

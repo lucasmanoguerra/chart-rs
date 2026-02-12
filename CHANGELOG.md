@@ -50,6 +50,9 @@ and this project adheres to Semantic Versioning.
 - Major time-axis grid visibility parity baseline (`R-035`) with deterministic show/hide behavior independent from regular time-grid lines.
 - New render-style knob: `show_major_time_grid_lines`.
 - New render-frame/style tests and criterion benchmark coverage for major-grid visibility behavior.
+- Major time-axis label color parity baseline (`R-036`) with deterministic dedicated color control independent from regular time-axis labels.
+- New render-style knob: `major_time_label_color`.
+- New render-frame/style tests and criterion benchmark coverage for major-label color behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 

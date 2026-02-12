@@ -123,6 +123,7 @@ Responsibilities:
 - configurable time-axis label color policy (dedicated label color independent from price-axis labels)
 - configurable major time-axis label visibility policy (show/hide major labels independently from regular labels)
 - configurable major time-axis grid visibility policy (show/hide major grid lines independently from regular grid lines)
+- configurable major time-axis label color policy (dedicated major-label color independent from regular time-axis labels)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -172,6 +173,7 @@ Render invariants:
 - time-axis label color is a deterministic style knob (`time_axis_label_color`)
 - major time-axis label visibility is a deterministic style knob (`show_major_time_labels`)
 - major time-axis grid visibility is a deterministic style knob (`show_major_time_grid_lines`)
+- major time-axis label color is a deterministic style knob (`major_time_label_color`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

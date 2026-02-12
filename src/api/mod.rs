@@ -253,6 +253,7 @@ pub struct RenderStyle {
     pub price_axis_tick_mark_color: Color,
     pub time_axis_tick_mark_color: Color,
     pub time_axis_label_color: Color,
+    pub major_time_label_color: Color,
     pub axis_label_color: Color,
     pub last_price_line_color: Color,
     pub last_price_label_color: Color,
@@ -341,6 +342,7 @@ impl Default for RenderStyle {
             price_axis_tick_mark_color: Color::rgb(0.82, 0.84, 0.88),
             time_axis_tick_mark_color: Color::rgb(0.82, 0.84, 0.88),
             time_axis_label_color: Color::rgb(0.10, 0.12, 0.16),
+            major_time_label_color: Color::rgb(0.10, 0.12, 0.16),
             axis_label_color: Color::rgb(0.10, 0.12, 0.16),
             last_price_line_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_color: Color::rgb(0.16, 0.38, 1.0),
@@ -1833,7 +1835,6 @@ impl<R: Renderer> ChartEngine<R> {
         let price_axis_tick_mark_end_x =
             (plot_right + style.price_axis_tick_mark_length_px).clamp(plot_right, viewport_width);
         let axis_color = style.axis_border_color;
-        let time_label_color = style.time_axis_label_color;
         let price_label_color = style.axis_label_color;
         let time_tick_count =
             axis_tick_target_count(plot_right, AXIS_TIME_TARGET_SPACING_PX, 2, 12);
@@ -1869,17 +1870,19 @@ impl<R: Renderer> ChartEngine<R> {
         let visible_span_abs = (visible_end - visible_start).abs();
         for (time, px) in select_ticks_with_min_spacing(time_ticks, AXIS_TIME_MIN_SPACING_PX) {
             let is_major_tick = is_major_time_tick(time, self.time_axis_label_config);
-            let (grid_color, grid_line_width, label_font_size_px) = if is_major_tick {
+            let (grid_color, grid_line_width, label_font_size_px, label_color) = if is_major_tick {
                 (
                     style.major_grid_line_color,
                     style.major_grid_line_width,
                     style.major_time_label_font_size_px,
+                    style.major_time_label_color,
                 )
             } else {
                 (
                     style.grid_line_color,
                     style.grid_line_width,
                     style.time_axis_label_font_size_px,
+                    style.time_axis_label_color,
                 )
             };
             let time_label_y = (plot_bottom + style.time_axis_label_offset_y_px)
@@ -1891,7 +1894,7 @@ impl<R: Renderer> ChartEngine<R> {
                     px,
                     time_label_y,
                     label_font_size_px,
-                    time_label_color,
+                    label_color,
                     TextHAlign::Center,
                 ));
             }
@@ -2369,6 +2372,7 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.price_axis_tick_mark_color.validate()?;
     style.time_axis_tick_mark_color.validate()?;
     style.time_axis_label_color.validate()?;
+    style.major_time_label_color.validate()?;
     style.axis_label_color.validate()?;
     style.last_price_line_color.validate()?;
     style.last_price_label_color.validate()?;
