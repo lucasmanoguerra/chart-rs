@@ -92,3 +92,51 @@ fn snapshot_exports_crosshair_formatter_state() {
     assert!(snapshot.crosshair_formatter.time_formatter_generation >= 1);
     assert!(snapshot.crosshair_formatter.price_formatter_generation >= 1);
 }
+
+#[test]
+fn crosshair_formatter_override_mode_accessors_follow_contract() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(640, 480), 0.0, 5.0).with_price_domain(1.0, 10.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    assert_eq!(
+        engine.crosshair_time_label_formatter_override_mode(),
+        CrosshairFormatterOverrideMode::None
+    );
+    assert_eq!(
+        engine.crosshair_price_label_formatter_override_mode(),
+        CrosshairFormatterOverrideMode::None
+    );
+    let generations_before = engine.crosshair_label_formatter_generations();
+
+    engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("T:{value:.2}")));
+    assert_eq!(
+        engine.crosshair_time_label_formatter_override_mode(),
+        CrosshairFormatterOverrideMode::Legacy
+    );
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, _| {
+        format!("TC:{value:.2}")
+    }));
+    assert_eq!(
+        engine.crosshair_time_label_formatter_override_mode(),
+        CrosshairFormatterOverrideMode::Context
+    );
+
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, _| {
+        format!("PC:{value:.2}")
+    }));
+    assert_eq!(
+        engine.crosshair_price_label_formatter_override_mode(),
+        CrosshairFormatterOverrideMode::Context
+    );
+    engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("P:{value:.2}")));
+    assert_eq!(
+        engine.crosshair_price_label_formatter_override_mode(),
+        CrosshairFormatterOverrideMode::Legacy
+    );
+
+    let generations_after = engine.crosshair_label_formatter_generations();
+    assert!(generations_after.0 > generations_before.0);
+    assert!(generations_after.1 > generations_before.1);
+}

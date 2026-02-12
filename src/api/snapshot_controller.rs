@@ -1,9 +1,7 @@
 use crate::error::{ChartError, ChartResult};
 use crate::render::Renderer;
 
-use super::{
-    ChartEngine, CrosshairFormatterOverrideMode, CrosshairFormatterSnapshot, EngineSnapshot,
-};
+use super::{ChartEngine, CrosshairFormatterSnapshot, EngineSnapshot};
 
 impl<R: Renderer> ChartEngine<R> {
     /// Builds a deterministic snapshot useful for regression tests.
@@ -17,24 +15,14 @@ impl<R: Renderer> ChartEngine<R> {
             points: self.points.clone(),
             candle_geometry: self.project_candles(body_width_px)?,
             series_metadata: self.series_metadata.clone(),
-            crosshair_formatter: CrosshairFormatterSnapshot {
-                time_override_mode: if self.crosshair_time_label_formatter_with_context.is_some() {
-                    CrosshairFormatterOverrideMode::Context
-                } else if self.crosshair_time_label_formatter.is_some() {
-                    CrosshairFormatterOverrideMode::Legacy
-                } else {
-                    CrosshairFormatterOverrideMode::None
-                },
-                price_override_mode: if self.crosshair_price_label_formatter_with_context.is_some()
-                {
-                    CrosshairFormatterOverrideMode::Context
-                } else if self.crosshair_price_label_formatter.is_some() {
-                    CrosshairFormatterOverrideMode::Legacy
-                } else {
-                    CrosshairFormatterOverrideMode::None
-                },
-                time_formatter_generation: self.crosshair_time_label_formatter_generation,
-                price_formatter_generation: self.crosshair_price_label_formatter_generation,
+            crosshair_formatter: {
+                let (time_gen, price_gen) = self.crosshair_label_formatter_generations();
+                CrosshairFormatterSnapshot {
+                    time_override_mode: self.crosshair_time_label_formatter_override_mode(),
+                    price_override_mode: self.crosshair_price_label_formatter_override_mode(),
+                    time_formatter_generation: time_gen,
+                    price_formatter_generation: price_gen,
+                }
             },
         })
     }

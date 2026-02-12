@@ -8,6 +8,8 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label formatter API hardening parity baseline (`R-080`) with deterministic override-mode and generation introspection per axis.
+- New API methods: `crosshair_time_label_formatter_override_mode`, `crosshair_price_label_formatter_override_mode`, and `crosshair_label_formatter_generations`.
 - Crosshair axis-label formatter snapshot/export parity baseline (`R-079`) with deterministic snapshot fields for per-axis override mode and formatter generations.
 - New snapshot contracts: `CrosshairFormatterOverrideMode` and `CrosshairFormatterSnapshot` included in `EngineSnapshot`.
 - New snapshot test coverage for crosshair formatter state export/roundtrip behavior.

@@ -1,7 +1,7 @@
 use crate::render::Renderer;
 
 use super::{
-    ChartEngine, CrosshairPriceLabelFormatterWithContextFn,
+    ChartEngine, CrosshairFormatterOverrideMode, CrosshairPriceLabelFormatterWithContextFn,
     CrosshairTimeLabelFormatterWithContextFn, PriceLabelCacheStats, PriceLabelFormatterFn,
     TimeLabelCacheStats, TimeLabelFormatterFn,
 };
@@ -126,6 +126,36 @@ impl<R: Renderer> ChartEngine<R> {
             .crosshair_price_label_formatter_generation
             .saturating_add(1);
         self.crosshair_price_label_cache.borrow_mut().clear();
+    }
+
+    #[must_use]
+    pub fn crosshair_time_label_formatter_override_mode(&self) -> CrosshairFormatterOverrideMode {
+        if self.crosshair_time_label_formatter_with_context.is_some() {
+            CrosshairFormatterOverrideMode::Context
+        } else if self.crosshair_time_label_formatter.is_some() {
+            CrosshairFormatterOverrideMode::Legacy
+        } else {
+            CrosshairFormatterOverrideMode::None
+        }
+    }
+
+    #[must_use]
+    pub fn crosshair_price_label_formatter_override_mode(&self) -> CrosshairFormatterOverrideMode {
+        if self.crosshair_price_label_formatter_with_context.is_some() {
+            CrosshairFormatterOverrideMode::Context
+        } else if self.crosshair_price_label_formatter.is_some() {
+            CrosshairFormatterOverrideMode::Legacy
+        } else {
+            CrosshairFormatterOverrideMode::None
+        }
+    }
+
+    #[must_use]
+    pub fn crosshair_label_formatter_generations(&self) -> (u64, u64) {
+        (
+            self.crosshair_time_label_formatter_generation,
+            self.crosshair_price_label_formatter_generation,
+        )
     }
 
     #[must_use]
