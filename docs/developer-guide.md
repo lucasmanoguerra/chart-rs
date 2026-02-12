@@ -104,6 +104,7 @@ Key files:
 - `price_resolver.rs` (latest/previous price sample and marker color/text resolution helpers)
 - `layout_helpers.rs` (crosshair/axis label layout math helpers)
 - `snap_resolver.rs` (crosshair nearest-sample snapping helpers for points/candles)
+- `cache_profile.rs` (time/price label cache-profile resolution helpers)
 
 Responsibilities:
 - orchestration between core + interaction + renderer
