@@ -298,6 +298,8 @@ pub struct RenderStyle {
     pub show_major_time_labels: bool,
     pub show_major_time_grid_lines: bool,
     pub show_time_axis_tick_marks: bool,
+    /// Controls major time-axis tick-mark visibility independently from regular ticks.
+    pub show_major_time_tick_marks: bool,
     /// Horizontal inset from right edge used by price-axis labels.
     pub price_axis_label_padding_right_px: f64,
     /// Length of short axis tick marks extending into the price-axis panel.
@@ -381,6 +383,7 @@ impl Default for RenderStyle {
             show_major_time_labels: true,
             show_major_time_grid_lines: true,
             show_time_axis_tick_marks: true,
+            show_major_time_tick_marks: true,
             price_axis_label_padding_right_px: 6.0,
             price_axis_tick_mark_length_px: 6.0,
             show_last_price_line: true,
@@ -1929,7 +1932,9 @@ impl<R: Renderer> ChartEngine<R> {
                     grid_color,
                 ));
             }
-            if style.show_time_axis_tick_marks {
+            if style.show_time_axis_tick_marks
+                && (!is_major_tick || style.show_major_time_tick_marks)
+            {
                 frame = frame.with_line(LinePrimitive::new(
                     px,
                     plot_bottom,
