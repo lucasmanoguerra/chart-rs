@@ -1,7 +1,7 @@
 use crate::core::{points_in_time_window, project_line_segments};
 use crate::error::ChartResult;
 use crate::render::{
-    Color, LinePrimitive, RectPrimitive, RenderFrame, Renderer, TextHAlign, TextPrimitive,
+    LinePrimitive, RectPrimitive, RenderFrame, Renderer, TextHAlign, TextPrimitive,
 };
 
 use super::axis_label_format::{

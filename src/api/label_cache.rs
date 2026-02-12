@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
+
 use super::{AxisLabelLocale, PriceAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone};
 
 pub type TimeLabelFormatterFn = Arc<dyn Fn(f64) -> String + Send + Sync + 'static>;
 pub type PriceLabelFormatterFn = Arc<dyn Fn(f64) -> String + Send + Sync + 'static>;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct TimeLabelCacheStats {
     pub hits: u64,
     pub misses: u64,
@@ -14,7 +16,7 @@ pub struct TimeLabelCacheStats {
 }
 
 /// Runtime metrics exposed by the in-engine price-label cache.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct PriceLabelCacheStats {
     pub hits: u64,
     pub misses: u64,

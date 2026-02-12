@@ -1,6 +1,7 @@
+use crate::extensions::PluginContext;
 use crate::render::Renderer;
 
-use super::{ChartEngine, PluginContext, PluginEvent};
+use super::{ChartEngine, PluginEvent};
 
 impl<R: Renderer> ChartEngine<R> {
     pub(super) fn plugin_context(&self) -> PluginContext {
