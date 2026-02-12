@@ -8,6 +8,10 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label formatter context parity baseline (`R-076`) with deterministic per-axis context delivery (visible span and source mode) for crosshair formatter overrides.
+- New API methods: `set_crosshair_time_label_formatter_with_context`, `clear_crosshair_time_label_formatter_with_context`, `set_crosshair_price_label_formatter_with_context`, and `clear_crosshair_price_label_formatter_with_context`.
+- New public context contracts: `CrosshairTimeLabelFormatterContext`, `CrosshairPriceLabelFormatterContext`, and `CrosshairLabelSourceMode`.
+- New render-frame/property tests and criterion benchmark coverage for crosshair axis-label formatter-context behavior.
 - Crosshair axis-label numeric precision parity baseline (`R-075`) with deterministic shared precision fallback plus independent per-axis precision overrides for time/price crosshair labels.
 - New render-style knobs: `crosshair_label_numeric_precision`, `crosshair_time_label_numeric_precision`, and `crosshair_price_label_numeric_precision`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label numeric-precision behavior.

@@ -23,7 +23,8 @@ use super::layout_helpers::{
 use super::{
     ChartEngine, CrosshairLabelBoxHorizontalAnchor, CrosshairLabelBoxOverflowPolicy,
     CrosshairLabelBoxVisibilityPriority, CrosshairLabelBoxWidthMode, CrosshairLabelBoxZOrderPolicy,
-    LastPriceLabelBoxWidthMode,
+    CrosshairLabelSourceMode, CrosshairPriceLabelFormatterContext,
+    CrosshairTimeLabelFormatterContext, LastPriceLabelBoxWidthMode,
 };
 
 impl<R: Renderer> ChartEngine<R> {
@@ -97,8 +98,17 @@ impl<R: Renderer> ChartEngine<R> {
         logical_time: f64,
         visible_span_abs: f64,
         precision_override: Option<u8>,
+        source_mode: CrosshairLabelSourceMode,
     ) -> String {
-        if let Some(formatter) = &self.crosshair_time_label_formatter {
+        if let Some(formatter) = &self.crosshair_time_label_formatter_with_context {
+            formatter(
+                logical_time,
+                CrosshairTimeLabelFormatterContext {
+                    visible_span_abs,
+                    source_mode,
+                },
+            )
+        } else if let Some(formatter) = &self.crosshair_time_label_formatter {
             let key = TimeLabelCacheKey {
                 profile: super::label_cache::TimeLabelCacheProfile::Custom {
                     formatter_generation: self.crosshair_time_label_formatter_generation,
@@ -131,8 +141,22 @@ impl<R: Renderer> ChartEngine<R> {
         tick_step_abs: f64,
         mode_suffix: &str,
         precision_override: Option<u8>,
+        visible_span_abs: f64,
+        source_mode: CrosshairLabelSourceMode,
     ) -> String {
-        if let Some(formatter) = &self.crosshair_price_label_formatter {
+        if let Some(formatter) = &self.crosshair_price_label_formatter_with_context {
+            let mut value = formatter(
+                display_price,
+                CrosshairPriceLabelFormatterContext {
+                    visible_span_abs,
+                    source_mode,
+                },
+            );
+            if !mode_suffix.is_empty() {
+                value.push_str(mode_suffix);
+            }
+            value
+        } else if let Some(formatter) = &self.crosshair_price_label_formatter {
             let key = PriceLabelCacheKey {
                 profile: super::label_cache::PriceLabelCacheProfile::Custom {
                     formatter_generation: self.crosshair_price_label_formatter_generation,
@@ -599,11 +623,17 @@ impl<R: Renderer> ChartEngine<R> {
                 let time_label_precision = style
                     .crosshair_time_label_numeric_precision
                     .or(style.crosshair_label_numeric_precision);
+                let time_source_mode = if crosshair.snapped_time.is_some() {
+                    CrosshairLabelSourceMode::SnappedData
+                } else {
+                    CrosshairLabelSourceMode::PointerProjected
+                };
                 let text = Self::apply_crosshair_label_text_transform(
                     self.format_crosshair_time_axis_label(
                         crosshair_time,
                         visible_span_abs,
                         time_label_precision,
+                        time_source_mode,
                     ),
                     style
                         .crosshair_time_label_prefix
@@ -798,12 +828,19 @@ impl<R: Renderer> ChartEngine<R> {
                 let price_label_precision = style
                     .crosshair_price_label_numeric_precision
                     .or(style.crosshair_label_numeric_precision);
+                let price_source_mode = if crosshair.snapped_price.is_some() {
+                    CrosshairLabelSourceMode::SnappedData
+                } else {
+                    CrosshairLabelSourceMode::PointerProjected
+                };
                 let text = Self::apply_crosshair_label_text_transform(
                     self.format_crosshair_price_axis_label(
                         display_price,
                         display_tick_step_abs,
                         display_suffix,
                         price_label_precision,
+                        visible_span_abs,
+                        price_source_mode,
                     ),
                     style
                         .crosshair_price_label_prefix

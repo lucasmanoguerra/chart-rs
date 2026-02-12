@@ -2,7 +2,7 @@ use chart_rs::api::{
     ChartEngine, ChartEngineConfig, CrosshairLabelBoxHorizontalAnchor,
     CrosshairLabelBoxOverflowPolicy, CrosshairLabelBoxVerticalAnchor,
     CrosshairLabelBoxVisibilityPriority, CrosshairLabelBoxWidthMode, CrosshairLabelBoxZOrderPolicy,
-    CrosshairMode, RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy,
+    CrosshairLabelSourceMode, CrosshairMode, RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy,
 };
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, LineStrokeStyle, NullRenderer, TextHAlign};
@@ -412,6 +412,56 @@ proptest! {
             .expect("crosshair price decimals must exist");
         prop_assert_eq!(time_fraction.len(), usize::from(expected_time_precision));
         prop_assert_eq!(price_fraction.len(), usize::from(expected_price_precision));
+    }
+
+    #[test]
+    fn crosshair_context_formatters_are_deterministic_per_axis(
+        use_time_context in any::<bool>(),
+        use_price_context in any::<bool>(),
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let style = RenderStyle {
+            show_time_axis_labels: false,
+            show_price_axis_labels: false,
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            crosshair_time_label_color: Color::rgb(0.88, 0.22, 0.19),
+            crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        if use_time_context {
+            engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+                let source = match context.source_mode {
+                    CrosshairLabelSourceMode::SnappedData => "S",
+                    CrosshairLabelSourceMode::PointerProjected => "P",
+                };
+                format!("T:{value:.2}:{source}:{:.1}", context.visible_span_abs)
+            }));
+        }
+        if use_price_context {
+            engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+                let source = match context.source_mode {
+                    CrosshairLabelSourceMode::SnappedData => "S",
+                    CrosshairLabelSourceMode::PointerProjected => "P",
+                };
+                format!("R:{value:.2}:{source}:{:.1}", context.visible_span_abs)
+            }));
+        }
+        engine.pointer_move(640.0, 360.0);
+
+        let first = engine.build_render_frame().expect("first frame");
+        let second = engine.build_render_frame().expect("second frame");
+        prop_assert_eq!(first, second);
     }
 
     #[test]

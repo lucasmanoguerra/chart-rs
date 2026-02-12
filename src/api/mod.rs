@@ -30,6 +30,12 @@ use label_cache::{PriceLabelCache, TimeLabelCache};
 pub use label_cache::{
     PriceLabelCacheStats, PriceLabelFormatterFn, TimeLabelCacheStats, TimeLabelFormatterFn,
 };
+mod label_formatter_context;
+pub use label_formatter_context::{
+    CrosshairLabelSourceMode, CrosshairPriceLabelFormatterContext,
+    CrosshairPriceLabelFormatterWithContextFn, CrosshairTimeLabelFormatterContext,
+    CrosshairTimeLabelFormatterWithContextFn,
+};
 
 mod validation;
 use validation::validate_render_style;
@@ -146,6 +152,8 @@ pub struct ChartEngine<R: Renderer> {
     price_label_formatter: Option<PriceLabelFormatterFn>,
     crosshair_time_label_formatter: Option<TimeLabelFormatterFn>,
     crosshair_price_label_formatter: Option<PriceLabelFormatterFn>,
+    crosshair_time_label_formatter_with_context: Option<CrosshairTimeLabelFormatterWithContextFn>,
+    crosshair_price_label_formatter_with_context: Option<CrosshairPriceLabelFormatterWithContextFn>,
     time_label_formatter_generation: u64,
     price_label_formatter_generation: u64,
     crosshair_time_label_formatter_generation: u64,
@@ -187,6 +195,8 @@ impl<R: Renderer> ChartEngine<R> {
             price_label_formatter: None,
             crosshair_time_label_formatter: None,
             crosshair_price_label_formatter: None,
+            crosshair_time_label_formatter_with_context: None,
+            crosshair_price_label_formatter_with_context: None,
             time_label_formatter_generation: 0,
             price_label_formatter_generation: 0,
             crosshair_time_label_formatter_generation: 0,

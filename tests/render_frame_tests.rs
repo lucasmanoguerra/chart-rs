@@ -2,8 +2,8 @@ use chart_rs::api::{
     AxisLabelLocale, ChartEngine, ChartEngineConfig, CrosshairLabelBoxHorizontalAnchor,
     CrosshairLabelBoxOverflowPolicy, CrosshairLabelBoxVerticalAnchor,
     CrosshairLabelBoxVisibilityPriority, CrosshairLabelBoxWidthMode, CrosshairLabelBoxZOrderPolicy,
-    CrosshairMode, LastPriceLabelBoxWidthMode, LastPriceSourceMode, RenderStyle,
-    TimeAxisLabelConfig, TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
+    CrosshairLabelSourceMode, CrosshairMode, LastPriceLabelBoxWidthMode, LastPriceSourceMode,
+    RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, LineStrokeStyle, NullRenderer, TextHAlign};
@@ -2100,6 +2100,110 @@ fn crosshair_axis_label_numeric_precision_supports_per_axis_overrides() {
         .expect("price decimals");
     assert_eq!(time_fraction.len(), 3);
     assert_eq!(price_fraction.len(), 4);
+}
+
+#[test]
+fn crosshair_time_formatter_context_includes_span_and_source_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.89, 0.24, 0.20),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|value, context| {
+        let source = match context.source_mode {
+            CrosshairLabelSourceMode::SnappedData => "snapped",
+            CrosshairLabelSourceMode::PointerProjected => "projected",
+        };
+        format!("CTX:{value:.1}:{source}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let text = frame
+        .texts
+        .iter()
+        .find(|label| label.color == style.crosshair_time_label_color)
+        .expect("time label");
+    assert!(text.text.starts_with("CTX:"));
+    assert!(text.text.contains(":projected:100.0"));
+}
+
+#[test]
+fn crosshair_price_formatter_context_includes_span_and_source_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Magnet);
+    engine.set_data(vec![
+        DataPoint::new(20.0, 10.0),
+        DataPoint::new(40.0, 20.0),
+        DataPoint::new(60.0, 30.0),
+    ]);
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_price_label_color: Color::rgb(0.20, 0.43, 0.88),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, context| {
+        let source = match context.source_mode {
+            CrosshairLabelSourceMode::SnappedData => "snapped",
+            CrosshairLabelSourceMode::PointerProjected => "projected",
+        };
+        format!("PC:{value:.1}:{source}:{:.1}", context.visible_span_abs)
+    }));
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let text = frame
+        .texts
+        .iter()
+        .find(|label| label.color == style.crosshair_price_label_color)
+        .expect("price label");
+    assert!(text.text.starts_with("PC:"));
+    assert!(text.text.contains(":snapped:100.0"));
+}
+
+#[test]
+fn crosshair_context_formatter_has_priority_over_legacy_formatter() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        show_time_axis_labels: false,
+        show_price_axis_labels: false,
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
+        crosshair_time_label_color: Color::rgb(0.89, 0.24, 0.20),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.set_crosshair_time_label_formatter(Arc::new(|_| "LEGACY".to_owned()));
+    engine.set_crosshair_time_label_formatter_with_context(Arc::new(|_, _| "CTX".to_owned()));
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let text = frame
+        .texts
+        .iter()
+        .find(|label| label.color == style.crosshair_time_label_color)
+        .expect("time label");
+    assert_eq!(text.text, "CTX");
 }
 
 #[test]

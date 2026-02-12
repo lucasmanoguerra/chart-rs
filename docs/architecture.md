@@ -112,6 +112,7 @@ Tuning contracts:
 - crosshair time/price axis labels support deterministic independent formatter overrides with fallback to axis formatter policies
 - crosshair time/price axis labels support deterministic prefix/suffix text transforms with shared fallback and per-axis overrides
 - crosshair time/price axis labels support deterministic numeric-precision overrides with shared fallback and per-axis controls
+- crosshair time/price formatter overrides can receive deterministic context (visible span + source mode) without leaking interaction internals into renderer backends
 - crosshair time/price axis-label boxes support deterministic fit-text sizing with style-level fill/padding and independent per-axis visibility controls
 - crosshair axis-label boxes support deterministic border/radius styling with clamped corner geometry for backend-stable output
 - crosshair axis-label boxes support deterministic manual or auto-contrast text-color resolution without backend-specific text-measurement dependencies

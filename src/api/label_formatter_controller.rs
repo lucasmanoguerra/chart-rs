@@ -1,8 +1,9 @@
 use crate::render::Renderer;
 
 use super::{
-    ChartEngine, PriceLabelCacheStats, PriceLabelFormatterFn, TimeLabelCacheStats,
-    TimeLabelFormatterFn,
+    ChartEngine, CrosshairPriceLabelFormatterWithContextFn,
+    CrosshairTimeLabelFormatterWithContextFn, PriceLabelCacheStats, PriceLabelFormatterFn,
+    TimeLabelCacheStats, TimeLabelFormatterFn,
 };
 
 impl<R: Renderer> ChartEngine<R> {
@@ -37,6 +38,7 @@ impl<R: Renderer> ChartEngine<R> {
     /// Sets a formatter override used only for crosshair time-axis label text.
     pub fn set_crosshair_time_label_formatter(&mut self, formatter: TimeLabelFormatterFn) {
         self.crosshair_time_label_formatter = Some(formatter);
+        self.crosshair_time_label_formatter_with_context = None;
         self.crosshair_time_label_formatter_generation = self
             .crosshair_time_label_formatter_generation
             .saturating_add(1);
@@ -46,6 +48,7 @@ impl<R: Renderer> ChartEngine<R> {
     /// Clears the crosshair time-axis label formatter override.
     pub fn clear_crosshair_time_label_formatter(&mut self) {
         self.crosshair_time_label_formatter = None;
+        self.crosshair_time_label_formatter_with_context = None;
         self.crosshair_time_label_formatter_generation = self
             .crosshair_time_label_formatter_generation
             .saturating_add(1);
@@ -55,6 +58,7 @@ impl<R: Renderer> ChartEngine<R> {
     /// Sets a formatter override used only for crosshair price-axis label text.
     pub fn set_crosshair_price_label_formatter(&mut self, formatter: PriceLabelFormatterFn) {
         self.crosshair_price_label_formatter = Some(formatter);
+        self.crosshair_price_label_formatter_with_context = None;
         self.crosshair_price_label_formatter_generation = self
             .crosshair_price_label_formatter_generation
             .saturating_add(1);
@@ -64,6 +68,51 @@ impl<R: Renderer> ChartEngine<R> {
     /// Clears the crosshair price-axis label formatter override.
     pub fn clear_crosshair_price_label_formatter(&mut self) {
         self.crosshair_price_label_formatter = None;
+        self.crosshair_price_label_formatter_with_context = None;
+        self.crosshair_price_label_formatter_generation = self
+            .crosshair_price_label_formatter_generation
+            .saturating_add(1);
+        self.crosshair_price_label_cache.borrow_mut().clear();
+    }
+
+    /// Sets a context-aware formatter override used only for crosshair time-axis labels.
+    pub fn set_crosshair_time_label_formatter_with_context(
+        &mut self,
+        formatter: CrosshairTimeLabelFormatterWithContextFn,
+    ) {
+        self.crosshair_time_label_formatter_with_context = Some(formatter);
+        self.crosshair_time_label_formatter = None;
+        self.crosshair_time_label_formatter_generation = self
+            .crosshair_time_label_formatter_generation
+            .saturating_add(1);
+        self.crosshair_time_label_cache.borrow_mut().clear();
+    }
+
+    /// Clears the context-aware crosshair time-axis formatter override.
+    pub fn clear_crosshair_time_label_formatter_with_context(&mut self) {
+        self.crosshair_time_label_formatter_with_context = None;
+        self.crosshair_time_label_formatter_generation = self
+            .crosshair_time_label_formatter_generation
+            .saturating_add(1);
+        self.crosshair_time_label_cache.borrow_mut().clear();
+    }
+
+    /// Sets a context-aware formatter override used only for crosshair price-axis labels.
+    pub fn set_crosshair_price_label_formatter_with_context(
+        &mut self,
+        formatter: CrosshairPriceLabelFormatterWithContextFn,
+    ) {
+        self.crosshair_price_label_formatter_with_context = Some(formatter);
+        self.crosshair_price_label_formatter = None;
+        self.crosshair_price_label_formatter_generation = self
+            .crosshair_price_label_formatter_generation
+            .saturating_add(1);
+        self.crosshair_price_label_cache.borrow_mut().clear();
+    }
+
+    /// Clears the context-aware crosshair price-axis formatter override.
+    pub fn clear_crosshair_price_label_formatter_with_context(&mut self) {
+        self.crosshair_price_label_formatter_with_context = None;
         self.crosshair_price_label_formatter_generation = self
             .crosshair_price_label_formatter_generation
             .saturating_add(1);
