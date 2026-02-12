@@ -57,6 +57,10 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_label_box_color: Color::rgb(0.92, 0.95, 0.98),
         crosshair_label_box_text_color: Color::rgb(0.08, 0.11, 0.16),
         crosshair_label_box_auto_text_contrast: false,
+        crosshair_time_label_box_text_color: Some(Color::rgb(0.11, 0.53, 0.26)),
+        crosshair_price_label_box_text_color: Some(Color::rgb(0.22, 0.35, 0.81)),
+        crosshair_time_label_box_auto_text_contrast: Some(true),
+        crosshair_price_label_box_auto_text_contrast: Some(false),
         crosshair_label_box_border_color: Color::rgb(0.83, 0.84, 0.88),
         crosshair_time_label_box_border_color: Color::rgb(0.75, 0.32, 0.21),
         crosshair_price_label_box_border_color: Color::rgb(0.18, 0.36, 0.77),
@@ -675,6 +679,38 @@ fn invalid_crosshair_label_box_border_width_is_rejected() {
 
     let mut style = engine.render_style();
     style.crosshair_label_box_border_width_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_time_label_box_text_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_time_label_box_text_color = Some(Color::rgb(f64::NAN, 0.2, 0.3));
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_price_label_box_text_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_price_label_box_text_color = Some(Color::rgb(0.2, f64::NAN, 0.3));
 
     let err = engine
         .set_render_style(style)

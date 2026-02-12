@@ -272,6 +272,10 @@ pub struct RenderStyle {
     pub crosshair_label_box_color: Color,
     pub crosshair_label_box_text_color: Color,
     pub crosshair_label_box_auto_text_contrast: bool,
+    pub crosshair_time_label_box_text_color: Option<Color>,
+    pub crosshair_price_label_box_text_color: Option<Color>,
+    pub crosshair_time_label_box_auto_text_contrast: Option<bool>,
+    pub crosshair_price_label_box_auto_text_contrast: Option<bool>,
     pub crosshair_label_box_border_color: Color,
     pub crosshair_time_label_box_border_color: Color,
     pub crosshair_price_label_box_border_color: Color,
@@ -425,6 +429,10 @@ impl Default for RenderStyle {
             crosshair_label_box_color: Color::rgb(0.94, 0.96, 0.99),
             crosshair_label_box_text_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_label_box_auto_text_contrast: false,
+            crosshair_time_label_box_text_color: None,
+            crosshair_price_label_box_text_color: None,
+            crosshair_time_label_box_auto_text_contrast: None,
+            crosshair_price_label_box_auto_text_contrast: None,
             crosshair_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
             crosshair_time_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
             crosshair_price_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
@@ -1201,10 +1209,17 @@ impl<R: Renderer> ChartEngine<R> {
         Self::resolve_auto_contrast_text_color(box_fill_color)
     }
 
-    fn resolve_crosshair_label_box_text_color(&self, fallback_text_color: Color) -> Color {
+    fn resolve_crosshair_label_box_text_color(
+        &self,
+        fallback_text_color: Color,
+        per_axis_text_color: Option<Color>,
+        per_axis_auto_contrast: Option<bool>,
+    ) -> Color {
         let style = self.render_style;
-        if !style.crosshair_label_box_auto_text_contrast {
-            return style.crosshair_label_box_text_color;
+        let auto_contrast =
+            per_axis_auto_contrast.unwrap_or(style.crosshair_label_box_auto_text_contrast);
+        if !auto_contrast {
+            return per_axis_text_color.unwrap_or(style.crosshair_label_box_text_color);
         }
         if !style.show_crosshair_time_label_box && !style.show_crosshair_price_label_box {
             return fallback_text_color;
@@ -2320,7 +2335,11 @@ impl<R: Renderer> ChartEngine<R> {
                 let time_label_y = (plot_bottom + style.crosshair_time_label_offset_y_px)
                     .min((viewport_height - style.crosshair_time_label_font_size_px).max(0.0));
                 let time_label_text_color = if style.show_crosshair_time_label_box {
-                    self.resolve_crosshair_label_box_text_color(style.crosshair_time_label_color)
+                    self.resolve_crosshair_label_box_text_color(
+                        style.crosshair_time_label_color,
+                        style.crosshair_time_label_box_text_color,
+                        style.crosshair_time_label_box_auto_text_contrast,
+                    )
                 } else {
                     style.crosshair_time_label_color
                 };
@@ -2411,7 +2430,11 @@ impl<R: Renderer> ChartEngine<R> {
                 );
                 let text_y = (crosshair_y - style.crosshair_price_label_offset_y_px).max(0.0);
                 let price_label_text_color = if style.show_crosshair_price_label_box {
-                    self.resolve_crosshair_label_box_text_color(style.crosshair_price_label_color)
+                    self.resolve_crosshair_label_box_text_color(
+                        style.crosshair_price_label_color,
+                        style.crosshair_price_label_box_text_color,
+                        style.crosshair_price_label_box_auto_text_contrast,
+                    )
                 } else {
                     style.crosshair_price_label_color
                 };
@@ -2760,6 +2783,12 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.crosshair_price_label_color.validate()?;
     style.crosshair_label_box_color.validate()?;
     style.crosshair_label_box_text_color.validate()?;
+    if let Some(color) = style.crosshair_time_label_box_text_color {
+        color.validate()?;
+    }
+    if let Some(color) = style.crosshair_price_label_box_text_color {
+        color.validate()?;
+    }
     style.crosshair_label_box_border_color.validate()?;
     style.crosshair_time_label_box_border_color.validate()?;
     style.crosshair_price_label_box_border_color.validate()?;

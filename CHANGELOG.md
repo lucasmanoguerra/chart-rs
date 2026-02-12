@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box per-axis text-policy parity baseline (`R-057`) with deterministic independent manual text-color and auto-contrast controls for time and price label boxes.
+- New render-style knobs: `crosshair_time_label_box_text_color`, `crosshair_price_label_box_text_color`, `crosshair_time_label_box_auto_text_contrast`, and `crosshair_price_label_box_auto_text_contrast`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis text-policy behavior.
 - Crosshair axis-label box per-axis width-mode parity baseline (`R-056`) with deterministic independent `FitText`/`FullAxis` controls for time and price label boxes.
 - New render-style knobs: `crosshair_time_label_box_width_mode` and `crosshair_price_label_box_width_mode` with fallback to shared `crosshair_label_box_width_mode`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis width-mode behavior.

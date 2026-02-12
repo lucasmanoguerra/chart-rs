@@ -597,6 +597,47 @@ fn bench_crosshair_axis_label_box_width_mode_per_axis_render(c: &mut Criterion) 
     });
 }
 
+fn bench_crosshair_axis_label_box_text_policy_per_axis_render(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_label_box_color: Color::rgb(0.95, 0.95, 0.95),
+            crosshair_label_box_text_color: Color::rgb(0.9, 0.2, 0.2),
+            crosshair_label_box_auto_text_contrast: false,
+            crosshair_time_label_box_text_color: Some(Color::rgb(0.12, 0.76, 0.33)),
+            crosshair_price_label_box_text_color: Some(Color::rgb(0.22, 0.41, 0.90)),
+            crosshair_time_label_box_auto_text_contrast: Some(true),
+            crosshair_price_label_box_auto_text_contrast: Some(false),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function(
+        "crosshair_axis_label_box_text_policy_per_axis_render",
+        |b| {
+            b.iter(|| {
+                let _ = engine.build_render_frame().expect("build render frame");
+            })
+        },
+    );
+}
+
 fn bench_crosshair_axis_label_boxes_border_visibility_render(c: &mut Criterion) {
     let points: Vec<DataPoint> = (0..5_000)
         .map(|i| {
@@ -2144,6 +2185,7 @@ criterion_group!(
     bench_crosshair_axis_label_boxes_auto_contrast_render,
     bench_crosshair_axis_label_boxes_full_axis_width_render,
     bench_crosshair_axis_label_box_width_mode_per_axis_render,
+    bench_crosshair_axis_label_box_text_policy_per_axis_render,
     bench_crosshair_axis_label_boxes_border_visibility_render,
     bench_crosshair_axis_labels_vertical_offset_render,
     bench_crosshair_axis_labels_horizontal_inset_render,
