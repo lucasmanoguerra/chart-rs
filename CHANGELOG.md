@@ -8,6 +8,11 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- No changes yet.
+
+## [0.0.32-alpha.0] - 2026-02-12
+
+### Added
 - Price-axis inset parity baseline (`R-020`) with deterministic right-side label anchor and axis tick-mark extension controls.
 - New render-style knobs: `price_axis_label_padding_right_px` and `price_axis_tick_mark_length_px`.
 - New render-frame/style tests and criterion benchmark coverage for price-axis inset policy behavior.
