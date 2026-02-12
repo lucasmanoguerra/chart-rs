@@ -99,6 +99,7 @@ fn build_ui(app: &gtk::Application) {
     engine.set_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
         autoscale_on_data_set: true,
         autoscale_on_data_update: true,
+        autoscale_on_time_range_change: true,
     });
 
     engine.set_data(seed_points.clone());

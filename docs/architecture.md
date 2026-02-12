@@ -64,6 +64,7 @@ Each feature requires:
 - touch-style pan path uses explicit API (`touch_drag_pan_time_visible`) with independent horizontal/vertical gate semantics
 - realtime data-ingest update paths enforce non-decreasing time and deterministic append-or-replace semantics (`update_point` / `update_candle`)
 - realtime data-ingest paths can optionally trigger deterministic best-effort price autoscale refresh after full-replacement (`set_*`) and append/update mutations
+- visible-range lifecycle can optionally trigger deterministic best-effort price autoscale refresh from visible window on time-range navigation changes
 - realtime autoscale policies can be bootstrapped via `ChartEngineConfig` for deterministic startup behavior
 - `PriceScale`
   - supports bootstrap configuration from `ChartEngineConfig` for mode/inversion/margins

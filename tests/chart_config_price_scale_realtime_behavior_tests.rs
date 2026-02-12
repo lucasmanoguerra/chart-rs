@@ -9,6 +9,7 @@ fn chart_engine_config_defaults_price_scale_realtime_behavior() {
     let behavior = config.price_scale_realtime_behavior;
     assert!(behavior.autoscale_on_data_set);
     assert!(behavior.autoscale_on_data_update);
+    assert!(behavior.autoscale_on_time_range_change);
 }
 
 #[test]
@@ -18,6 +19,7 @@ fn chart_engine_config_applies_price_scale_realtime_behavior() {
         .with_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
             autoscale_on_data_set: true,
             autoscale_on_data_update: true,
+            autoscale_on_time_range_change: true,
         });
     let renderer = NullRenderer::default();
     let mut engine = ChartEngine::new(renderer, config).expect("engine");
@@ -45,5 +47,32 @@ fn chart_engine_config_json_without_price_scale_realtime_behavior_uses_default()
     assert_eq!(
         config.price_scale_realtime_behavior,
         PriceScaleRealtimeBehavior::default()
+    );
+}
+
+#[test]
+fn chart_engine_config_json_missing_time_range_flag_uses_default_true() {
+    let json = r#"{
+  "viewport": { "width": 1000, "height": 500 },
+  "time_start": 0.0,
+  "time_end": 100.0,
+  "price_min": 0.0,
+  "price_max": 1.0,
+  "price_scale_realtime_behavior": {
+    "autoscale_on_data_set": true,
+    "autoscale_on_data_update": false
+  }
+}"#;
+    let config = ChartEngineConfig::from_json_str(json).expect("parse config");
+    assert!(config.price_scale_realtime_behavior.autoscale_on_data_set);
+    assert!(
+        !config
+            .price_scale_realtime_behavior
+            .autoscale_on_data_update
+    );
+    assert!(
+        config
+            .price_scale_realtime_behavior
+            .autoscale_on_time_range_change
     );
 }
