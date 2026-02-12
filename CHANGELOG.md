@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box per-axis padding parity baseline (`R-053`) with deterministic independent X/Y padding controls for time and price label boxes.
+- New render-style knobs: `crosshair_time_label_box_padding_x_px`, `crosshair_time_label_box_padding_y_px`, `crosshair_price_label_box_padding_x_px`, and `crosshair_price_label_box_padding_y_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box per-axis padding behavior.
 - Crosshair axis-label font-size parity baseline (`R-052`) with deterministic dedicated font-size controls for time and price crosshair labels.
 - New render-style knobs: `crosshair_time_label_font_size_px` and `crosshair_price_label_font_size_px`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label font-size behavior.

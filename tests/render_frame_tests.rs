@@ -2020,3 +2020,51 @@ fn crosshair_axis_label_box_border_visibility_toggles_are_independent() {
             && rect.border_color == style.crosshair_label_box_border_color
     }));
 }
+
+#[test]
+fn crosshair_axis_label_box_padding_is_independent_per_axis() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+        crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
+        crosshair_time_label_box_padding_x_px: 20.0,
+        crosshair_time_label_box_padding_y_px: 8.0,
+        crosshair_price_label_box_padding_x_px: 4.0,
+        crosshair_price_label_box_padding_y_px: 1.0,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+    assert_eq!(boxes.len(), 2);
+    let time_box = boxes
+        .iter()
+        .find(|rect| rect.x < plot_right)
+        .expect("time box present");
+    let price_box = boxes
+        .iter()
+        .find(|rect| rect.x >= plot_right)
+        .expect("price box present");
+    assert!(
+        time_box.width > price_box.width,
+        "time box should be wider due to larger horizontal padding"
+    );
+    assert!(
+        time_box.height > price_box.height,
+        "time box should be taller due to larger vertical padding"
+    );
+}
