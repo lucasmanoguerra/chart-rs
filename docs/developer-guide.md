@@ -133,6 +133,7 @@ Responsibilities:
 - configurable crosshair axis-label render policy (dedicated time/price label colors, font size, and independent time/price visibility toggles)
 - configurable crosshair axis-label box policy (deterministic fit-text boxes with dedicated fill, padding, and independent time/price visibility toggles)
 - configurable crosshair axis-label box border/radius policy (deterministic border width/color and corner-radius styling)
+- configurable crosshair axis-label box text policy (manual text color or automatic contrast from box fill luminance)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -192,6 +193,7 @@ Render invariants:
 - crosshair axis labels are deterministic style knobs (`crosshair_time_label_color`, `crosshair_price_label_color`, `crosshair_axis_label_font_size_px`, `show_crosshair_time_label`, `show_crosshair_price_label`)
 - crosshair axis-label boxes are deterministic style knobs (`crosshair_label_box_color`, `crosshair_label_box_padding_x_px`, `crosshair_label_box_padding_y_px`, `show_crosshair_time_label_box`, `show_crosshair_price_label_box`)
 - crosshair axis-label boxes support deterministic border/radius style knobs (`crosshair_label_box_border_width_px`, `crosshair_label_box_border_color`, `crosshair_label_box_corner_radius_px`)
+- crosshair axis-label box text color is deterministic with manual/auto-contrast policy (`crosshair_label_box_text_color`, `crosshair_label_box_auto_text_contrast`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

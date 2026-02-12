@@ -260,6 +260,8 @@ pub struct RenderStyle {
     pub crosshair_time_label_color: Color,
     pub crosshair_price_label_color: Color,
     pub crosshair_label_box_color: Color,
+    pub crosshair_label_box_text_color: Color,
+    pub crosshair_label_box_auto_text_contrast: bool,
     pub crosshair_label_box_border_color: Color,
     pub last_price_line_color: Color,
     pub last_price_label_color: Color,
@@ -384,6 +386,8 @@ impl Default for RenderStyle {
             crosshair_time_label_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_price_label_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_label_box_color: Color::rgb(0.94, 0.96, 0.99),
+            crosshair_label_box_text_color: Color::rgb(0.10, 0.12, 0.16),
+            crosshair_label_box_auto_text_contrast: false,
             crosshair_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
             last_price_line_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_color: Color::rgb(0.16, 0.38, 1.0),
@@ -1136,6 +1140,22 @@ impl<R: Renderer> ChartEngine<R> {
             return style.last_price_label_box_text_color;
         }
 
+        Self::resolve_auto_contrast_text_color(box_fill_color)
+    }
+
+    fn resolve_crosshair_label_box_text_color(&self, fallback_text_color: Color) -> Color {
+        let style = self.render_style;
+        if !style.crosshair_label_box_auto_text_contrast {
+            return style.crosshair_label_box_text_color;
+        }
+        if !style.show_crosshair_time_label_box && !style.show_crosshair_price_label_box {
+            return fallback_text_color;
+        }
+
+        Self::resolve_auto_contrast_text_color(style.crosshair_label_box_color)
+    }
+
+    fn resolve_auto_contrast_text_color(box_fill_color: Color) -> Color {
         // WCAG-inspired luminance gate keeps axis text readable on dynamic marker fills.
         let luminance = 0.2126 * box_fill_color.red
             + 0.7152 * box_fill_color.green
@@ -2234,6 +2254,11 @@ impl<R: Renderer> ChartEngine<R> {
                 let text = self.format_time_axis_label(crosshair_time, visible_span_abs);
                 let time_label_y = (plot_bottom + style.time_axis_label_offset_y_px)
                     .min((viewport_height - style.crosshair_axis_label_font_size_px).max(0.0));
+                let time_label_text_color = if style.show_crosshair_time_label_box {
+                    self.resolve_crosshair_label_box_text_color(style.crosshair_time_label_color)
+                } else {
+                    style.crosshair_time_label_color
+                };
                 if style.show_crosshair_time_label_box {
                     let estimated_text_width = Self::estimate_label_text_width_px(
                         &text,
@@ -2280,7 +2305,7 @@ impl<R: Renderer> ChartEngine<R> {
                     crosshair_x,
                     time_label_y,
                     style.crosshair_axis_label_font_size_px,
-                    style.crosshair_time_label_color,
+                    time_label_text_color,
                     TextHAlign::Center,
                 ));
             }
@@ -2300,6 +2325,11 @@ impl<R: Renderer> ChartEngine<R> {
                     display_suffix,
                 );
                 let text_y = (crosshair_y - style.price_axis_label_offset_y_px).max(0.0);
+                let price_label_text_color = if style.show_crosshair_price_label_box {
+                    self.resolve_crosshair_label_box_text_color(style.crosshair_price_label_color)
+                } else {
+                    style.crosshair_price_label_color
+                };
                 let mut text_x = price_axis_label_anchor_x;
                 if style.show_crosshair_price_label_box {
                     let axis_panel_left = plot_right;
@@ -2350,7 +2380,7 @@ impl<R: Renderer> ChartEngine<R> {
                     text_x,
                     text_y,
                     style.crosshair_axis_label_font_size_px,
-                    style.crosshair_price_label_color,
+                    price_label_text_color,
                     TextHAlign::Right,
                 ));
             }
@@ -2620,6 +2650,7 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.crosshair_time_label_color.validate()?;
     style.crosshair_price_label_color.validate()?;
     style.crosshair_label_box_color.validate()?;
+    style.crosshair_label_box_text_color.validate()?;
     style.crosshair_label_box_border_color.validate()?;
     style.last_price_line_color.validate()?;
     style.last_price_label_color.validate()?;

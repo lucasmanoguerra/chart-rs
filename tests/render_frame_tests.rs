@@ -1550,6 +1550,8 @@ fn crosshair_axis_labels_follow_pointer_in_normal_mode() {
     let style = RenderStyle {
         crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.17),
         crosshair_price_label_color: Color::rgb(0.16, 0.40, 0.86),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
         crosshair_axis_label_font_size_px: 12.0,
         ..engine.render_style()
     };
@@ -1609,6 +1611,8 @@ fn crosshair_axis_labels_use_snapped_values_in_magnet_mode() {
     let style = RenderStyle {
         crosshair_time_label_color: Color::rgb(0.83, 0.29, 0.17),
         crosshair_price_label_color: Color::rgb(0.21, 0.44, 0.86),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
         ..engine.render_style()
     };
     engine.set_render_style(style).expect("set style");
@@ -1645,6 +1649,8 @@ fn crosshair_axis_label_visibility_toggles_are_independent() {
     let style = RenderStyle {
         crosshair_time_label_color: Color::rgb(0.82, 0.30, 0.17),
         crosshair_price_label_color: Color::rgb(0.19, 0.41, 0.89),
+        show_crosshair_time_label_box: false,
+        show_crosshair_price_label_box: false,
         show_crosshair_time_label: false,
         show_crosshair_price_label: true,
         ..engine.render_style()
@@ -1753,5 +1759,66 @@ fn crosshair_axis_label_boxes_apply_border_and_corner_radius() {
         (rect.border_width - style.crosshair_label_box_border_width_px).abs() <= 1e-9
             && rect.border_color == style.crosshair_label_box_border_color
             && rect.corner_radius > 0.0
+    }));
+}
+
+#[test]
+fn crosshair_axis_label_box_auto_text_contrast_uses_dark_text_on_bright_fill() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.95, 0.95, 0.95),
+        crosshair_label_box_text_color: Color::rgb(1.0, 0.0, 0.0),
+        crosshair_label_box_auto_text_contrast: true,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+    let expected = Color::rgb(0.06, 0.08, 0.11);
+
+    assert!(
+        frame
+            .texts
+            .iter()
+            .any(|text| text.h_align == TextHAlign::Center && text.color == expected)
+    );
+    assert!(
+        frame
+            .texts
+            .iter()
+            .any(|text| text.h_align == TextHAlign::Right && text.color == expected)
+    );
+}
+
+#[test]
+fn crosshair_axis_label_box_manual_text_color_is_used_when_auto_contrast_disabled() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.12, 0.12, 0.12),
+        crosshair_label_box_text_color: Color::rgb(0.91, 0.27, 0.18),
+        crosshair_label_box_auto_text_contrast: false,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Center && text.color == style.crosshair_label_box_text_color
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right && text.color == style.crosshair_label_box_text_color
     }));
 }

@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box auto-contrast text parity baseline (`R-047`) with deterministic luminance-driven text color policy and manual text-color override.
+- New render-style knobs: `crosshair_label_box_text_color` and `crosshair_label_box_auto_text_contrast`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box text-contrast behavior.
 - Crosshair axis-label box border/radius parity baseline (`R-046`) with deterministic border width/color and corner-radius styling.
 - New render-style knobs: `crosshair_label_box_border_width_px`, `crosshair_label_box_border_color`, and `crosshair_label_box_corner_radius_px`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label border/radius behavior.

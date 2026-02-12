@@ -120,6 +120,8 @@ proptest! {
         let style = RenderStyle {
             crosshair_time_label_color: Color::rgb(0.88, 0.22, 0.19),
             crosshair_price_label_color: Color::rgb(0.19, 0.43, 0.88),
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
             show_crosshair_time_label: show_time_label,
             show_crosshair_price_label: show_price_label,
             ..engine.render_style()
@@ -219,6 +221,58 @@ proptest! {
         prop_assert!(boxes.iter().all(|rect| {
             rect.corner_radius <= (rect.width.min(rect.height)) * 0.5 + 1e-9
                 && rect.border_width >= 0.0
+        }));
+    }
+
+    #[test]
+    fn crosshair_axis_label_box_auto_contrast_is_deterministic(
+        bright_fill in any::<bool>(),
+        auto_contrast in any::<bool>(),
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let fill = if bright_fill {
+            Color::rgb(0.95, 0.95, 0.95)
+        } else {
+            Color::rgb(0.12, 0.12, 0.12)
+        };
+        let style = RenderStyle {
+            crosshair_label_box_color: fill,
+            crosshair_label_box_text_color: Color::rgb(0.9, 0.2, 0.2),
+            crosshair_label_box_auto_text_contrast: auto_contrast,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        engine.pointer_move(400.0, 250.0);
+
+        let first = engine.build_render_frame().expect("first frame");
+        let second = engine.build_render_frame().expect("second frame");
+        prop_assert_eq!(first, second);
+
+        let expected_color = if auto_contrast {
+            if bright_fill {
+                Color::rgb(0.06, 0.08, 0.11)
+            } else {
+                Color::rgb(1.0, 1.0, 1.0)
+            }
+        } else {
+            style.crosshair_label_box_text_color
+        };
+        prop_assert!(first.texts.iter().any(|text| {
+            text.h_align == TextHAlign::Center && text.color == expected_color
+        }));
+        prop_assert!(first.texts.iter().any(|text| {
+            text.h_align == TextHAlign::Right && text.color == expected_color
         }));
     }
 }
