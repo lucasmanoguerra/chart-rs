@@ -393,7 +393,6 @@ fn build_engine(data: &MarketData) -> chart_rs::ChartResult<ChartEngine<CairoRen
     engine.set_price_scale_realtime_behavior(chart_rs::api::PriceScaleRealtimeBehavior {
         autoscale_on_data_set: true,
         autoscale_on_data_update: true,
-        autoscale_on_time_range_change: true,
     });
 
     apply_market_data(&mut engine, data, true);

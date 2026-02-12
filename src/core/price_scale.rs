@@ -10,10 +10,6 @@ pub enum PriceScaleMode {
     Linear,
     /// Uniform spacing in natural-log price units (all prices must be > 0).
     Log,
-    /// Uniform spacing in percentage delta from base value.
-    Percentage,
-    /// Uniform spacing in indexed-to-100 values from base value.
-    IndexedTo100,
 }
 
 /// Tuning controls for price-domain autoscaling.
@@ -64,96 +60,11 @@ pub struct PriceScale {
     domain_end: f64,
     mode: PriceScaleMode,
     #[serde(default)]
-    base_value: Option<f64>,
-    #[serde(default)]
     inverted: bool,
     #[serde(default)]
     top_margin_ratio: f64,
     #[serde(default)]
     bottom_margin_ratio: f64,
-}
-
-/// Lightweight-style price-axis coordinate space.
-///
-/// This helper captures transformed-domain to pixel mapping with explicit
-/// top/bottom axis margins and inverted/non-inverted Y orientation.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub struct PriceCoordinateSpace {
-    transformed_min: f64,
-    transformed_max: f64,
-    height_px: f64,
-    top_margin_px: f64,
-    bottom_margin_px: f64,
-    inverted: bool,
-}
-
-impl PriceCoordinateSpace {
-    #[must_use]
-    pub fn internal_height_px(self) -> f64 {
-        self.height_px - self.top_margin_px - self.bottom_margin_px
-    }
-
-    /// Maps transformed-domain value (`linear` or `log`) to pixel Y.
-    pub fn transformed_to_pixel(self, transformed_value: f64) -> ChartResult<f64> {
-        self.validate()?;
-        if !transformed_value.is_finite() {
-            return Err(ChartError::InvalidData(
-                "transformed price must be finite".to_owned(),
-            ));
-        }
-
-        let span = self.transformed_max - self.transformed_min;
-        let normalized = (transformed_value - self.transformed_min) / span;
-        let y_from_bottom = normalized * self.internal_height_px();
-        if self.inverted {
-            Ok(self.top_margin_px + y_from_bottom)
-        } else {
-            Ok(self.height_px - self.bottom_margin_px - y_from_bottom)
-        }
-    }
-
-    /// Maps pixel Y to transformed-domain value (`linear` or `log`).
-    pub fn pixel_to_transformed(self, pixel: f64) -> ChartResult<f64> {
-        self.validate()?;
-        if !pixel.is_finite() {
-            return Err(ChartError::InvalidData("pixel must be finite".to_owned()));
-        }
-
-        let y_from_bottom = if self.inverted {
-            pixel - self.top_margin_px
-        } else {
-            (self.height_px - self.bottom_margin_px) - pixel
-        };
-        let normalized = y_from_bottom / self.internal_height_px();
-        Ok(self.transformed_min + normalized * (self.transformed_max - self.transformed_min))
-    }
-
-    fn validate(self) -> ChartResult<()> {
-        if !self.transformed_min.is_finite()
-            || !self.transformed_max.is_finite()
-            || self.transformed_min == self.transformed_max
-        {
-            return Err(ChartError::InvalidData(
-                "transformed price domain must be finite and non-zero".to_owned(),
-            ));
-        }
-        if !self.height_px.is_finite() || self.height_px <= 0.0 {
-            return Err(ChartError::InvalidData(
-                "price coordinate height must be finite and > 0".to_owned(),
-            ));
-        }
-        if !self.top_margin_px.is_finite() || !self.bottom_margin_px.is_finite() {
-            return Err(ChartError::InvalidData(
-                "price coordinate margins must be finite".to_owned(),
-            ));
-        }
-        if self.internal_height_px() <= 0.0 {
-            return Err(ChartError::InvalidData(
-                "price coordinate internal height must be > 0".to_owned(),
-            ));
-        }
-        Ok(())
-    }
 }
 
 impl PriceScale {
@@ -168,33 +79,20 @@ impl PriceScale {
         price_max: f64,
         mode: PriceScaleMode,
     ) -> ChartResult<Self> {
-        Self::new_with_mode_and_base(price_min, price_max, mode, None)
-    }
-
-    /// Creates a price scale from explicit min/max values and mapping mode,
-    /// optionally overriding transformed-mode base value.
-    pub fn new_with_mode_and_base(
-        price_min: f64,
-        price_max: f64,
-        mode: PriceScaleMode,
-        base_value: Option<f64>,
-    ) -> ChartResult<Self> {
         if !price_min.is_finite() || !price_max.is_finite() || price_min == price_max {
             return Err(ChartError::InvalidData(
                 "scale domain must be finite and non-zero".to_owned(),
             ));
         }
 
-        let resolved_base = resolve_mode_base(mode, base_value, price_min, price_max)?;
-        let transformed_start = to_scale_domain(price_min, mode, resolved_base)?;
-        let transformed_end = to_scale_domain(price_max, mode, resolved_base)?;
+        let transformed_start = to_scale_domain(price_min, mode)?;
+        let transformed_end = to_scale_domain(price_max, mode)?;
         let linear = LinearScale::new(transformed_start, transformed_end)?;
         Ok(Self {
             linear,
             domain_start: price_min,
             domain_end: price_max,
             mode,
-            base_value: resolved_base,
             inverted: false,
             top_margin_ratio: 0.0,
             bottom_margin_ratio: 0.0,
@@ -283,12 +181,6 @@ impl PriceScale {
     }
 
     #[must_use]
-    /// Returns resolved base value for transformed display modes.
-    pub fn base_value(self) -> Option<f64> {
-        self.base_value
-    }
-
-    #[must_use]
     /// Returns whether the pixel mapping direction is inverted.
     pub fn is_inverted(self) -> bool {
         self.inverted
@@ -319,24 +211,7 @@ impl PriceScale {
 
     /// Rebuilds this scale using the same raw domain and a different mapping mode.
     pub fn with_mode(self, mode: PriceScaleMode) -> ChartResult<Self> {
-        self.with_mode_and_base(mode, self.base_value)
-    }
-
-    /// Rebuilds this scale using the same raw domain and mode with an optional
-    /// explicit transformed-mode base override.
-    pub fn with_base_value(self, base_value: Option<f64>) -> ChartResult<Self> {
-        self.with_mode_and_base(self.mode, base_value)
-    }
-
-    /// Rebuilds this scale using the same raw domain with optional transformed
-    /// base override.
-    pub fn with_mode_and_base(
-        self,
-        mode: PriceScaleMode,
-        base_value: Option<f64>,
-    ) -> ChartResult<Self> {
-        let mut rebuilt =
-            Self::new_with_mode_and_base(self.domain_start, self.domain_end, mode, base_value)?;
+        let mut rebuilt = Self::new_with_mode(self.domain_start, self.domain_end, mode)?;
         rebuilt.inverted = self.inverted;
         rebuilt.top_margin_ratio = self.top_margin_ratio;
         rebuilt.bottom_margin_ratio = self.bottom_margin_ratio;
@@ -352,9 +227,8 @@ impl PriceScale {
             return Ok(vec![self.domain_start]);
         }
 
-        let base_value = self.resolved_mode_base()?;
         match self.mode {
-            PriceScaleMode::Linear | PriceScaleMode::Percentage | PriceScaleMode::IndexedTo100 => {
+            PriceScaleMode::Linear => {
                 let mut ticks = Vec::with_capacity(tick_count);
                 let transformed = self.linear.domain();
                 let span = transformed.1 - transformed.0;
@@ -362,7 +236,7 @@ impl PriceScale {
                 for index in 0..tick_count {
                     let ratio = (index as f64) / denominator;
                     let transformed_value = transformed.0 + span * ratio;
-                    ticks.push(from_scale_domain(transformed_value, self.mode, base_value)?);
+                    ticks.push(from_scale_domain(transformed_value, self.mode)?);
                 }
                 Ok(ticks)
             }
@@ -385,9 +259,20 @@ impl PriceScale {
             });
         }
 
-        let transformed_price = to_scale_domain(price, self.mode, self.resolved_mode_base()?)?;
-        self.coordinate_space(viewport)?
-            .transformed_to_pixel(transformed_price)
+        let transformed_price = to_scale_domain(price, self.mode)?;
+        let (top_px, bottom_px, plot_height) = resolve_price_axis_margins_px(
+            viewport,
+            self.top_margin_ratio,
+            self.bottom_margin_ratio,
+        )?;
+        let (domain_start, domain_end) = self.linear.domain();
+        let normalized = (transformed_price - domain_start) / (domain_end - domain_start);
+        let y_from_bottom = normalized * plot_height;
+        if self.inverted {
+            Ok(top_px + y_from_bottom)
+        } else {
+            Ok(f64::from(viewport.height) - bottom_px - y_from_bottom)
+        }
     }
 
     pub fn pixel_to_price(self, pixel: f64, viewport: Viewport) -> ChartResult<f64> {
@@ -398,34 +283,24 @@ impl PriceScale {
             });
         }
 
-        let transformed_price = self
-            .coordinate_space(viewport)?
-            .pixel_to_transformed(pixel)?;
-        from_scale_domain(transformed_price, self.mode, self.resolved_mode_base()?)
-    }
-
-    /// Builds explicit transformed-domain coordinate-space parameters for a viewport.
-    pub fn coordinate_space(self, viewport: Viewport) -> ChartResult<PriceCoordinateSpace> {
-        if !viewport.is_valid() {
-            return Err(ChartError::InvalidViewport {
-                width: viewport.width,
-                height: viewport.height,
-            });
+        if !pixel.is_finite() {
+            return Err(ChartError::InvalidData("pixel must be finite".to_owned()));
         }
-        let (top_px, bottom_px, _) = resolve_price_axis_margins_px(
+
+        let (top_px, bottom_px, plot_height) = resolve_price_axis_margins_px(
             viewport,
             self.top_margin_ratio,
             self.bottom_margin_ratio,
         )?;
-        let (transformed_min, transformed_max) = self.linear.domain();
-        Ok(PriceCoordinateSpace {
-            transformed_min,
-            transformed_max,
-            height_px: f64::from(viewport.height),
-            top_margin_px: top_px,
-            bottom_margin_px: bottom_px,
-            inverted: self.inverted,
-        })
+        let y_from_bottom = if self.inverted {
+            pixel - top_px
+        } else {
+            (f64::from(viewport.height) - bottom_px) - pixel
+        };
+        let (domain_start, domain_end) = self.linear.domain();
+        let normalized = y_from_bottom / plot_height;
+        let transformed_price = domain_start + normalized * (domain_end - domain_start);
+        from_scale_domain(transformed_price, self.mode)
     }
 
     fn from_min_max_tuned(
@@ -436,7 +311,7 @@ impl PriceScale {
     ) -> ChartResult<Self> {
         let tuning = tuning.validate()?;
         match mode {
-            PriceScaleMode::Linear | PriceScaleMode::Percentage | PriceScaleMode::IndexedTo100 => {
+            PriceScaleMode::Linear => {
                 let (base_min, base_max) = normalize_range(min, max, tuning.min_span_absolute)?;
                 let span = base_max - base_min;
 
@@ -447,8 +322,8 @@ impl PriceScale {
                 Self::new_with_mode(normalized.0, normalized.1, mode)
             }
             PriceScaleMode::Log => {
-                let log_min = to_scale_domain(min, mode, None)?;
-                let log_max = to_scale_domain(max, mode, None)?;
+                let log_min = to_scale_domain(min, mode)?;
+                let log_max = to_scale_domain(max, mode)?;
                 // Preserve the "minimum span" intent by approximating the additive
                 // raw-price span as a multiplicative span in log space.
                 let min_log_span = {
@@ -465,25 +340,16 @@ impl PriceScale {
                 let padded_max = base_max + span * tuning.top_padding_ratio;
                 let normalized = normalize_range(padded_min, padded_max, min_log_span)?;
 
-                let domain_min = from_scale_domain(normalized.0, mode, None)?;
-                let domain_max = from_scale_domain(normalized.1, mode, None)?;
+                let domain_min = from_scale_domain(normalized.0, mode)?;
+                let domain_max = from_scale_domain(normalized.1, mode)?;
                 Self::new_with_mode(domain_min, domain_max, mode)
             }
         }
     }
-
-    fn resolved_mode_base(self) -> ChartResult<Option<f64>> {
-        resolve_mode_base(
-            self.mode,
-            self.base_value,
-            self.domain_start,
-            self.domain_end,
-        )
-    }
 }
 
 /// Maps raw price values into the internal scale domain selected by `mode`.
-fn to_scale_domain(value: f64, mode: PriceScaleMode, base_value: Option<f64>) -> ChartResult<f64> {
+fn to_scale_domain(value: f64, mode: PriceScaleMode) -> ChartResult<f64> {
     if !value.is_finite() {
         return Err(ChartError::InvalidData("price must be finite".to_owned()));
     }
@@ -498,23 +364,11 @@ fn to_scale_domain(value: f64, mode: PriceScaleMode, base_value: Option<f64>) ->
             }
             Ok(value.ln())
         }
-        PriceScaleMode::Percentage => {
-            let base = resolve_required_base(base_value)?;
-            Ok(((value / base) - 1.0) * 100.0)
-        }
-        PriceScaleMode::IndexedTo100 => {
-            let base = resolve_required_base(base_value)?;
-            Ok((value / base) * 100.0)
-        }
     }
 }
 
 /// Maps internal scale-domain values back into raw price values.
-fn from_scale_domain(
-    value: f64,
-    mode: PriceScaleMode,
-    base_value: Option<f64>,
-) -> ChartResult<f64> {
+fn from_scale_domain(value: f64, mode: PriceScaleMode) -> ChartResult<f64> {
     if !value.is_finite() {
         return Err(ChartError::InvalidData(
             "mapped scale value must be finite".to_owned(),
@@ -532,73 +386,7 @@ fn from_scale_domain(
             }
             Ok(raw)
         }
-        PriceScaleMode::Percentage => {
-            let base = resolve_required_base(base_value)?;
-            let raw = base * (1.0 + value / 100.0);
-            if !raw.is_finite() {
-                return Err(ChartError::InvalidData(
-                    "mapped percentage price must be finite".to_owned(),
-                ));
-            }
-            Ok(raw)
-        }
-        PriceScaleMode::IndexedTo100 => {
-            let base = resolve_required_base(base_value)?;
-            let raw = base * (value / 100.0);
-            if !raw.is_finite() {
-                return Err(ChartError::InvalidData(
-                    "mapped indexed price must be finite".to_owned(),
-                ));
-            }
-            Ok(raw)
-        }
     }
-}
-
-fn resolve_mode_base(
-    mode: PriceScaleMode,
-    configured_base: Option<f64>,
-    domain_start: f64,
-    domain_end: f64,
-) -> ChartResult<Option<f64>> {
-    match mode {
-        PriceScaleMode::Linear | PriceScaleMode::Log => Ok(None),
-        PriceScaleMode::Percentage | PriceScaleMode::IndexedTo100 => {
-            let candidate = configured_base
-                .filter(|base| base.is_finite() && *base != 0.0)
-                .or_else(|| {
-                    if domain_start.is_finite() && domain_start != 0.0 {
-                        Some(domain_start)
-                    } else {
-                        None
-                    }
-                })
-                .or_else(|| {
-                    if domain_end.is_finite() && domain_end != 0.0 {
-                        Some(domain_end)
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or(1.0);
-            let base = resolve_required_base(Some(candidate))?;
-            Ok(Some(base))
-        }
-    }
-}
-
-fn resolve_required_base(base_value: Option<f64>) -> ChartResult<f64> {
-    let Some(base) = base_value else {
-        return Err(ChartError::InvalidData(
-            "price scale base value is required for transformed modes".to_owned(),
-        ));
-    };
-    if !base.is_finite() || base == 0.0 {
-        return Err(ChartError::InvalidData(
-            "price scale base value must be finite and non-zero".to_owned(),
-        ));
-    }
-    Ok(base)
 }
 
 fn normalize_range(start: f64, end: f64, min_span: f64) -> ChartResult<(f64, f64)> {

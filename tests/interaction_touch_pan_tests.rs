@@ -60,11 +60,11 @@ fn vertical_touch_drag_path_can_drive_pan_when_horizontal_is_disabled() {
     let delta = engine
         .touch_drag_pan_time_visible(20.0, -50.0)
         .expect("touch pan via vertical axis");
-    assert!((delta - 10.0).abs() <= 1e-9);
+    assert!((delta - 5.0).abs() <= 1e-9);
 
     let (start, end) = engine.time_visible_range();
-    assert!((start - 10.0).abs() <= 1e-9);
-    assert!((end - 110.0).abs() <= 1e-9);
+    assert!((start - 5.0).abs() <= 1e-9);
+    assert!((end - 105.0).abs() <= 1e-9);
 }
 
 #[test]
@@ -73,51 +73,6 @@ fn touch_pan_rejects_invalid_input_when_enabled() {
     let err = engine
         .touch_drag_pan_time_visible(f64::NAN, 10.0)
         .expect_err("nan touch drag must fail");
-    assert!(matches!(err, chart_rs::ChartError::InvalidData(_)));
-}
-
-#[test]
-fn vertical_touch_pan_ignores_horizontal_nan_when_horizontal_path_is_disabled() {
-    let mut engine = build_engine();
-    engine.set_interaction_input_behavior(InteractionInputBehavior {
-        scroll_horz_touch_drag: false,
-        scroll_vert_touch_drag: true,
-        ..InteractionInputBehavior::default()
-    });
-
-    let delta = engine
-        .touch_drag_pan_time_visible(f64::NAN, -25.0)
-        .expect("horizontal delta must be ignored when disabled");
-    assert!((delta - 5.0).abs() <= 1e-9);
-}
-
-#[test]
-fn horizontal_touch_pan_ignores_vertical_nan_when_vertical_path_is_disabled() {
-    let mut engine = build_engine();
-    engine.set_interaction_input_behavior(InteractionInputBehavior {
-        scroll_horz_touch_drag: true,
-        scroll_vert_touch_drag: false,
-        ..InteractionInputBehavior::default()
-    });
-
-    let delta = engine
-        .touch_drag_pan_time_visible(120.0, f64::NAN)
-        .expect("vertical delta must be ignored when disabled");
-    assert!((delta + 12.0).abs() <= 1e-9);
-}
-
-#[test]
-fn touch_pan_rejects_non_finite_vertical_delta_when_vertical_path_is_enabled() {
-    let mut engine = build_engine();
-    engine.set_interaction_input_behavior(InteractionInputBehavior {
-        scroll_horz_touch_drag: false,
-        scroll_vert_touch_drag: true,
-        ..InteractionInputBehavior::default()
-    });
-
-    let err = engine
-        .touch_drag_pan_time_visible(10.0, f64::NAN)
-        .expect_err("vertical nan must fail");
     assert!(matches!(err, chart_rs::ChartError::InvalidData(_)));
 }
 
