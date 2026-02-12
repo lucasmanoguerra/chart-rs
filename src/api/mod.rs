@@ -119,6 +119,21 @@ impl ChartEngineConfig {
 
 /// Serializable deterministic state snapshot used by regression tests and
 /// debugging tooling.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CrosshairFormatterOverrideMode {
+    None,
+    Legacy,
+    Context,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CrosshairFormatterSnapshot {
+    pub time_override_mode: CrosshairFormatterOverrideMode,
+    pub price_override_mode: CrosshairFormatterOverrideMode,
+    pub time_formatter_generation: u64,
+    pub price_formatter_generation: u64,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EngineSnapshot {
     pub viewport: Viewport,
@@ -129,6 +144,7 @@ pub struct EngineSnapshot {
     pub points: Vec<DataPoint>,
     pub candle_geometry: Vec<CandleGeometry>,
     pub series_metadata: IndexMap<String, String>,
+    pub crosshair_formatter: CrosshairFormatterSnapshot,
 }
 
 /// Main orchestration facade consumed by host applications.

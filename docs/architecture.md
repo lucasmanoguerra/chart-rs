@@ -115,6 +115,7 @@ Tuning contracts:
 - crosshair time/price formatter overrides can receive deterministic context (visible span + source mode) without leaking interaction internals into renderer backends
 - context-aware crosshair formatter caches partition deterministically by formatter generation, source mode, visible span, and quantized label inputs
 - context-aware crosshair formatter caches are invalidated on crosshair-mode and visible-range lifecycle transitions to keep cache state bounded and deterministic
+- engine snapshots export deterministic crosshair formatter lifecycle state (per-axis override mode + generation counters) for regression/debug tooling
 - crosshair time/price axis-label boxes support deterministic fit-text sizing with style-level fill/padding and independent per-axis visibility controls
 - crosshair axis-label boxes support deterministic border/radius styling with clamped corner geometry for backend-stable output
 - crosshair axis-label boxes support deterministic manual or auto-contrast text-color resolution without backend-specific text-measurement dependencies

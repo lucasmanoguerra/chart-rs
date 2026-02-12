@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label formatter snapshot/export parity baseline (`R-079`) with deterministic snapshot fields for per-axis override mode and formatter generations.
+- New snapshot contracts: `CrosshairFormatterOverrideMode` and `CrosshairFormatterSnapshot` included in `EngineSnapshot`.
+- New snapshot test coverage for crosshair formatter state export/roundtrip behavior.
 - Crosshair axis-label formatter context invalidation lifecycle parity baseline (`R-078`) with deterministic cache invalidation on crosshair-mode and visible-range transitions.
 - New render-frame test coverage for crosshair formatter-context cache lifecycle invalidation behavior.
 - Crosshair axis-label formatter context cache-key parity baseline (`R-077`) with deterministic per-axis cache partitioning by formatter generation, source mode, visible span, and quantized label inputs.

@@ -1,6 +1,9 @@
-use chart_rs::api::{ChartEngine, ChartEngineConfig, EngineSnapshot};
+use chart_rs::api::{
+    ChartEngine, ChartEngineConfig, CrosshairFormatterOverrideMode, EngineSnapshot,
+};
 use chart_rs::core::{OhlcBar, Viewport};
 use chart_rs::render::NullRenderer;
+use std::sync::Arc;
 
 #[test]
 fn chart_engine_config_json_roundtrip() {
@@ -63,4 +66,29 @@ fn snapshot_json_roundtrip() {
         decoded.series_metadata.get("symbol").map(String::as_str),
         Some("BTCUSD")
     );
+}
+
+#[test]
+fn snapshot_exports_crosshair_formatter_state() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(640, 480), 0.0, 5.0).with_price_domain(1.0, 10.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("T:{value:.2}")));
+    engine.set_crosshair_price_label_formatter_with_context(Arc::new(|value, _| {
+        format!("P:{value:.2}")
+    }));
+
+    let snapshot = engine.snapshot(6.0).expect("snapshot should build");
+    assert_eq!(
+        snapshot.crosshair_formatter.time_override_mode,
+        CrosshairFormatterOverrideMode::Legacy
+    );
+    assert_eq!(
+        snapshot.crosshair_formatter.price_override_mode,
+        CrosshairFormatterOverrideMode::Context
+    );
+    assert!(snapshot.crosshair_formatter.time_formatter_generation >= 1);
+    assert!(snapshot.crosshair_formatter.price_formatter_generation >= 1);
 }
