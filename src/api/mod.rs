@@ -271,6 +271,8 @@ pub struct RenderStyle {
     pub last_price_label_font_size_px: f64,
     /// Vertical inset (towards top) applied to last-price label anchor from marker Y position.
     pub last_price_label_offset_y_px: f64,
+    /// Horizontal inset from right edge used by last-price label when box mode is disabled.
+    pub last_price_label_padding_right_px: f64,
     pub price_axis_width_px: f64,
     pub time_axis_height_px: f64,
     /// Horizontal inset from right edge used by price-axis labels.
@@ -334,6 +336,7 @@ impl Default for RenderStyle {
             price_axis_label_offset_y_px: 8.0,
             last_price_label_font_size_px: 11.0,
             last_price_label_offset_y_px: 7.92,
+            last_price_label_padding_right_px: 6.0,
             price_axis_width_px: 72.0,
             time_axis_height_px: 24.0,
             price_axis_label_padding_right_px: 6.0,
@@ -1792,6 +1795,8 @@ impl<R: Renderer> ChartEngine<R> {
         let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
         let price_axis_label_anchor_x = (viewport_width - style.price_axis_label_padding_right_px)
             .clamp(plot_right, viewport_width);
+        let last_price_label_anchor_x = (viewport_width - style.last_price_label_padding_right_px)
+            .clamp(plot_right, viewport_width);
         let price_axis_tick_mark_end_x =
             (plot_right + style.price_axis_tick_mark_length_px).clamp(plot_right, viewport_width);
         let axis_color = style.axis_border_color;
@@ -1989,7 +1994,7 @@ impl<R: Renderer> ChartEngine<R> {
                     .resolve_last_price_label_box_text_color(box_fill_color, marker_label_color);
                 let axis_panel_left = plot_right;
                 let axis_panel_width = (viewport_width - axis_panel_left).max(0.0);
-                let default_text_anchor_x = price_axis_label_anchor_x;
+                let default_text_anchor_x = last_price_label_anchor_x;
                 let mut label_text_anchor_x = default_text_anchor_x;
                 if style.show_last_price_label_box {
                     let estimated_text_width = Self::estimate_label_text_width_px(
@@ -2358,6 +2363,13 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `price_axis_label_padding_right_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.last_price_label_padding_right_px.is_finite()
+        || style.last_price_label_padding_right_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `last_price_label_padding_right_px` must be finite and >= 0".to_owned(),
         ));
     }
     if !style.price_axis_tick_mark_length_px.is_finite()

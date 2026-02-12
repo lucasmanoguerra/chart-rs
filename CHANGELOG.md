@@ -14,6 +14,9 @@ and this project adheres to Semantic Versioning.
 - Last-price label offset parity baseline (`R-023`) with deterministic configurable vertical offset from marker Y.
 - New render-style knob: `last_price_label_offset_y_px`.
 - New render-frame/style tests and criterion benchmark coverage for last-price label offset behavior.
+- Last-price label right-inset parity baseline (`R-024`) with deterministic configurable right-side padding in non-box mode.
+- New render-style knob: `last_price_label_padding_right_px`.
+- New render-frame/style tests and criterion benchmark coverage for last-price label right-inset behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 

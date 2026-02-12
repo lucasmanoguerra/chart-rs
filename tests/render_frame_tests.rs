@@ -162,6 +162,7 @@ fn price_axis_insets_apply_to_labels_and_tick_marks() {
 
     let style = RenderStyle {
         price_axis_label_padding_right_px: 14.0,
+        last_price_label_padding_right_px: 14.0,
         price_axis_tick_mark_length_px: 9.0,
         price_axis_tick_mark_color: Color::rgb(0.9, 0.3, 0.2),
         price_axis_tick_mark_width: 2.25,
@@ -195,6 +196,41 @@ fn price_axis_insets_apply_to_labels_and_tick_marks() {
             && (line.y1 - line.y2).abs() <= 1e-9
             && (line.x1 - plot_right).abs() <= 1e-9
             && (line.x2 - expected_tick_mark_end_x).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn last_price_label_padding_right_is_independent_from_axis_label_padding() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        price_axis_label_padding_right_px: 18.0,
+        last_price_label_padding_right_px: 4.0,
+        show_last_price_label_box: false,
+        last_price_label_color: Color::rgb(0.0, 1.0, 0.0),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let expected_axis_label_x = viewport_width - style.price_axis_label_padding_right_px;
+    let expected_last_price_label_x = viewport_width - style.last_price_label_padding_right_px;
+
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.color == style.axis_label_color
+            && (text.x - expected_axis_label_x).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.color == style.last_price_label_color
+            && text.text == "20.00"
+            && (text.x - expected_last_price_label_x).abs() <= 1e-9
     }));
 }
 
