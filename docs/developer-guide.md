@@ -127,6 +127,8 @@ Responsibilities:
 - configurable major time-axis label vertical offset policy (dedicated major-label Y offset independent from regular time-axis labels)
 - configurable major time-axis tick-mark style policy (dedicated major tick-mark color/width/length independent from regular time-axis ticks)
 - configurable major time-axis tick-mark visibility policy (show/hide major axis marks independently from regular time-axis ticks)
+- configurable time-axis border visibility policy (show/hide bottom axis border independently from right price-axis border)
+- configurable price-axis border visibility policy (show/hide right axis border independently from bottom time-axis border)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -180,6 +182,8 @@ Render invariants:
 - major time-axis label vertical offset is a deterministic style knob (`major_time_label_offset_y_px`)
 - major time-axis tick-mark style is a deterministic style knob (`major_time_tick_mark_color`, `major_time_tick_mark_width`, `major_time_tick_mark_length_px`)
 - major time-axis tick-mark visibility is a deterministic style knob (`show_major_time_tick_marks`)
+- time-axis border visibility is a deterministic style knob (`show_time_axis_border`)
+- price-axis border visibility is a deterministic style knob (`show_price_axis_border`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

@@ -65,6 +65,12 @@ and this project adheres to Semantic Versioning.
 - Major time-axis label-offset parity baseline (`R-040`) with deterministic dedicated Y-offset control independent from regular time-axis labels.
 - New render-style knob: `major_time_label_offset_y_px`.
 - New render-frame/style tests and criterion benchmark coverage for major-label offset behavior.
+- Time-axis border visibility parity baseline (`R-041`) with deterministic show/hide behavior independent from right-side price-axis border.
+- New render-style knob: `show_time_axis_border`.
+- New render-frame/style tests and criterion benchmark coverage for time-axis border visibility behavior.
+- Price-axis border visibility parity baseline (`R-042`) with deterministic show/hide behavior independent from bottom time-axis border.
+- New render-style knob: `show_price_axis_border`.
+- New render-frame/style tests and criterion benchmark coverage for price-axis border visibility behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 

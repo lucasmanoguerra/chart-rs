@@ -101,6 +101,8 @@ Tuning contracts:
 - major time-axis label vertical offset is a deterministic style-level control independent from regular time-axis labels
 - major time-axis tick-mark color/width/length are deterministic style-level controls independent from regular time-axis tick-mark styling
 - major time-axis tick-mark visibility is a deterministic style-level control independent from regular time-axis tick marks
+- time-axis border visibility is a deterministic style-level control independent from right-side price-axis border visibility
+- price-axis border visibility is a deterministic style-level control independent from bottom time-axis border visibility
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract
