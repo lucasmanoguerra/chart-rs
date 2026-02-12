@@ -109,6 +109,12 @@ pub(super) fn validate_render_style(style: RenderStyle) -> ChartResult<RenderSty
     style.major_time_label_color.validate()?;
     style.axis_label_color.validate()?;
     style.crosshair_line_color.validate()?;
+    if let Some(color) = style.crosshair_horizontal_line_color {
+        color.validate()?;
+    }
+    if let Some(color) = style.crosshair_vertical_line_color {
+        color.validate()?;
+    }
     style.crosshair_time_label_color.validate()?;
     style.crosshair_price_label_color.validate()?;
     style.crosshair_label_box_color.validate()?;

@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair guide-line per-axis color parity baseline (`R-069`) with deterministic independent color controls for horizontal and vertical crosshair lines.
+- New render-style knobs: `crosshair_horizontal_line_color` and `crosshair_vertical_line_color` with shared fallback to `crosshair_line_color`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair guide-line per-axis color behavior.
 - Crosshair guide-line per-axis stroke-style parity baseline (`R-068`) with deterministic independent dash-pattern controls for horizontal and vertical crosshair lines.
 - New render-style knobs: `crosshair_line_style`, `crosshair_horizontal_line_style`, and `crosshair_vertical_line_style`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair guide-line per-axis stroke-style behavior.

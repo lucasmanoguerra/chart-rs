@@ -52,6 +52,8 @@ fn custom_render_style_is_applied_to_frame() {
         major_time_label_color: Color::rgb(0.93, 0.42, 0.18),
         axis_label_color: Color::rgb(0.0, 0.0, 0.0),
         crosshair_line_color: Color::rgb(0.27, 0.36, 0.55),
+        crosshair_horizontal_line_color: Some(Color::rgb(0.89, 0.29, 0.18)),
+        crosshair_vertical_line_color: Some(Color::rgb(0.20, 0.42, 0.88)),
         crosshair_time_label_color: Color::rgb(0.90, 0.28, 0.17),
         crosshair_price_label_color: Color::rgb(0.19, 0.42, 0.88),
         crosshair_label_box_color: Color::rgb(0.92, 0.95, 0.98),
@@ -449,6 +451,38 @@ fn invalid_crosshair_line_color_is_rejected() {
 
     let mut style = engine.render_style();
     style.crosshair_line_color = Color::rgb(0.2, 1.1, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_horizontal_line_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_horizontal_line_color = Some(Color::rgb(0.2, 1.1, 0.2));
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_vertical_line_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_vertical_line_color = Some(Color::rgb(1.1, 0.2, 0.2));
 
     let err = engine
         .set_render_style(style)

@@ -436,6 +436,9 @@ impl<R: Renderer> ChartEngine<R> {
             let mut price_box_rect: Option<RectPrimitive> = None;
             let mut price_box_text: Option<TextPrimitive> = None;
             if style.show_crosshair_vertical_line {
+                let vertical_line_color = style
+                    .crosshair_vertical_line_color
+                    .unwrap_or(style.crosshair_line_color);
                 frame = frame.with_line(
                     LinePrimitive::new(
                         crosshair_x,
@@ -443,7 +446,7 @@ impl<R: Renderer> ChartEngine<R> {
                         crosshair_x,
                         plot_bottom,
                         style.crosshair_line_width,
-                        style.crosshair_line_color,
+                        vertical_line_color,
                     )
                     .with_stroke_style(
                         style
@@ -453,6 +456,9 @@ impl<R: Renderer> ChartEngine<R> {
                 );
             }
             if style.show_crosshair_horizontal_line {
+                let horizontal_line_color = style
+                    .crosshair_horizontal_line_color
+                    .unwrap_or(style.crosshair_line_color);
                 frame = frame.with_line(
                     LinePrimitive::new(
                         0.0,
@@ -460,7 +466,7 @@ impl<R: Renderer> ChartEngine<R> {
                         plot_right,
                         crosshair_y,
                         style.crosshair_line_width,
-                        style.crosshair_line_color,
+                        horizontal_line_color,
                     )
                     .with_stroke_style(
                         style
