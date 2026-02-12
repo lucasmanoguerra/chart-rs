@@ -148,8 +148,12 @@ pub struct ChartEngine<R: Renderer> {
     crosshair_price_label_formatter: Option<PriceLabelFormatterFn>,
     time_label_formatter_generation: u64,
     price_label_formatter_generation: u64,
+    crosshair_time_label_formatter_generation: u64,
+    crosshair_price_label_formatter_generation: u64,
     time_label_cache: RefCell<TimeLabelCache>,
     price_label_cache: RefCell<PriceLabelCache>,
+    crosshair_time_label_cache: RefCell<TimeLabelCache>,
+    crosshair_price_label_cache: RefCell<PriceLabelCache>,
     render_style: RenderStyle,
 }
 
@@ -185,8 +189,12 @@ impl<R: Renderer> ChartEngine<R> {
             crosshair_price_label_formatter: None,
             time_label_formatter_generation: 0,
             price_label_formatter_generation: 0,
+            crosshair_time_label_formatter_generation: 0,
+            crosshair_price_label_formatter_generation: 0,
             time_label_cache: RefCell::new(TimeLabelCache::default()),
             price_label_cache: RefCell::new(PriceLabelCache::default()),
+            crosshair_time_label_cache: RefCell::new(TimeLabelCache::default()),
+            crosshair_price_label_cache: RefCell::new(PriceLabelCache::default()),
             render_style: RenderStyle::default(),
         })
     }

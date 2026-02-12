@@ -37,21 +37,55 @@ impl<R: Renderer> ChartEngine<R> {
     /// Sets a formatter override used only for crosshair time-axis label text.
     pub fn set_crosshair_time_label_formatter(&mut self, formatter: TimeLabelFormatterFn) {
         self.crosshair_time_label_formatter = Some(formatter);
+        self.crosshair_time_label_formatter_generation = self
+            .crosshair_time_label_formatter_generation
+            .saturating_add(1);
+        self.crosshair_time_label_cache.borrow_mut().clear();
     }
 
     /// Clears the crosshair time-axis label formatter override.
     pub fn clear_crosshair_time_label_formatter(&mut self) {
         self.crosshair_time_label_formatter = None;
+        self.crosshair_time_label_formatter_generation = self
+            .crosshair_time_label_formatter_generation
+            .saturating_add(1);
+        self.crosshair_time_label_cache.borrow_mut().clear();
     }
 
     /// Sets a formatter override used only for crosshair price-axis label text.
     pub fn set_crosshair_price_label_formatter(&mut self, formatter: PriceLabelFormatterFn) {
         self.crosshair_price_label_formatter = Some(formatter);
+        self.crosshair_price_label_formatter_generation = self
+            .crosshair_price_label_formatter_generation
+            .saturating_add(1);
+        self.crosshair_price_label_cache.borrow_mut().clear();
     }
 
     /// Clears the crosshair price-axis label formatter override.
     pub fn clear_crosshair_price_label_formatter(&mut self) {
         self.crosshair_price_label_formatter = None;
+        self.crosshair_price_label_formatter_generation = self
+            .crosshair_price_label_formatter_generation
+            .saturating_add(1);
+        self.crosshair_price_label_cache.borrow_mut().clear();
+    }
+
+    #[must_use]
+    pub fn crosshair_time_label_cache_stats(&self) -> TimeLabelCacheStats {
+        self.crosshair_time_label_cache.borrow().stats()
+    }
+
+    pub fn clear_crosshair_time_label_cache(&self) {
+        self.crosshair_time_label_cache.borrow_mut().clear();
+    }
+
+    #[must_use]
+    pub fn crosshair_price_label_cache_stats(&self) -> PriceLabelCacheStats {
+        self.crosshair_price_label_cache.borrow().stats()
+    }
+
+    pub fn clear_crosshair_price_label_cache(&self) {
+        self.crosshair_price_label_cache.borrow_mut().clear();
     }
 
     #[must_use]

@@ -80,6 +80,58 @@ impl<R: Renderer> ChartEngine<R> {
         text
     }
 
+    fn format_crosshair_time_axis_label(&self, logical_time: f64, visible_span_abs: f64) -> String {
+        if let Some(formatter) = &self.crosshair_time_label_formatter {
+            let key = TimeLabelCacheKey {
+                profile: super::label_cache::TimeLabelCacheProfile::Custom {
+                    formatter_generation: self.crosshair_time_label_formatter_generation,
+                },
+                logical_time_millis: quantize_logical_time_millis(logical_time),
+            };
+            if let Some(cached) = self.crosshair_time_label_cache.borrow_mut().get(key) {
+                return cached;
+            }
+            let value = formatter(logical_time);
+            self.crosshair_time_label_cache
+                .borrow_mut()
+                .insert(key, value.clone());
+            value
+        } else {
+            self.format_time_axis_label(logical_time, visible_span_abs)
+        }
+    }
+
+    fn format_crosshair_price_axis_label(
+        &self,
+        display_price: f64,
+        tick_step_abs: f64,
+        mode_suffix: &str,
+    ) -> String {
+        if let Some(formatter) = &self.crosshair_price_label_formatter {
+            let key = PriceLabelCacheKey {
+                profile: super::label_cache::PriceLabelCacheProfile::Custom {
+                    formatter_generation: self.crosshair_price_label_formatter_generation,
+                },
+                display_price_nanos: quantize_price_label_value(display_price),
+                tick_step_nanos: quantize_price_label_value(tick_step_abs),
+                has_percent_suffix: !mode_suffix.is_empty(),
+            };
+            if let Some(cached) = self.crosshair_price_label_cache.borrow_mut().get(key) {
+                return cached;
+            }
+            let mut value = formatter(display_price);
+            if !mode_suffix.is_empty() {
+                value.push_str(mode_suffix);
+            }
+            self.crosshair_price_label_cache
+                .borrow_mut()
+                .insert(key, value.clone());
+            value
+        } else {
+            self.format_price_axis_label(display_price, tick_step_abs, mode_suffix)
+        }
+    }
+
     /// Materializes backend-agnostic primitives for one draw pass.
     ///
     /// This keeps geometry computation deterministic and centralized in the API
@@ -508,11 +560,7 @@ impl<R: Renderer> ChartEngine<R> {
                     );
                 let mut time_text_x = crosshair_time_label_x;
                 let mut time_text_h_align = TextHAlign::Center;
-                let text = if let Some(formatter) = &self.crosshair_time_label_formatter {
-                    formatter(crosshair_time)
-                } else {
-                    self.format_time_axis_label(crosshair_time, visible_span_abs)
-                };
+                let text = self.format_crosshair_time_axis_label(crosshair_time, visible_span_abs);
                 let time_label_anchor_y = (plot_bottom + style.crosshair_time_label_offset_y_px)
                     .min((viewport_height - style.crosshair_time_label_font_size_px).max(0.0));
                 let mut time_label_y = time_label_anchor_y;
@@ -696,19 +744,11 @@ impl<R: Renderer> ChartEngine<R> {
                     self.price_axis_label_config.display_mode,
                     fallback_display_base_price,
                 );
-                let text = if let Some(formatter) = &self.crosshair_price_label_formatter {
-                    let mut value = formatter(display_price);
-                    if !display_suffix.is_empty() {
-                        value.push_str(display_suffix);
-                    }
-                    value
-                } else {
-                    self.format_price_axis_label(
-                        display_price,
-                        display_tick_step_abs,
-                        display_suffix,
-                    )
-                };
+                let text = self.format_crosshair_price_axis_label(
+                    display_price,
+                    display_tick_step_abs,
+                    display_suffix,
+                );
                 let price_label_anchor_y =
                     (crosshair_y - style.crosshair_price_label_offset_y_px).max(0.0);
                 let price_stabilization_step =

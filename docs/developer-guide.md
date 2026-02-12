@@ -116,7 +116,7 @@ Key files:
 - `series_projection.rs` (public series geometry/markers projection methods)
 - `snapshot_controller.rs` (public snapshot serialization/state export methods)
 - `render_frame_builder.rs` (render-frame assembly and axis/crosshair label formatting helpers)
-- `label_formatter_controller.rs` (public axis/crosshair label formatter + label-cache lifecycle methods)
+- `label_formatter_controller.rs` (public axis/crosshair label formatter + label-cache lifecycle methods and cache stats/clear APIs)
 - `visible_window_access.rs` (public visible-window point/candle accessor methods)
 - `price_scale_access.rs` (public price-scale map/domain/mode/autoscale methods)
 
@@ -130,6 +130,7 @@ Responsibilities:
 - price-axis formatter policy + display-mode + custom formatter injection
 - zoom-aware adaptive time-axis formatting and label-cache metrics
 - price-axis label-cache metrics for redraw hot paths (`price_label_cache_stats`)
+- crosshair axis-label formatter override cache metrics for redraw hot paths (`crosshair_time_label_cache_stats`, `crosshair_price_label_cache_stats`)
 - latest-price marker controls (line/label style + visibility toggles)
 - latest-price label exclusion radius to avoid overlapping price-axis labels
 - optional trend-aware last-price marker color policy (up/down/neutral)

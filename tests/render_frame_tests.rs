@@ -1925,6 +1925,60 @@ fn clearing_crosshair_formatter_overrides_falls_back_to_default_policy() {
 }
 
 #[test]
+fn crosshair_time_formatter_override_uses_dedicated_cache_stats() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_time_label_formatter(Arc::new(|value| format!("T:{value:.2}")));
+    engine.clear_crosshair_time_label_cache();
+    engine.pointer_move(333.0, 177.0);
+
+    let _ = engine.build_render_frame().expect("first frame");
+    let first_stats = engine.crosshair_time_label_cache_stats();
+    let _ = engine.build_render_frame().expect("second frame");
+    let second_stats = engine.crosshair_time_label_cache_stats();
+
+    assert!(first_stats.misses >= 1);
+    assert!(second_stats.hits >= first_stats.hits);
+}
+
+#[test]
+fn crosshair_price_formatter_override_uses_dedicated_cache_stats() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_render_style(RenderStyle {
+            show_crosshair_time_label_box: false,
+            show_crosshair_price_label_box: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.set_crosshair_price_label_formatter(Arc::new(|value| format!("P:{value:.2}")));
+    engine.clear_crosshair_price_label_cache();
+    engine.pointer_move(333.0, 177.0);
+
+    let _ = engine.build_render_frame().expect("first frame");
+    let first_stats = engine.crosshair_price_label_cache_stats();
+    let _ = engine.build_render_frame().expect("second frame");
+    let second_stats = engine.crosshair_price_label_cache_stats();
+
+    assert!(first_stats.misses >= 1);
+    assert!(second_stats.hits >= first_stats.hits);
+}
+
+#[test]
 fn crosshair_axis_labels_use_dedicated_vertical_offsets() {
     let renderer = NullRenderer::default();
     let config =

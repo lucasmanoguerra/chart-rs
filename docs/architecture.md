@@ -135,6 +135,7 @@ Tuning contracts:
 - crosshair guide-line stroke style is deterministic and independently configurable per axis/panel
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
+- in-engine crosshair override formatter caching keeps per-axis override redraw behavior deterministic with explicit fallback to axis-label cache paths
 - plot and price-axis panels are styled through a deterministic render-style contract
 - `render` backends execute primitives only (no scale math or interaction decisions)
 - `cairo-backend` supports:
