@@ -35,6 +35,9 @@ and this project adheres to Semantic Versioning.
 - Time-axis regular-label visibility parity baseline (`R-030`) with deterministic show/hide behavior.
 - New render-style knob: `show_time_axis_labels`.
 - New render-frame tests and criterion benchmark coverage for time-axis label visibility behavior.
+- Time-axis tick-mark visibility parity baseline (`R-031`) with deterministic show/hide behavior.
+- New render-style knob: `show_time_axis_tick_marks`.
+- New render-frame/style tests and criterion benchmark coverage for time-axis tick-mark visibility behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 

@@ -287,6 +287,7 @@ pub struct RenderStyle {
     pub show_price_axis_grid_lines: bool,
     pub show_price_axis_labels: bool,
     pub show_time_axis_labels: bool,
+    pub show_time_axis_tick_marks: bool,
     /// Horizontal inset from right edge used by price-axis labels.
     pub price_axis_label_padding_right_px: f64,
     /// Length of short axis tick marks extending into the price-axis panel.
@@ -360,6 +361,7 @@ impl Default for RenderStyle {
             show_price_axis_grid_lines: true,
             show_price_axis_labels: true,
             show_time_axis_labels: true,
+            show_time_axis_tick_marks: true,
             price_axis_label_padding_right_px: 6.0,
             price_axis_tick_mark_length_px: 6.0,
             show_last_price_line: true,
@@ -1890,14 +1892,16 @@ impl<R: Renderer> ChartEngine<R> {
                 grid_line_width,
                 grid_color,
             ));
-            frame = frame.with_line(LinePrimitive::new(
-                px,
-                plot_bottom,
-                px,
-                (plot_bottom + style.time_axis_tick_mark_length_px).min(viewport_height),
-                style.axis_line_width,
-                axis_color,
-            ));
+            if style.show_time_axis_tick_marks {
+                frame = frame.with_line(LinePrimitive::new(
+                    px,
+                    plot_bottom,
+                    px,
+                    (plot_bottom + style.time_axis_tick_mark_length_px).min(viewport_height),
+                    style.axis_line_width,
+                    axis_color,
+                ));
+            }
         }
 
         let raw_price_ticks = self.price_scale.ticks(price_tick_count)?;

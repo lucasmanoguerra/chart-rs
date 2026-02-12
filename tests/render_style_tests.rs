@@ -73,6 +73,7 @@ fn custom_render_style_is_applied_to_frame() {
         show_price_axis_grid_lines: true,
         show_price_axis_labels: true,
         show_time_axis_labels: true,
+        show_time_axis_tick_marks: true,
         price_axis_label_padding_right_px: 7.0,
         price_axis_tick_mark_length_px: 8.0,
         show_last_price_line: true,
@@ -573,4 +574,32 @@ fn time_axis_labels_visibility_toggle_is_applied() {
             .iter()
             .any(|text| text.h_align == chart_rs::render::TextHAlign::Center)
     );
+}
+
+#[test]
+fn time_axis_tick_marks_visibility_toggle_is_applied() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let custom_style = RenderStyle {
+        show_time_axis_tick_marks: false,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(custom_style)
+        .expect("set custom render style");
+
+    let frame = engine.build_render_frame().expect("frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom =
+        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == custom_style.axis_border_color
+            && line.stroke_width == custom_style.axis_line_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+            && line.y2 > line.y1
+    }));
 }
