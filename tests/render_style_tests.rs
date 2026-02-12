@@ -185,6 +185,7 @@ fn custom_render_style_is_applied_to_frame() {
         show_major_time_tick_marks: true,
         show_crosshair_horizontal_line: true,
         show_crosshair_vertical_line: true,
+        show_crosshair_lines: true,
         show_crosshair_time_label: true,
         show_crosshair_price_label: true,
         show_crosshair_time_label_box: true,

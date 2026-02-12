@@ -159,6 +159,7 @@ Responsibilities:
 - configurable time-axis border visibility policy (show/hide bottom axis border independently from right price-axis border)
 - configurable price-axis border visibility policy (show/hide right axis border independently from bottom time-axis border)
 - configurable crosshair guide-line render policy (dedicated color/width and independent horizontal/vertical visibility toggles)
+- configurable crosshair guide-line combined visibility gate policy (`show_crosshair_lines`) applied together with per-axis visibility toggles
 - configurable crosshair axis-label render policy (dedicated time/price label colors, font size, and independent time/price visibility toggles)
 - configurable crosshair axis-label box policy (deterministic fit-text boxes with dedicated fill, padding, and independent time/price visibility toggles)
 - configurable crosshair axis-label box border/radius policy (deterministic border width/color and corner-radius styling)

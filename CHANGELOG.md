@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair guide-line combined visibility gate parity baseline (`R-071`) with deterministic shared visibility control composed with per-axis line toggles.
+- New render-style knob: `show_crosshair_lines` combined with `show_crosshair_horizontal_line` and `show_crosshair_vertical_line`.
+- New render-frame/style/property tests and criterion benchmark coverage for shared crosshair guide-line visibility gating behavior.
 - Crosshair guide-line per-axis width parity baseline (`R-070`) with deterministic independent width controls for horizontal and vertical crosshair lines.
 - New render-style knobs: `crosshair_horizontal_line_width` and `crosshair_vertical_line_width` with shared fallback to `crosshair_line_width`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair guide-line per-axis width behavior.

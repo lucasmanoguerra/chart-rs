@@ -107,6 +107,7 @@ Tuning contracts:
 - crosshair guide-line color/width and horizontal/vertical visibility are deterministic style-level controls resolved from interaction state
 - crosshair guide-line color is independently configurable per axis with shared fallback (`crosshair_horizontal_line_color`, `crosshair_vertical_line_color`, `crosshair_line_color`)
 - crosshair guide-line width is independently configurable per axis with shared fallback (`crosshair_horizontal_line_width`, `crosshair_vertical_line_width`, `crosshair_line_width`)
+- crosshair guide-line visibility supports deterministic shared gating with per-axis toggles (`show_crosshair_lines && show_crosshair_{horizontal,vertical}_line`)
 - crosshair time/price axis-label color, font-size, and visibility are deterministic style-level controls resolved from interaction snap state
 - crosshair time/price axis-label boxes support deterministic fit-text sizing with style-level fill/padding and independent per-axis visibility controls
 - crosshair axis-label boxes support deterministic border/radius styling with clamped corner geometry for backend-stable output

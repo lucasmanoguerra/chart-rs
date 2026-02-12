@@ -435,7 +435,7 @@ impl<R: Renderer> ChartEngine<R> {
             let mut time_box_text: Option<TextPrimitive> = None;
             let mut price_box_rect: Option<RectPrimitive> = None;
             let mut price_box_text: Option<TextPrimitive> = None;
-            if style.show_crosshair_vertical_line {
+            if style.show_crosshair_lines && style.show_crosshair_vertical_line {
                 let vertical_line_color = style
                     .crosshair_vertical_line_color
                     .unwrap_or(style.crosshair_line_color);
@@ -458,7 +458,7 @@ impl<R: Renderer> ChartEngine<R> {
                     ),
                 );
             }
-            if style.show_crosshair_horizontal_line {
+            if style.show_crosshair_lines && style.show_crosshair_horizontal_line {
                 let horizontal_line_color = style
                     .crosshair_horizontal_line_color
                     .unwrap_or(style.crosshair_line_color);

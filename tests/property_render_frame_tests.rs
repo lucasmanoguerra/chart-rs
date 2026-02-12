@@ -66,6 +66,7 @@ proptest! {
     fn crosshair_render_lines_are_deterministic_and_toggleable(
         x in 0.0f64..1280.0f64,
         y in 0.0f64..720.0f64,
+        show_shared in any::<bool>(),
         show_horizontal in any::<bool>(),
         show_vertical in any::<bool>(),
     ) {
@@ -82,8 +83,9 @@ proptest! {
         let style = RenderStyle {
             crosshair_line_color: Color::rgb(0.93, 0.21, 0.17),
             crosshair_line_width: 2.0,
-        crosshair_horizontal_line_width: None,
-        crosshair_vertical_line_width: None,
+            crosshair_horizontal_line_width: None,
+            crosshair_vertical_line_width: None,
+            show_crosshair_lines: show_shared,
             show_crosshair_horizontal_line: show_horizontal,
             show_crosshair_vertical_line: show_vertical,
             ..engine.render_style()
@@ -103,7 +105,11 @@ proptest! {
                     && (line.stroke_width - style.crosshair_line_width).abs() <= 1e-12
             })
             .collect();
-        let expected_count = usize::from(show_horizontal) + usize::from(show_vertical);
+        let expected_count = if show_shared {
+            usize::from(show_horizontal) + usize::from(show_vertical)
+        } else {
+            0
+        };
         prop_assert_eq!(crosshair_lines.len(), expected_count);
     }
 
