@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box border/radius parity baseline (`R-046`) with deterministic border width/color and corner-radius styling.
+- New render-style knobs: `crosshair_label_box_border_width_px`, `crosshair_label_box_border_color`, and `crosshair_label_box_corner_radius_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label border/radius behavior.
 - Crosshair axis-label box parity baseline (`R-045`) with deterministic fit-text background boxes for crosshair time/price axis labels.
 - New render-style knobs: `crosshair_label_box_color`, `crosshair_label_box_padding_x_px`, `crosshair_label_box_padding_y_px`, `show_crosshair_time_label_box`, and `show_crosshair_price_label_box`.
 - New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label box behavior.

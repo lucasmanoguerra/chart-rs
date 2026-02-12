@@ -260,6 +260,7 @@ pub struct RenderStyle {
     pub crosshair_time_label_color: Color,
     pub crosshair_price_label_color: Color,
     pub crosshair_label_box_color: Color,
+    pub crosshair_label_box_border_color: Color,
     pub last_price_line_color: Color,
     pub last_price_label_color: Color,
     /// Applied when trend coloring is enabled and latest sample is above previous.
@@ -279,6 +280,8 @@ pub struct RenderStyle {
     pub crosshair_axis_label_font_size_px: f64,
     pub crosshair_label_box_padding_x_px: f64,
     pub crosshair_label_box_padding_y_px: f64,
+    pub crosshair_label_box_border_width_px: f64,
+    pub crosshair_label_box_corner_radius_px: f64,
     pub last_price_line_width: f64,
     pub major_time_label_font_size_px: f64,
     /// Font size used by regular (non-major) time-axis labels.
@@ -381,6 +384,7 @@ impl Default for RenderStyle {
             crosshair_time_label_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_price_label_color: Color::rgb(0.10, 0.12, 0.16),
             crosshair_label_box_color: Color::rgb(0.94, 0.96, 0.99),
+            crosshair_label_box_border_color: Color::rgb(0.82, 0.84, 0.88),
             last_price_line_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_up_color: Color::rgb(0.06, 0.62, 0.35),
@@ -397,6 +401,8 @@ impl Default for RenderStyle {
             crosshair_axis_label_font_size_px: 11.0,
             crosshair_label_box_padding_x_px: 5.0,
             crosshair_label_box_padding_y_px: 2.0,
+            crosshair_label_box_border_width_px: 0.0,
+            crosshair_label_box_corner_radius_px: 0.0,
             last_price_line_width: 1.25,
             major_time_label_font_size_px: 12.0,
             time_axis_label_font_size_px: 11.0,
@@ -2246,13 +2252,27 @@ impl<R: Renderer> ChartEngine<R> {
                         .clamp(plot_bottom, viewport_height);
                     let box_height = (box_bottom - box_top).max(0.0);
                     if box_width > 0.0 && box_height > 0.0 {
-                        frame = frame.with_rect(RectPrimitive::new(
+                        let mut rect = RectPrimitive::new(
                             box_left,
                             box_top,
                             box_width,
                             box_height,
                             style.crosshair_label_box_color,
-                        ));
+                        );
+                        if style.crosshair_label_box_border_width_px > 0.0 {
+                            rect = rect.with_border(
+                                style.crosshair_label_box_border_width_px,
+                                style.crosshair_label_box_border_color,
+                            );
+                        }
+                        if style.crosshair_label_box_corner_radius_px > 0.0 {
+                            let max_corner_radius = (box_width.min(box_height)) * 0.5;
+                            let clamped_corner_radius = style
+                                .crosshair_label_box_corner_radius_px
+                                .min(max_corner_radius);
+                            rect = rect.with_corner_radius(clamped_corner_radius);
+                        }
+                        frame = frame.with_rect(rect);
                     }
                 }
                 frame = frame.with_text(TextPrimitive::new(
@@ -2302,13 +2322,27 @@ impl<R: Renderer> ChartEngine<R> {
                     text_x = (viewport_width - style.crosshair_label_box_padding_x_px)
                         .clamp(box_left, viewport_width);
                     if box_width > 0.0 && box_height > 0.0 {
-                        frame = frame.with_rect(RectPrimitive::new(
+                        let mut rect = RectPrimitive::new(
                             box_left,
                             box_top,
                             box_width,
                             box_height,
                             style.crosshair_label_box_color,
-                        ));
+                        );
+                        if style.crosshair_label_box_border_width_px > 0.0 {
+                            rect = rect.with_border(
+                                style.crosshair_label_box_border_width_px,
+                                style.crosshair_label_box_border_color,
+                            );
+                        }
+                        if style.crosshair_label_box_corner_radius_px > 0.0 {
+                            let max_corner_radius = (box_width.min(box_height)) * 0.5;
+                            let clamped_corner_radius = style
+                                .crosshair_label_box_corner_radius_px
+                                .min(max_corner_radius);
+                            rect = rect.with_corner_radius(clamped_corner_radius);
+                        }
+                        frame = frame.with_rect(rect);
                     }
                 }
                 frame = frame.with_text(TextPrimitive::new(
@@ -2586,6 +2620,7 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.crosshair_time_label_color.validate()?;
     style.crosshair_price_label_color.validate()?;
     style.crosshair_label_box_color.validate()?;
+    style.crosshair_label_box_border_color.validate()?;
     style.last_price_line_color.validate()?;
     style.last_price_label_color.validate()?;
     style.last_price_up_color.validate()?;
@@ -2696,6 +2731,21 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `crosshair_label_box_padding_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.crosshair_label_box_border_width_px.is_finite()
+        || style.crosshair_label_box_border_width_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_label_box_border_width_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.crosshair_label_box_corner_radius_px.is_finite()
+        || style.crosshair_label_box_corner_radius_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_label_box_corner_radius_px` must be finite and >= 0"
+                .to_owned(),
         ));
     }
     if !style.price_axis_tick_mark_length_px.is_finite()

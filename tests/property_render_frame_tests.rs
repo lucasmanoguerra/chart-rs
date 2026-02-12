@@ -183,4 +183,42 @@ proptest! {
         let expected_count = usize::from(show_time_box) + usize::from(show_price_box);
         prop_assert_eq!(box_count, expected_count);
     }
+
+    #[test]
+    fn crosshair_axis_label_box_radius_is_clamped(
+        requested_radius in 0.0f64..200.0f64,
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let style = RenderStyle {
+            crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.18),
+            crosshair_label_box_border_width_px: 1.0,
+            crosshair_label_box_corner_radius_px: requested_radius,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        engine.pointer_move(400.0, 250.0);
+
+        let frame = engine.build_render_frame().expect("frame");
+        let boxes: Vec<_> = frame
+            .rects
+            .iter()
+            .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+            .collect();
+        prop_assert!(!boxes.is_empty());
+        prop_assert!(boxes.iter().all(|rect| {
+            rect.corner_radius <= (rect.width.min(rect.height)) * 0.5 + 1e-9
+                && rect.border_width >= 0.0
+        }));
+    }
 }
