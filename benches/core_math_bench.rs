@@ -969,6 +969,38 @@ fn bench_price_axis_tick_mark_style_render(c: &mut Criterion) {
     });
 }
 
+fn bench_price_axis_label_typography_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            show_last_price_line: true,
+            show_last_price_label: true,
+            price_axis_label_font_size_px: 13.0,
+            price_axis_label_offset_y_px: 10.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("price_axis_label_typography_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -1004,6 +1036,7 @@ criterion_group!(
     bench_last_price_label_box_fit_text_render,
     bench_price_axis_inset_policy_render,
     bench_price_axis_tick_mark_style_render,
+    bench_price_axis_label_typography_render,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);

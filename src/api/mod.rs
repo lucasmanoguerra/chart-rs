@@ -265,6 +265,9 @@ pub struct RenderStyle {
     pub price_axis_tick_mark_width: f64,
     pub last_price_line_width: f64,
     pub major_time_label_font_size_px: f64,
+    pub price_axis_label_font_size_px: f64,
+    /// Vertical inset (towards top) applied to price-axis labels from their tick Y position.
+    pub price_axis_label_offset_y_px: f64,
     pub last_price_label_font_size_px: f64,
     pub price_axis_width_px: f64,
     pub time_axis_height_px: f64,
@@ -325,6 +328,8 @@ impl Default for RenderStyle {
             price_axis_tick_mark_width: 1.0,
             last_price_line_width: 1.25,
             major_time_label_font_size_px: 12.0,
+            price_axis_label_font_size_px: 11.0,
+            price_axis_label_offset_y_px: 8.0,
             last_price_label_font_size_px: 11.0,
             price_axis_width_px: 72.0,
             time_axis_height_px: 24.0,
@@ -1928,8 +1933,8 @@ impl<R: Renderer> ChartEngine<R> {
             frame = frame.with_text(TextPrimitive::new(
                 text,
                 price_axis_label_anchor_x,
-                (py - 8.0).max(0.0),
-                11.0,
+                (py - style.price_axis_label_offset_y_px).max(0.0),
+                style.price_axis_label_font_size_px,
                 label_color,
                 TextHAlign::Right,
             ));
@@ -2328,6 +2333,10 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
             "last_price_label_font_size_px",
             style.last_price_label_font_size_px,
         ),
+        (
+            "price_axis_label_font_size_px",
+            style.price_axis_label_font_size_px,
+        ),
         ("price_axis_width_px", style.price_axis_width_px),
         ("time_axis_height_px", style.time_axis_height_px),
     ] {
@@ -2349,6 +2358,11 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `price_axis_tick_mark_length_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.price_axis_label_offset_y_px.is_finite() || style.price_axis_label_offset_y_px < 0.0 {
+        return Err(ChartError::InvalidData(
+            "render style `price_axis_label_offset_y_px` must be finite and >= 0".to_owned(),
         ));
     }
     if !style.last_price_label_exclusion_px.is_finite() || style.last_price_label_exclusion_px < 0.0

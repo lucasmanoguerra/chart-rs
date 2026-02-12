@@ -164,6 +164,53 @@ fn price_axis_insets_apply_to_labels_and_tick_marks() {
 }
 
 #[test]
+fn price_axis_labels_use_configured_font_size_and_offset() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![DataPoint::new(1.0, 10.0), DataPoint::new(2.0, 20.0)]);
+
+    let style = RenderStyle {
+        price_axis_label_font_size_px: 13.5,
+        price_axis_label_offset_y_px: 11.0,
+        show_last_price_label: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let axis_labels: Vec<_> = frame
+        .texts
+        .iter()
+        .filter(|text| text.h_align == TextHAlign::Right && text.color == style.axis_label_color)
+        .collect();
+    assert!(!axis_labels.is_empty(), "expected price-axis labels");
+    assert!(
+        axis_labels
+            .iter()
+            .all(|text| (text.font_size_px - style.price_axis_label_font_size_px).abs() <= 1e-9)
+    );
+    assert!(axis_labels.iter().any(|text| {
+        frame.lines.iter().any(|line| {
+            line.color == style.grid_line_color
+                && (line.y1 - line.y2).abs() <= 1e-9
+                && ((line.y1 - text.y) - style.price_axis_label_offset_y_px).abs() <= 1e-9
+        })
+    }));
+    assert!(axis_labels.iter().all(|text| {
+        frame.lines.iter().any(|line| {
+            line.color == style.grid_line_color
+                && (line.y1 - line.y2).abs() <= 1e-9
+                && {
+                    let delta_y = line.y1 - text.y;
+                    delta_y >= -1e-9 && delta_y <= style.price_axis_label_offset_y_px + 1e-9
+                }
+        })
+    }));
+}
+
+#[test]
 fn last_price_label_exclusion_filters_overlapping_axis_labels() {
     let renderer = NullRenderer::default();
     let config =
