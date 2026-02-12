@@ -80,7 +80,9 @@ fn custom_render_style_is_applied_to_frame() {
         show_price_axis_tick_marks: true,
         show_price_axis_grid_lines: true,
         show_price_axis_labels: true,
+        show_price_axis_border: true,
         show_time_axis_labels: true,
+        show_time_axis_border: true,
         show_major_time_labels: true,
         show_major_time_grid_lines: true,
         show_time_axis_tick_marks: true,
@@ -887,6 +889,84 @@ fn major_time_tick_marks_visibility_toggle_is_applied() {
             && (line.x1 - line.x2).abs() <= 1e-9
             && (line.y1 - plot_bottom).abs() <= 1e-9
             && line.y2 > line.y1
+    }));
+}
+
+#[test]
+fn time_axis_border_visibility_toggle_is_applied() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let custom_style = RenderStyle {
+        axis_border_color: Color::rgb(0.91, 0.31, 0.20),
+        axis_line_width: 2.0,
+        show_time_axis_border: false,
+        show_price_axis_border: true,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(custom_style)
+        .expect("set custom render style");
+
+    let frame = engine.build_render_frame().expect("frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_bottom =
+        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
+    let plot_right = (viewport_width - custom_style.price_axis_width_px).clamp(0.0, viewport_width);
+
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == custom_style.axis_border_color
+            && line.stroke_width == custom_style.axis_line_width
+            && (line.y1 - line.y2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == custom_style.axis_border_color
+            && line.stroke_width == custom_style.axis_line_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.x1 - plot_right).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn price_axis_border_visibility_toggle_is_applied() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let custom_style = RenderStyle {
+        axis_border_color: Color::rgb(0.91, 0.31, 0.20),
+        axis_line_width: 2.0,
+        show_time_axis_border: true,
+        show_price_axis_border: false,
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(custom_style)
+        .expect("set custom render style");
+
+    let frame = engine.build_render_frame().expect("frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_bottom =
+        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
+    let plot_right = (viewport_width - custom_style.price_axis_width_px).clamp(0.0, viewport_width);
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == custom_style.axis_border_color
+            && line.stroke_width == custom_style.axis_line_width
+            && (line.y1 - line.y2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+    }));
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == custom_style.axis_border_color
+            && line.stroke_width == custom_style.axis_line_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.x1 - plot_right).abs() <= 1e-9
     }));
 }
 

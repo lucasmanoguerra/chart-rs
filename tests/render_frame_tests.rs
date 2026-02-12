@@ -615,6 +615,88 @@ fn time_axis_tick_marks_use_dedicated_style() {
 }
 
 #[test]
+fn time_axis_border_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+
+    let style = RenderStyle {
+        axis_border_color: Color::rgb(0.12, 0.14, 0.18),
+        axis_line_width: 1.5,
+        show_time_axis_border: false,
+        show_price_axis_border: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.axis_border_color
+            && line.stroke_width == style.axis_line_width
+            && (line.y1 - line.y2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.axis_border_color
+            && line.stroke_width == style.axis_line_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.x1 - plot_right).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn price_axis_border_can_be_hidden() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+
+    let style = RenderStyle {
+        axis_border_color: Color::rgb(0.12, 0.14, 0.18),
+        axis_line_width: 1.5,
+        show_time_axis_border: true,
+        show_price_axis_border: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.axis_border_color
+            && line.stroke_width == style.axis_line_width
+            && (line.y1 - line.y2).abs() <= 1e-9
+            && (line.y1 - plot_bottom).abs() <= 1e-9
+    }));
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.axis_border_color
+            && line.stroke_width == style.axis_line_width
+            && (line.x1 - line.x2).abs() <= 1e-9
+            && (line.x1 - plot_right).abs() <= 1e-9
+    }));
+}
+
+#[test]
 fn last_price_marker_uses_latest_sample_value() {
     let renderer = NullRenderer::default();
     let config =

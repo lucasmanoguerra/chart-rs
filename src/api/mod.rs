@@ -296,7 +296,11 @@ pub struct RenderStyle {
     pub show_price_axis_tick_marks: bool,
     pub show_price_axis_grid_lines: bool,
     pub show_price_axis_labels: bool,
+    /// Controls visibility of the right-side price-axis border line.
+    pub show_price_axis_border: bool,
     pub show_time_axis_labels: bool,
+    /// Controls visibility of the bottom time-axis border line.
+    pub show_time_axis_border: bool,
     pub show_major_time_labels: bool,
     pub show_major_time_grid_lines: bool,
     pub show_time_axis_tick_marks: bool,
@@ -382,7 +386,9 @@ impl Default for RenderStyle {
             show_price_axis_tick_marks: true,
             show_price_axis_grid_lines: true,
             show_price_axis_labels: true,
+            show_price_axis_border: true,
             show_time_axis_labels: true,
+            show_time_axis_border: true,
             show_major_time_labels: true,
             show_major_time_grid_lines: true,
             show_time_axis_tick_marks: true,
@@ -1856,22 +1862,26 @@ impl<R: Renderer> ChartEngine<R> {
 
         // Axis borders remain explicit frame primitives, keeping visual output
         // deterministic across all renderer backends.
-        frame = frame.with_line(LinePrimitive::new(
-            0.0,
-            plot_bottom,
-            viewport_width,
-            plot_bottom,
-            style.axis_line_width,
-            axis_color,
-        ));
-        frame = frame.with_line(LinePrimitive::new(
-            plot_right,
-            0.0,
-            plot_right,
-            viewport_height,
-            style.axis_line_width,
-            axis_color,
-        ));
+        if style.show_time_axis_border {
+            frame = frame.with_line(LinePrimitive::new(
+                0.0,
+                plot_bottom,
+                viewport_width,
+                plot_bottom,
+                style.axis_line_width,
+                axis_color,
+            ));
+        }
+        if style.show_price_axis_border {
+            frame = frame.with_line(LinePrimitive::new(
+                plot_right,
+                0.0,
+                plot_right,
+                viewport_height,
+                style.axis_line_width,
+                axis_color,
+            ));
+        }
 
         let mut time_ticks = Vec::with_capacity(time_tick_count);
         for time in axis_ticks(self.time_scale.visible_range(), time_tick_count) {
