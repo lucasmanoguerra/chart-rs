@@ -113,6 +113,7 @@ fn build_ui(app: &gtk::Application) {
     engine.set_price_scale_realtime_behavior(chart_rs::api::PriceScaleRealtimeBehavior {
         autoscale_on_data_set: true,
         autoscale_on_data_update: true,
+        autoscale_on_time_range_change: true,
     });
 
     if let Err(err) = prepare_engine_from_replay(&mut engine, &replay.borrow(), true) {

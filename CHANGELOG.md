@@ -7,6 +7,10 @@ and this project adheres to Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+- Price-scale visible-window autoscale parity baseline (`C-058`) with deterministic opt-in autoscale refresh on time-range navigation changes.
+- Extended `PriceScaleRealtimeBehavior` with `autoscale_on_time_range_change` and wired it through core visible-range lifecycle flow (`emit_visible_range_changed`) covering pan/zoom/fit/scroll/resize paths.
+
 ## [0.0.34-alpha.0] - 2026-02-12
 
 ### Added

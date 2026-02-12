@@ -636,6 +636,10 @@ pub struct PriceScaleRealtimeBehavior {
     pub autoscale_on_data_set: bool,
     /// Enables best-effort autoscale after append/update data mutations.
     pub autoscale_on_data_update: bool,
+    /// Enables best-effort autoscale from visible window after time-range
+    /// navigation updates (pan/zoom/fit/scroll/resize policies).
+    #[serde(default = "default_true")]
+    pub autoscale_on_time_range_change: bool,
 }
 
 impl Default for PriceScaleRealtimeBehavior {
@@ -643,6 +647,7 @@ impl Default for PriceScaleRealtimeBehavior {
         Self {
             autoscale_on_data_set: true,
             autoscale_on_data_update: true,
+            autoscale_on_time_range_change: true,
         }
     }
 }

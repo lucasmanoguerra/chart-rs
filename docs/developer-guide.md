@@ -166,6 +166,7 @@ Responsibilities:
 - price autoscale from points/candles (default and tuned)
 - optional autoscale refresh on realtime append/update flows (`autoscale_on_data_update`)
 - optional autoscale refresh on full data replacement (`autoscale_on_data_set`)
+- optional autoscale refresh from visible window after time-range navigation updates (`autoscale_on_time_range_change`)
 - optional inverted price-axis mapping (`set_price_scale_inverted`)
 - optional price-scale top/bottom whitespace margins (`set_price_scale_margin_behavior`)
 - crosshair snapping behavior

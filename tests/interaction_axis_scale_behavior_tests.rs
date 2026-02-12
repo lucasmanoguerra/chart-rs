@@ -122,6 +122,7 @@ fn axis_double_click_reset_autoscales_points_when_enabled() {
     engine.set_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
         autoscale_on_data_set: false,
         autoscale_on_data_update: false,
+        autoscale_on_time_range_change: false,
     });
     engine.set_data(vec![DataPoint::new(0.0, 10.0), DataPoint::new(1.0, 20.0)]);
     let before = engine.price_domain();
@@ -143,6 +144,7 @@ fn axis_double_click_reset_prioritizes_candle_domain_when_available() {
     engine.set_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
         autoscale_on_data_set: false,
         autoscale_on_data_update: false,
+        autoscale_on_time_range_change: false,
     });
 
     engine.set_data(vec![

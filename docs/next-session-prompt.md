@@ -10,9 +10,8 @@ Project context:
 - Goal: replicate Lightweight Charts v5.1 behavior in Rust for GTK4/Relm4 desktop usage.
 - Current parity state (2026-02-12): checklist entries in `docs/parity-v5.1-checklist.md` are marked `done` for Core/Render/Extensions blocks currently tracked.
 - Default/boundary parity audit: `docs/v5.1-default-parity-audit.md` is in `done` state for documented defaults and section-boundary clamping.
-- Immediate follow-up targets from audit:
-  1) wire visible-window autoscale refresh into core pan/zoom flows,
-  2) validate adaptive axis-section sizing against Lightweight Charts visual fixtures.
+- Immediate follow-up target from audit:
+  1) validate adaptive axis-section sizing against Lightweight Charts visual fixtures.
 
 Execution policy:
 1) Discover continuation point from:
