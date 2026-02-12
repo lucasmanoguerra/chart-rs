@@ -101,6 +101,8 @@ Key files:
 - `axis_ticks.rs` (axis tick density/spacing selection helpers)
 - `data_window.rs` (visible-window expansion and marker window filtering helpers)
 - `data_controller.rs` (public data-series mutation methods)
+- `engine_accessors.rs` (public engine metadata/data/viewport accessor methods)
+- `axis_label_controller.rs` (public time/price axis label config controller methods)
 - `interaction_validation.rs` (kinetic-pan validation helpers)
 - `price_resolver.rs` (latest/previous price sample and marker color/text resolution helpers)
 - `layout_helpers.rs` (crosshair/axis label layout math helpers)
@@ -114,6 +116,7 @@ Key files:
 - `series_projection.rs` (public series geometry/markers projection methods)
 - `snapshot_controller.rs` (public snapshot serialization/state export methods)
 - `render_frame_builder.rs` (render-frame assembly and axis/crosshair label formatting helpers)
+- `label_formatter_controller.rs` (public label formatter + label-cache lifecycle methods)
 - `visible_window_access.rs` (public visible-window point/candle accessor methods)
 - `price_scale_access.rs` (public price-scale map/domain/mode/autoscale methods)
 

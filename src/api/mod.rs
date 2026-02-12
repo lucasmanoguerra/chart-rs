@@ -32,9 +32,7 @@ pub use label_cache::{
 };
 
 mod validation;
-use validation::{
-    validate_price_axis_label_config, validate_render_style, validate_time_axis_label_config,
-};
+use validation::validate_render_style;
 
 mod axis_label_format;
 mod axis_ticks;
@@ -45,9 +43,12 @@ mod interaction_validation;
 
 mod layout_helpers;
 
+mod axis_label_controller;
 mod cache_profile;
 mod data_controller;
+mod engine_accessors;
 mod interaction_controller;
+mod label_formatter_controller;
 mod plugin_dispatch;
 mod plugin_registry;
 mod price_resolver;
@@ -184,117 +185,6 @@ impl<R: Renderer> ChartEngine<R> {
             price_label_cache: RefCell::new(PriceLabelCache::default()),
             render_style: RenderStyle::default(),
         })
-    }
-
-    /// Sets or updates deterministic series metadata.
-    ///
-    /// `IndexMap` is used to preserve insertion order for stable snapshots.
-    pub fn set_series_metadata(&mut self, key: impl Into<String>, value: impl Into<String>) {
-        self.series_metadata.insert(key.into(), value.into());
-    }
-
-    #[must_use]
-    pub fn series_metadata(&self) -> &IndexMap<String, String> {
-        &self.series_metadata
-    }
-
-    #[must_use]
-    pub fn points(&self) -> &[DataPoint] {
-        &self.points
-    }
-
-    #[must_use]
-    pub fn candles(&self) -> &[OhlcBar] {
-        &self.candles
-    }
-
-    #[must_use]
-    pub fn viewport(&self) -> Viewport {
-        self.viewport
-    }
-
-    /// Updates viewport dimensions used by scale mapping and render layout.
-    pub fn set_viewport(&mut self, viewport: Viewport) -> ChartResult<()> {
-        if !viewport.is_valid() {
-            return Err(ChartError::InvalidViewport {
-                width: viewport.width,
-                height: viewport.height,
-            });
-        }
-        self.viewport = viewport;
-        Ok(())
-    }
-
-    #[must_use]
-    pub fn time_axis_label_config(&self) -> TimeAxisLabelConfig {
-        self.time_axis_label_config
-    }
-
-    pub fn set_time_axis_label_config(&mut self, config: TimeAxisLabelConfig) -> ChartResult<()> {
-        validate_time_axis_label_config(config)?;
-        self.time_axis_label_config = config;
-        self.time_label_cache.borrow_mut().clear();
-        Ok(())
-    }
-
-    #[must_use]
-    pub fn price_axis_label_config(&self) -> PriceAxisLabelConfig {
-        self.price_axis_label_config
-    }
-
-    pub fn set_price_axis_label_config(&mut self, config: PriceAxisLabelConfig) -> ChartResult<()> {
-        validate_price_axis_label_config(config)?;
-        self.price_axis_label_config = config;
-        self.price_label_cache.borrow_mut().clear();
-        Ok(())
-    }
-
-    pub fn set_time_label_formatter(&mut self, formatter: TimeLabelFormatterFn) {
-        self.time_label_formatter = Some(formatter);
-        self.time_label_formatter_generation =
-            self.time_label_formatter_generation.saturating_add(1);
-        self.time_label_cache.borrow_mut().clear();
-    }
-
-    pub fn clear_time_label_formatter(&mut self) {
-        self.time_label_formatter = None;
-        self.time_label_formatter_generation =
-            self.time_label_formatter_generation.saturating_add(1);
-        self.time_label_cache.borrow_mut().clear();
-    }
-
-    pub fn set_price_label_formatter(&mut self, formatter: PriceLabelFormatterFn) {
-        self.price_label_formatter = Some(formatter);
-        self.price_label_formatter_generation =
-            self.price_label_formatter_generation.saturating_add(1);
-        self.price_label_cache.borrow_mut().clear();
-    }
-
-    pub fn clear_price_label_formatter(&mut self) {
-        self.price_label_formatter = None;
-        self.price_label_formatter_generation =
-            self.price_label_formatter_generation.saturating_add(1);
-        self.price_label_cache.borrow_mut().clear();
-    }
-
-    #[must_use]
-    pub fn time_label_cache_stats(&self) -> TimeLabelCacheStats {
-        self.time_label_cache.borrow().stats()
-    }
-
-    pub fn clear_time_label_cache(&self) {
-        self.time_label_cache.borrow_mut().clear();
-    }
-
-    /// Returns hit/miss counters for the price-axis label cache.
-    #[must_use]
-    pub fn price_label_cache_stats(&self) -> PriceLabelCacheStats {
-        self.price_label_cache.borrow().stats()
-    }
-
-    /// Clears cached price-axis label strings.
-    pub fn clear_price_label_cache(&self) {
-        self.price_label_cache.borrow_mut().clear();
     }
 
     #[must_use]
