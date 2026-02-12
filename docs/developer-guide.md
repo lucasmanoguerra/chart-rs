@@ -106,6 +106,7 @@ Key files:
 - `snap_resolver.rs` (crosshair nearest-sample snapping helpers for points/candles)
 - `cache_profile.rs` (time/price label cache-profile resolution helpers)
 - `plugin_dispatch.rs` (plugin event context/build + dispatch helpers)
+- `interaction_controller.rs` (public crosshair/pan/kinetic interaction controller methods)
 
 Responsibilities:
 - orchestration between core + interaction + renderer
