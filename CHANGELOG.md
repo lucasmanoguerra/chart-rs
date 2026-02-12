@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label parity baseline (`R-044`) with deterministic time/price crosshair labels projected into axis panels.
+- New render-style knobs: `crosshair_time_label_color`, `crosshair_price_label_color`, `crosshair_axis_label_font_size_px`, `show_crosshair_time_label`, and `show_crosshair_price_label`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label render behavior.
 - Crosshair guide-line parity baseline (`R-043`) with deterministic plot-pane horizontal/vertical crosshair line rendering.
 - New render-style knobs: `crosshair_line_color`, `crosshair_line_width`, `show_crosshair_horizontal_line`, and `show_crosshair_vertical_line`.
 - New render-frame/style tests and criterion benchmark coverage for crosshair guide-line render behavior.

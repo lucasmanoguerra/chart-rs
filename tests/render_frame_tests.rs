@@ -1531,3 +1531,138 @@ fn crosshair_line_visibility_toggles_are_independent() {
             && (line.x1 - line.x2).abs() <= 1e-9
     }));
 }
+
+#[test]
+fn crosshair_axis_labels_follow_pointer_in_normal_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 2 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis formatter");
+
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.88, 0.26, 0.17),
+        crosshair_price_label_color: Color::rgb(0.16, 0.40, 0.86),
+        crosshair_axis_label_font_size_px: 12.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 333.0_f64.clamp(0.0, plot_right);
+    let expected_y = 177.0_f64.clamp(0.0, plot_bottom);
+    let expected_time = engine
+        .map_pixel_to_x(expected_x)
+        .expect("pixel to logical time map");
+    let expected_price = engine
+        .map_pixel_to_price(expected_y)
+        .expect("pixel to price map");
+    let expected_time_text = format!("{expected_time:.2}");
+    let expected_price_text = format!("{expected_price:.2}");
+
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_time_label_color
+            && text.h_align == TextHAlign::Center
+            && text.text == expected_time_text
+            && (text.x - expected_x).abs() <= 1e-9
+            && (text.font_size_px - style.crosshair_axis_label_font_size_px).abs() <= 1e-9
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_price_label_color
+            && text.h_align == TextHAlign::Right
+            && text.text == expected_price_text
+            && (text.y - (expected_y - style.price_axis_label_offset_y_px).max(0.0)).abs() <= 1e-9
+            && (text.font_size_px - style.crosshair_axis_label_font_size_px).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_axis_labels_use_snapped_values_in_magnet_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 2 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis formatter");
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.83, 0.29, 0.17),
+        crosshair_price_label_color: Color::rgb(0.21, 0.44, 0.86),
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(171.0, 300.0);
+
+    let crosshair = engine.crosshair_state();
+    let snapped_time = crosshair
+        .snapped_time
+        .expect("magnet crosshair should expose snapped time");
+    let snapped_price = crosshair
+        .snapped_price
+        .expect("magnet crosshair should expose snapped price");
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_time_label_color
+            && text.h_align == TextHAlign::Center
+            && text.text == format!("{snapped_time:.2}")
+    }));
+    assert!(frame.texts.iter().any(|text| {
+        text.color == style.crosshair_price_label_color
+            && text.h_align == TextHAlign::Right
+            && text.text == format!("{snapped_price:.2}")
+    }));
+}
+
+#[test]
+fn crosshair_axis_label_visibility_toggles_are_independent() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_time_label_color: Color::rgb(0.82, 0.30, 0.17),
+        crosshair_price_label_color: Color::rgb(0.19, 0.41, 0.89),
+        show_crosshair_time_label: false,
+        show_crosshair_price_label: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(
+        !frame
+            .texts
+            .iter()
+            .any(|text| text.color == style.crosshair_time_label_color)
+    );
+    assert!(
+        frame
+            .texts
+            .iter()
+            .any(|text| text.color == style.crosshair_price_label_color)
+    );
+}
