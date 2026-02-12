@@ -84,6 +84,7 @@ Tuning contracts:
 - price-axis label right inset and axis tick-mark extension length are deterministic style-level controls
 - price-axis tick-mark color/width are style-level controls independent from axis border styling
 - price-axis label font size/vertical offset are deterministic style-level controls
+- last-price label vertical offset is a deterministic style-level control independent from font-size
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract

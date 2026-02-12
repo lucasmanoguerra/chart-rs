@@ -11,6 +11,9 @@ and this project adheres to Semantic Versioning.
 - Price-axis label typography parity baseline (`R-022`) with deterministic configurable axis-label font size and vertical offset.
 - New render-style knobs: `price_axis_label_font_size_px` and `price_axis_label_offset_y_px`.
 - New render-frame/style tests and criterion benchmark coverage for price-axis label typography behavior.
+- Last-price label offset parity baseline (`R-023`) with deterministic configurable vertical offset from marker Y.
+- New render-style knob: `last_price_label_offset_y_px`.
+- New render-frame/style tests and criterion benchmark coverage for last-price label offset behavior.
 
 ## [0.0.33-alpha.0] - 2026-02-12
 

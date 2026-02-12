@@ -89,6 +89,41 @@ fn last_price_marker_uses_latest_sample_value() {
 }
 
 #[test]
+fn last_price_label_uses_configured_vertical_offset() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(1.0, 12.0),
+        DataPoint::new(2.0, 16.0),
+        DataPoint::new(3.0, 15.0),
+    ]);
+
+    let style = RenderStyle {
+        last_price_label_color: Color::rgb(1.0, 0.2, 0.2),
+        last_price_label_offset_y_px: 13.0,
+        show_last_price_label_box: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let marker_y = engine.map_price_to_pixel(15.0).expect("map").clamp(
+        0.0,
+        f64::from(engine.viewport().height) - style.time_axis_height_px,
+    );
+    let expected_text_y = (marker_y - style.last_price_label_offset_y_px).max(0.0);
+
+    assert!(frame.texts.iter().any(|text| {
+        text.h_align == TextHAlign::Right
+            && text.text == "15.00"
+            && text.color == style.last_price_label_color
+            && (text.y - expected_text_y).abs() <= 1e-9
+    }));
+}
+
+#[test]
 fn last_price_marker_can_be_disabled() {
     let renderer = NullRenderer::default();
     let config =
@@ -200,12 +235,10 @@ fn price_axis_labels_use_configured_font_size_and_offset() {
     }));
     assert!(axis_labels.iter().all(|text| {
         frame.lines.iter().any(|line| {
-            line.color == style.grid_line_color
-                && (line.y1 - line.y2).abs() <= 1e-9
-                && {
-                    let delta_y = line.y1 - text.y;
-                    delta_y >= -1e-9 && delta_y <= style.price_axis_label_offset_y_px + 1e-9
-                }
+            line.color == style.grid_line_color && (line.y1 - line.y2).abs() <= 1e-9 && {
+                let delta_y = line.y1 - text.y;
+                delta_y >= -1e-9 && delta_y <= style.price_axis_label_offset_y_px + 1e-9
+            }
         })
     }));
 }
