@@ -113,6 +113,7 @@ Key files:
 - `time_scale_controller.rs` (public time-scale range/pan/zoom/fit controller methods)
 - `series_projection.rs` (public series geometry/markers projection methods)
 - `snapshot_controller.rs` (public snapshot serialization/state export methods)
+- `render_frame_builder.rs` (render-frame assembly and axis/crosshair label formatting helpers)
 - `visible_window_access.rs` (public visible-window point/candle accessor methods)
 - `price_scale_access.rs` (public price-scale map/domain/mode/autoscale methods)
 

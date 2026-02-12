@@ -1,9 +1,8 @@
 use crate::render::Renderer;
 
-use super::{
-    ChartEngine, PriceLabelCacheProfile, ResolvedTimeLabelPattern, TimeLabelCacheProfile,
-    price_policy_profile, resolve_time_label_pattern,
-};
+use super::ChartEngine;
+use super::axis_label_format::{ResolvedTimeLabelPattern, resolve_time_label_pattern};
+use super::label_cache::{PriceLabelCacheProfile, TimeLabelCacheProfile, price_policy_profile};
 
 impl<R: Renderer> ChartEngine<R> {
     pub(super) fn resolve_time_label_cache_profile(
