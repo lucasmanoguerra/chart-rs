@@ -103,6 +103,7 @@ Key files:
 - `interaction_validation.rs` (kinetic-pan validation helpers)
 - `price_resolver.rs` (latest/previous price sample and marker color/text resolution helpers)
 - `layout_helpers.rs` (crosshair/axis label layout math helpers)
+- `snap_resolver.rs` (crosshair nearest-sample snapping helpers for points/candles)
 
 Responsibilities:
 - orchestration between core + interaction + renderer
