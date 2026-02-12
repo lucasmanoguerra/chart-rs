@@ -51,6 +51,7 @@ fn custom_render_style_is_applied_to_frame() {
         time_axis_label_color: Color::rgb(0.85, 0.24, 0.20),
         major_time_label_color: Color::rgb(0.93, 0.42, 0.18),
         axis_label_color: Color::rgb(0.0, 0.0, 0.0),
+        crosshair_line_color: Color::rgb(0.27, 0.36, 0.55),
         last_price_line_color: Color::rgb(0.2, 0.2, 0.8),
         last_price_label_color: Color::rgb(0.2, 0.2, 0.8),
         last_price_up_color: Color::rgb(0.1, 0.7, 0.3),
@@ -63,6 +64,7 @@ fn custom_render_style_is_applied_to_frame() {
         price_axis_tick_mark_width: 1.25,
         time_axis_tick_mark_width: 2.25,
         major_time_tick_mark_width: 2.75,
+        crosshair_line_width: 1.35,
         last_price_line_width: 1.75,
         major_time_label_font_size_px: 13.0,
         time_axis_label_font_size_px: 11.5,
@@ -87,6 +89,8 @@ fn custom_render_style_is_applied_to_frame() {
         show_major_time_grid_lines: true,
         show_time_axis_tick_marks: true,
         show_major_time_tick_marks: true,
+        show_crosshair_horizontal_line: true,
+        show_crosshair_vertical_line: true,
         price_axis_label_padding_right_px: 7.0,
         price_axis_tick_mark_length_px: 8.0,
         show_last_price_line: true,
@@ -331,6 +335,38 @@ fn invalid_last_price_label_exclusion_is_rejected() {
 
     let mut style = engine.render_style();
     style.last_price_label_exclusion_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_line_color_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_line_color = Color::rgb(0.2, 1.1, 0.2);
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_crosshair_line_width_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.crosshair_line_width = 0.0;
 
     let err = engine
         .set_render_style(style)

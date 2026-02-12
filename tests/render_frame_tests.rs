@@ -1,5 +1,5 @@
 use chart_rs::api::{
-    AxisLabelLocale, ChartEngine, ChartEngineConfig, LastPriceLabelBoxWidthMode,
+    AxisLabelLocale, ChartEngine, ChartEngineConfig, CrosshairMode, LastPriceLabelBoxWidthMode,
     LastPriceSourceMode, RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy,
     TimeAxisSessionConfig, TimeAxisTimeZone,
 };
@@ -1412,5 +1412,122 @@ fn last_price_label_box_fit_text_respects_min_width_and_padding() {
         text.h_align == TextHAlign::Right
             && text.text == "20.00"
             && (text.x - expected_text_x).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_lines_follow_pointer_in_normal_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_color: Color::rgb(0.93, 0.28, 0.17),
+        crosshair_line_width: 2.5,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(333.0, 177.0);
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_x = 333.0_f64.clamp(0.0, plot_right);
+    let expected_y = 177.0_f64.clamp(0.0, plot_bottom);
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.x1 - expected_x).abs() <= 1e-9
+            && (line.x2 - expected_x).abs() <= 1e-9
+            && (line.y1 - 0.0).abs() <= 1e-9
+            && (line.y2 - plot_bottom).abs() <= 1e-9
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.y1 - expected_y).abs() <= 1e-9
+            && (line.y2 - expected_y).abs() <= 1e-9
+            && (line.x1 - 0.0).abs() <= 1e-9
+            && (line.x2 - plot_right).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_lines_use_snapped_coordinates_in_magnet_mode() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+    let style = RenderStyle {
+        crosshair_line_color: Color::rgb(0.24, 0.44, 0.89),
+        crosshair_line_width: 1.75,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(171.0, 300.0);
+
+    let crosshair = engine.crosshair_state();
+    let expected_x = crosshair
+        .snapped_x
+        .expect("magnet crosshair should snap to nearest sample x");
+    let expected_y = crosshair
+        .snapped_y
+        .expect("magnet crosshair should snap to nearest sample y");
+    let viewport_width = f64::from(engine.viewport().width);
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.x1 - expected_x.clamp(0.0, plot_right)).abs() <= 1e-9
+            && (line.x2 - expected_x.clamp(0.0, plot_right)).abs() <= 1e-9
+    }));
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.y1 - expected_y.clamp(0.0, plot_bottom)).abs() <= 1e-9
+            && (line.y2 - expected_y.clamp(0.0, plot_bottom)).abs() <= 1e-9
+    }));
+}
+
+#[test]
+fn crosshair_line_visibility_toggles_are_independent() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_line_color: Color::rgb(0.88, 0.21, 0.29),
+        crosshair_line_width: 2.0,
+        show_crosshair_horizontal_line: true,
+        show_crosshair_vertical_line: false,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    assert!(frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.y1 - line.y2).abs() <= 1e-9
+    }));
+    assert!(!frame.lines.iter().any(|line| {
+        line.color == style.crosshair_line_color
+            && line.stroke_width == style.crosshair_line_width
+            && (line.x1 - line.x2).abs() <= 1e-9
     }));
 }

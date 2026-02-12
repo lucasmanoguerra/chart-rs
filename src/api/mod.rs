@@ -256,6 +256,7 @@ pub struct RenderStyle {
     pub time_axis_label_color: Color,
     pub major_time_label_color: Color,
     pub axis_label_color: Color,
+    pub crosshair_line_color: Color,
     pub last_price_line_color: Color,
     pub last_price_label_color: Color,
     /// Applied when trend coloring is enabled and latest sample is above previous.
@@ -271,6 +272,7 @@ pub struct RenderStyle {
     pub price_axis_tick_mark_width: f64,
     pub time_axis_tick_mark_width: f64,
     pub major_time_tick_mark_width: f64,
+    pub crosshair_line_width: f64,
     pub last_price_line_width: f64,
     pub major_time_label_font_size_px: f64,
     /// Font size used by regular (non-major) time-axis labels.
@@ -306,6 +308,10 @@ pub struct RenderStyle {
     pub show_time_axis_tick_marks: bool,
     /// Controls major time-axis tick-mark visibility independently from regular ticks.
     pub show_major_time_tick_marks: bool,
+    /// Controls visibility of the horizontal crosshair guide line.
+    pub show_crosshair_horizontal_line: bool,
+    /// Controls visibility of the vertical crosshair guide line.
+    pub show_crosshair_vertical_line: bool,
     /// Horizontal inset from right edge used by price-axis labels.
     pub price_axis_label_padding_right_px: f64,
     /// Length of short axis tick marks extending into the price-axis panel.
@@ -357,6 +363,7 @@ impl Default for RenderStyle {
             time_axis_label_color: Color::rgb(0.10, 0.12, 0.16),
             major_time_label_color: Color::rgb(0.10, 0.12, 0.16),
             axis_label_color: Color::rgb(0.10, 0.12, 0.16),
+            crosshair_line_color: Color::rgb(0.30, 0.35, 0.44),
             last_price_line_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_label_color: Color::rgb(0.16, 0.38, 1.0),
             last_price_up_color: Color::rgb(0.06, 0.62, 0.35),
@@ -369,6 +376,7 @@ impl Default for RenderStyle {
             price_axis_tick_mark_width: 1.0,
             time_axis_tick_mark_width: 1.0,
             major_time_tick_mark_width: 1.0,
+            crosshair_line_width: 1.0,
             last_price_line_width: 1.25,
             major_time_label_font_size_px: 12.0,
             time_axis_label_font_size_px: 11.0,
@@ -393,6 +401,8 @@ impl Default for RenderStyle {
             show_major_time_grid_lines: true,
             show_time_axis_tick_marks: true,
             show_major_time_tick_marks: true,
+            show_crosshair_horizontal_line: true,
+            show_crosshair_vertical_line: true,
             price_axis_label_padding_right_px: 6.0,
             price_axis_tick_mark_length_px: 6.0,
             show_last_price_line: true,
@@ -2157,6 +2167,38 @@ impl<R: Renderer> ChartEngine<R> {
             }
         }
 
+        let crosshair = self.interaction.crosshair();
+        if crosshair.visible {
+            let crosshair_x = crosshair
+                .snapped_x
+                .unwrap_or(crosshair.x)
+                .clamp(0.0, plot_right);
+            let crosshair_y = crosshair
+                .snapped_y
+                .unwrap_or(crosshair.y)
+                .clamp(0.0, plot_bottom);
+            if style.show_crosshair_vertical_line {
+                frame = frame.with_line(LinePrimitive::new(
+                    crosshair_x,
+                    0.0,
+                    crosshair_x,
+                    plot_bottom,
+                    style.crosshair_line_width,
+                    style.crosshair_line_color,
+                ));
+            }
+            if style.show_crosshair_horizontal_line {
+                frame = frame.with_line(LinePrimitive::new(
+                    0.0,
+                    crosshair_y,
+                    plot_right,
+                    crosshair_y,
+                    style.crosshair_line_width,
+                    style.crosshair_line_color,
+                ));
+            }
+        }
+
         frame.validate()?;
         Ok(frame)
     }
@@ -2417,6 +2459,7 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     style.time_axis_label_color.validate()?;
     style.major_time_label_color.validate()?;
     style.axis_label_color.validate()?;
+    style.crosshair_line_color.validate()?;
     style.last_price_line_color.validate()?;
     style.last_price_label_color.validate()?;
     style.last_price_up_color.validate()?;
@@ -2443,6 +2486,7 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
             "major_time_tick_mark_width",
             style.major_time_tick_mark_width,
         ),
+        ("crosshair_line_width", style.crosshair_line_width),
         ("last_price_line_width", style.last_price_line_width),
         (
             "major_time_label_font_size_px",

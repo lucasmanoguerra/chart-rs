@@ -361,6 +361,39 @@ fn bench_crosshair_modes_pointer_move(c: &mut Criterion) {
     });
 }
 
+fn bench_crosshair_render_lines(c: &mut Criterion) {
+    let points: Vec<DataPoint> = (0..5_000)
+        .map(|i| {
+            let t = i as f64;
+            DataPoint::new(t, 1_000.0 + (t * 0.01).sin() * 100.0)
+        })
+        .collect();
+
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1600, 900), 0.0, 5_000.0)
+            .with_price_domain(0.0, 2_000.0),
+    )
+    .expect("engine init");
+    engine.set_data(points);
+    engine
+        .set_render_style(RenderStyle {
+            crosshair_line_color: Color::rgb(0.88, 0.27, 0.19),
+            crosshair_line_width: 2.0,
+            show_crosshair_horizontal_line: true,
+            show_crosshair_vertical_line: true,
+            ..engine.render_style()
+        })
+        .expect("set style");
+    engine.pointer_move(800.0, 320.0);
+
+    c.bench_function("crosshair_render_lines", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 fn bench_wheel_zoom_step(c: &mut Criterion) {
     let mut engine = ChartEngine::new(
         NullRenderer::default(),
@@ -1655,6 +1688,7 @@ criterion_group!(
     bench_marker_placement_5k,
     bench_plugin_dispatch_pointer_move,
     bench_crosshair_modes_pointer_move,
+    bench_crosshair_render_lines,
     bench_wheel_zoom_step,
     bench_wheel_pan_step,
     bench_kinetic_pan_step,

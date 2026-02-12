@@ -129,6 +129,7 @@ Responsibilities:
 - configurable major time-axis tick-mark visibility policy (show/hide major axis marks independently from regular time-axis ticks)
 - configurable time-axis border visibility policy (show/hide bottom axis border independently from right price-axis border)
 - configurable price-axis border visibility policy (show/hide right axis border independently from bottom time-axis border)
+- configurable crosshair guide-line render policy (dedicated color/width and independent horizontal/vertical visibility toggles)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -184,6 +185,7 @@ Render invariants:
 - major time-axis tick-mark visibility is a deterministic style knob (`show_major_time_tick_marks`)
 - time-axis border visibility is a deterministic style knob (`show_time_axis_border`)
 - price-axis border visibility is a deterministic style knob (`show_price_axis_border`)
+- crosshair guide lines are deterministic style knobs (`crosshair_line_color`, `crosshair_line_width`, `show_crosshair_horizontal_line`, `show_crosshair_vertical_line`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow
