@@ -94,6 +94,10 @@ Main public facade (`ChartEngine`, `ChartEngineConfig`).
 Key files:
 - `mod.rs` (engine orchestration, state transitions, frame assembly)
 - `render_style.rs` (style enums + `RenderStyle` default contract)
+- `axis_config.rs` (time/price axis formatter config and policy types)
+- `axis_label_format.rs` (axis label formatting, display transforms, and quantization helpers)
+- `label_cache.rs` (label cache keys/profiles, cache stores, and cache stats/types)
+- `validation.rs` (render/axis config validation functions)
 
 Responsibilities:
 - orchestration between core + interaction + renderer
