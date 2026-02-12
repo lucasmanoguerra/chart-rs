@@ -110,6 +110,7 @@ Tuning contracts:
 - crosshair axis-label boxes support deterministic manual or auto-contrast text-color resolution without backend-specific text-measurement dependencies
 - crosshair axis-label boxes support deterministic width-mode resolution (`FitText`/`FullAxis`) per axis panel layout
 - crosshair axis-label box border visibility can be toggled deterministically and independently for time/price axis labels
+- crosshair axis-label anchor Y offsets are deterministic and independently configurable for time/price labels
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract

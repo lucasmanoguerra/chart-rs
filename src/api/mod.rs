@@ -301,6 +301,8 @@ pub struct RenderStyle {
     pub time_axis_label_font_size_px: f64,
     /// Vertical offset from the plot bottom used by time-axis label anchors.
     pub time_axis_label_offset_y_px: f64,
+    /// Vertical offset from the plot bottom used by crosshair time-axis label anchors.
+    pub crosshair_time_label_offset_y_px: f64,
     /// Vertical offset from the plot bottom used by major time-axis label anchors.
     pub major_time_label_offset_y_px: f64,
     /// Length of short vertical tick marks extending into the time-axis panel.
@@ -310,6 +312,8 @@ pub struct RenderStyle {
     pub price_axis_label_font_size_px: f64,
     /// Vertical inset (towards top) applied to price-axis labels from their tick Y position.
     pub price_axis_label_offset_y_px: f64,
+    /// Vertical inset (towards top) applied to crosshair price-axis label from crosshair Y.
+    pub crosshair_price_label_offset_y_px: f64,
     pub last_price_label_font_size_px: f64,
     /// Vertical inset (towards top) applied to last-price label anchor from marker Y position.
     pub last_price_label_offset_y_px: f64,
@@ -427,11 +431,13 @@ impl Default for RenderStyle {
             major_time_label_font_size_px: 12.0,
             time_axis_label_font_size_px: 11.0,
             time_axis_label_offset_y_px: 4.0,
+            crosshair_time_label_offset_y_px: 4.0,
             major_time_label_offset_y_px: 4.0,
             time_axis_tick_mark_length_px: 6.0,
             major_time_tick_mark_length_px: 6.0,
             price_axis_label_font_size_px: 11.0,
             price_axis_label_offset_y_px: 8.0,
+            crosshair_price_label_offset_y_px: 8.0,
             last_price_label_font_size_px: 11.0,
             last_price_label_offset_y_px: 7.92,
             last_price_label_padding_right_px: 6.0,
@@ -2270,7 +2276,7 @@ impl<R: Renderer> ChartEngine<R> {
                     .snapped_time
                     .unwrap_or(self.time_scale.pixel_to_time(crosshair_x, self.viewport)?);
                 let text = self.format_time_axis_label(crosshair_time, visible_span_abs);
-                let time_label_y = (plot_bottom + style.time_axis_label_offset_y_px)
+                let time_label_y = (plot_bottom + style.crosshair_time_label_offset_y_px)
                     .min((viewport_height - style.crosshair_axis_label_font_size_px).max(0.0));
                 let time_label_text_color = if style.show_crosshair_time_label_box {
                     self.resolve_crosshair_label_box_text_color(style.crosshair_time_label_color)
@@ -2348,7 +2354,7 @@ impl<R: Renderer> ChartEngine<R> {
                     display_tick_step_abs,
                     display_suffix,
                 );
-                let text_y = (crosshair_y - style.price_axis_label_offset_y_px).max(0.0);
+                let text_y = (crosshair_y - style.crosshair_price_label_offset_y_px).max(0.0);
                 let price_label_text_color = if style.show_crosshair_price_label_box {
                     self.resolve_crosshair_label_box_text_color(style.crosshair_price_label_color)
                 } else {
@@ -2755,6 +2761,13 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
             "render style `time_axis_label_offset_y_px` must be finite and >= 0".to_owned(),
         ));
     }
+    if !style.crosshair_time_label_offset_y_px.is_finite()
+        || style.crosshair_time_label_offset_y_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_time_label_offset_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
     if !style.major_time_label_offset_y_px.is_finite() || style.major_time_label_offset_y_px < 0.0 {
         return Err(ChartError::InvalidData(
             "render style `major_time_label_offset_y_px` must be finite and >= 0".to_owned(),
@@ -2819,6 +2832,13 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     if !style.price_axis_label_offset_y_px.is_finite() || style.price_axis_label_offset_y_px < 0.0 {
         return Err(ChartError::InvalidData(
             "render style `price_axis_label_offset_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.crosshair_price_label_offset_y_px.is_finite()
+        || style.crosshair_price_label_offset_y_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `crosshair_price_label_offset_y_px` must be finite and >= 0".to_owned(),
         ));
     }
     if !style.last_price_label_offset_y_px.is_finite() || style.last_price_label_offset_y_px < 0.0 {

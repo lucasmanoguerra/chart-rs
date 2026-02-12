@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label vertical-offset parity baseline (`R-050`) with deterministic dedicated Y-offset controls for time and price crosshair labels.
+- New render-style knobs: `crosshair_time_label_offset_y_px` and `crosshair_price_label_offset_y_px`.
+- New render-frame/style/property tests and criterion benchmark coverage for crosshair axis-label vertical-offset behavior.
 - Crosshair axis-label box border-visibility parity baseline (`R-049`) with deterministic independent border toggles for time and price axis labels.
 - New render-style knobs: `show_crosshair_time_label_box_border` and `show_crosshair_price_label_box_border`.
 - New render-frame/property tests and criterion benchmark coverage for crosshair axis-label box border-visibility behavior.
