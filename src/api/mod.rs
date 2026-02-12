@@ -267,6 +267,12 @@ pub struct RenderStyle {
     pub price_axis_tick_mark_width: f64,
     pub last_price_line_width: f64,
     pub major_time_label_font_size_px: f64,
+    /// Font size used by regular (non-major) time-axis labels.
+    pub time_axis_label_font_size_px: f64,
+    /// Vertical offset from the plot bottom used by time-axis label anchors.
+    pub time_axis_label_offset_y_px: f64,
+    /// Length of short vertical tick marks extending into the time-axis panel.
+    pub time_axis_tick_mark_length_px: f64,
     pub price_axis_label_font_size_px: f64,
     /// Vertical inset (towards top) applied to price-axis labels from their tick Y position.
     pub price_axis_label_offset_y_px: f64,
@@ -339,6 +345,9 @@ impl Default for RenderStyle {
             price_axis_tick_mark_width: 1.0,
             last_price_line_width: 1.25,
             major_time_label_font_size_px: 12.0,
+            time_axis_label_font_size_px: 11.0,
+            time_axis_label_offset_y_px: 4.0,
+            time_axis_tick_mark_length_px: 6.0,
             price_axis_label_font_size_px: 11.0,
             price_axis_label_offset_y_px: 8.0,
             last_price_label_font_size_px: 11.0,
@@ -1852,13 +1861,19 @@ impl<R: Renderer> ChartEngine<R> {
                     style.major_time_label_font_size_px,
                 )
             } else {
-                (style.grid_line_color, style.grid_line_width, 11.0)
+                (
+                    style.grid_line_color,
+                    style.grid_line_width,
+                    style.time_axis_label_font_size_px,
+                )
             };
+            let time_label_y = (plot_bottom + style.time_axis_label_offset_y_px)
+                .min((viewport_height - label_font_size_px).max(0.0));
             let text = self.format_time_axis_label(time, visible_span_abs);
             frame = frame.with_text(TextPrimitive::new(
                 text,
                 px,
-                (plot_bottom + 4.0).min((viewport_height - 12.0).max(0.0)),
+                time_label_y,
                 label_font_size_px,
                 label_color,
                 TextHAlign::Center,
@@ -1875,7 +1890,7 @@ impl<R: Renderer> ChartEngine<R> {
                 px,
                 plot_bottom,
                 px,
-                (plot_bottom + 6.0).min(viewport_height),
+                (plot_bottom + style.time_axis_tick_mark_length_px).min(viewport_height),
                 style.axis_line_width,
                 axis_color,
             ));
@@ -2359,6 +2374,10 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
             style.major_time_label_font_size_px,
         ),
         (
+            "time_axis_label_font_size_px",
+            style.time_axis_label_font_size_px,
+        ),
+        (
             "last_price_label_font_size_px",
             style.last_price_label_font_size_px,
         ),
@@ -2384,6 +2403,17 @@ fn validate_render_style(style: RenderStyle) -> ChartResult<RenderStyle> {
     {
         return Err(ChartError::InvalidData(
             "render style `price_axis_label_padding_right_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.time_axis_label_offset_y_px.is_finite() || style.time_axis_label_offset_y_px < 0.0 {
+        return Err(ChartError::InvalidData(
+            "render style `time_axis_label_offset_y_px` must be finite and >= 0".to_owned(),
+        ));
+    }
+    if !style.time_axis_tick_mark_length_px.is_finite() || style.time_axis_tick_mark_length_px < 0.0
+    {
+        return Err(ChartError::InvalidData(
+            "render style `time_axis_tick_mark_length_px` must be finite and >= 0".to_owned(),
         ));
     }
     if !style.last_price_label_padding_right_px.is_finite()

@@ -90,6 +90,7 @@ Tuning contracts:
 - price-axis horizontal grid-line visibility is a deterministic style-level control
 - price-axis regular-label visibility is a deterministic style-level control
 - price-axis horizontal grid-line color/width are deterministic style-level controls independent from time-grid styling
+- time-axis regular-label font size/offset/tick length are deterministic style-level controls
 - in-engine price-label caching reuses deterministic label text across repeated redraws
 - in-engine time-label caching keeps redraw behavior deterministic under all formatter policies
 - plot and price-axis panels are styled through a deterministic render-style contract

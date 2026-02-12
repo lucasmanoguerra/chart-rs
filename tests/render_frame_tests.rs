@@ -1,5 +1,6 @@
 use chart_rs::api::{
     ChartEngine, ChartEngineConfig, LastPriceLabelBoxWidthMode, LastPriceSourceMode, RenderStyle,
+    TimeAxisLabelConfig, TimeAxisLabelPolicy,
 };
 use chart_rs::core::{DataPoint, Viewport};
 use chart_rs::render::{Color, NullRenderer, TextHAlign};
@@ -54,6 +55,70 @@ fn null_renderer_receives_computed_frame_counts() {
     assert_eq!(renderer.last_line_count, frame.lines.len());
     assert_eq!(renderer.last_rect_count, frame.rects.len());
     assert_eq!(renderer.last_text_count, frame.texts.len());
+}
+
+#[test]
+fn time_axis_labels_use_configured_typography_offset_and_tick_length() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_data(vec![
+        DataPoint::new(10.0, 10.0),
+        DataPoint::new(20.0, 25.0),
+        DataPoint::new(40.0, 15.0),
+    ]);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 0 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis config");
+
+    let style = RenderStyle {
+        time_axis_label_font_size_px: 13.0,
+        time_axis_label_offset_y_px: 7.0,
+        time_axis_tick_mark_length_px: 9.0,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+
+    let frame = engine.build_render_frame().expect("build frame");
+    let viewport_height = f64::from(engine.viewport().height);
+    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let expected_label_y = (plot_bottom + style.time_axis_label_offset_y_px)
+        .min((viewport_height - style.time_axis_label_font_size_px).max(0.0));
+    let expected_tick_end_y =
+        (plot_bottom + style.time_axis_tick_mark_length_px).min(viewport_height);
+
+    let time_labels: Vec<_> = frame
+        .texts
+        .iter()
+        .filter(|text| text.h_align == TextHAlign::Center)
+        .collect();
+    assert!(!time_labels.is_empty(), "expected time-axis labels");
+    assert!(time_labels.iter().all(|text| {
+        (text.font_size_px - style.time_axis_label_font_size_px).abs() <= 1e-9
+            && (text.y - expected_label_y).abs() <= 1e-9
+    }));
+
+    let time_tick_marks: Vec<_> = frame
+        .lines
+        .iter()
+        .filter(|line| {
+            line.color == style.axis_border_color
+                && line.stroke_width == style.axis_line_width
+                && (line.x1 - line.x2).abs() <= 1e-9
+                && (line.y1 - plot_bottom).abs() <= 1e-9
+                && line.y2 > line.y1
+        })
+        .collect();
+    assert!(!time_tick_marks.is_empty(), "expected time-axis tick marks");
+    assert!(
+        time_tick_marks
+            .iter()
+            .all(|line| (line.y2 - expected_tick_end_y).abs() <= 1e-9)
+    );
 }
 
 #[test]

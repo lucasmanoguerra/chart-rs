@@ -59,6 +59,9 @@ fn custom_render_style_is_applied_to_frame() {
         price_axis_tick_mark_width: 1.25,
         last_price_line_width: 1.75,
         major_time_label_font_size_px: 13.0,
+        time_axis_label_font_size_px: 11.5,
+        time_axis_label_offset_y_px: 5.0,
+        time_axis_tick_mark_length_px: 7.0,
         price_axis_label_font_size_px: 12.5,
         price_axis_label_offset_y_px: 9.0,
         last_price_label_font_size_px: 12.0,
@@ -307,6 +310,22 @@ fn invalid_price_axis_label_font_size_is_rejected() {
 }
 
 #[test]
+fn invalid_time_axis_label_font_size_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_label_font_size_px = 0.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
 fn invalid_price_axis_label_offset_y_is_rejected() {
     let renderer = NullRenderer::default();
     let config =
@@ -315,6 +334,38 @@ fn invalid_price_axis_label_offset_y_is_rejected() {
 
     let mut style = engine.render_style();
     style.price_axis_label_offset_y_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_time_axis_label_offset_y_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_label_offset_y_px = -1.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_time_axis_tick_mark_length_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.time_axis_tick_mark_length_px = -1.0;
 
     let err = engine
         .set_render_style(style)

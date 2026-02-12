@@ -1191,6 +1191,43 @@ fn bench_price_axis_grid_line_style_render(c: &mut Criterion) {
     });
 }
 
+fn bench_time_axis_label_typography_render(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 2_000.0)
+            .with_price_domain(90.0, 140.0),
+    )
+    .expect("engine init");
+    let points: Vec<DataPoint> = (0..2_000)
+        .map(|i| {
+            let t = i as f64;
+            let y = 100.0 + (t * 0.01).sin() * 5.0 + t * 0.01;
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 0 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis label config");
+    engine
+        .set_render_style(RenderStyle {
+            time_axis_label_font_size_px: 13.0,
+            time_axis_label_offset_y_px: 7.0,
+            time_axis_tick_mark_length_px: 8.0,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    c.bench_function("time_axis_label_typography_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 criterion_group!(
     benches,
     bench_linear_scale_round_trip,
@@ -1211,6 +1248,7 @@ criterion_group!(
     bench_render_axis_layout_narrow,
     bench_time_axis_datetime_formatter,
     bench_time_axis_label_cache_hot,
+    bench_time_axis_label_typography_render,
     bench_time_axis_session_timezone_formatter,
     bench_render_major_time_tick_styling,
     bench_price_axis_min_move_formatter,

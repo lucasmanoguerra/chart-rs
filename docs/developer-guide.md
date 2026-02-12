@@ -116,6 +116,7 @@ Responsibilities:
 - configurable price-axis horizontal grid-line visibility policy (show/hide per-axis grid strokes)
 - configurable price-axis regular-label visibility policy (show/hide non-marker price labels)
 - configurable price-axis horizontal grid-line style policy (color/width independent from time-grid lines)
+- configurable time-axis regular-label typography policy (font size, vertical offset, and short tick-mark length)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -158,6 +159,7 @@ Render invariants:
 - price-axis horizontal grid visibility is a deterministic style knob (`show_price_axis_grid_lines`)
 - price-axis regular-label visibility is a deterministic style knob (`show_price_axis_labels`)
 - price-axis horizontal grid style is deterministic (`price_axis_grid_line_color`, `price_axis_grid_line_width`)
+- time-axis regular-label font size/offset/tick length are deterministic style knobs (`time_axis_label_font_size_px`, `time_axis_label_offset_y_px`, `time_axis_tick_mark_length_px`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow
