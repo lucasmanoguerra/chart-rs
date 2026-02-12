@@ -321,6 +321,45 @@ proptest! {
     }
 
     #[test]
+    fn crosshair_axis_label_box_width_mode_is_deterministic_per_axis(
+        time_full_axis in any::<bool>(),
+        price_full_axis in any::<bool>(),
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let style = RenderStyle {
+            crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
+            crosshair_time_label_box_width_mode: Some(if time_full_axis {
+                CrosshairLabelBoxWidthMode::FullAxis
+            } else {
+                CrosshairLabelBoxWidthMode::FitText
+            }),
+            crosshair_price_label_box_width_mode: Some(if price_full_axis {
+                CrosshairLabelBoxWidthMode::FullAxis
+            } else {
+                CrosshairLabelBoxWidthMode::FitText
+            }),
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        engine.pointer_move(3.0, 250.0);
+
+        let first = engine.build_render_frame().expect("first frame");
+        let second = engine.build_render_frame().expect("second frame");
+        prop_assert_eq!(first, second);
+    }
+
+    #[test]
     fn crosshair_axis_label_box_border_visibility_is_deterministic(
         show_time_border in any::<bool>(),
         show_price_border in any::<bool>(),

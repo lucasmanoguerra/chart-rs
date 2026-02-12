@@ -301,6 +301,8 @@ pub struct RenderStyle {
     pub crosshair_price_label_box_padding_x_px: f64,
     pub crosshair_price_label_box_padding_y_px: f64,
     pub crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode,
+    pub crosshair_time_label_box_width_mode: Option<CrosshairLabelBoxWidthMode>,
+    pub crosshair_price_label_box_width_mode: Option<CrosshairLabelBoxWidthMode>,
     pub crosshair_label_box_border_width_px: f64,
     pub crosshair_time_label_box_border_width_px: f64,
     pub crosshair_price_label_box_border_width_px: f64,
@@ -449,6 +451,8 @@ impl Default for RenderStyle {
             crosshair_price_label_box_padding_x_px: 5.0,
             crosshair_price_label_box_padding_y_px: 2.0,
             crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
+            crosshair_time_label_box_width_mode: None,
+            crosshair_price_label_box_width_mode: None,
             crosshair_label_box_border_width_px: 0.0,
             crosshair_time_label_box_border_width_px: 0.0,
             crosshair_price_label_box_border_width_px: 0.0,
@@ -2325,7 +2329,10 @@ impl<R: Renderer> ChartEngine<R> {
                         &text,
                         style.crosshair_time_label_font_size_px,
                     );
-                    let requested_box_width = match style.crosshair_label_box_width_mode {
+                    let time_box_width_mode = style
+                        .crosshair_time_label_box_width_mode
+                        .unwrap_or(style.crosshair_label_box_width_mode);
+                    let requested_box_width = match time_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => plot_right,
                         CrosshairLabelBoxWidthMode::FitText => {
                             estimated_text_width + 2.0 * style.crosshair_time_label_box_padding_x_px
@@ -2419,7 +2426,10 @@ impl<R: Renderer> ChartEngine<R> {
                         &text,
                         style.crosshair_price_label_font_size_px,
                     );
-                    let requested_box_width = match style.crosshair_label_box_width_mode {
+                    let price_box_width_mode = style
+                        .crosshair_price_label_box_width_mode
+                        .unwrap_or(style.crosshair_label_box_width_mode);
+                    let requested_box_width = match price_box_width_mode {
                         CrosshairLabelBoxWidthMode::FullAxis => axis_panel_width,
                         CrosshairLabelBoxWidthMode::FitText => {
                             estimated_text_width

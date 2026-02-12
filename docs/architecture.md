@@ -108,7 +108,7 @@ Tuning contracts:
 - crosshair time/price axis-label boxes support deterministic fit-text sizing with style-level fill/padding and independent per-axis visibility controls
 - crosshair axis-label boxes support deterministic border/radius styling with clamped corner geometry for backend-stable output
 - crosshair axis-label boxes support deterministic manual or auto-contrast text-color resolution without backend-specific text-measurement dependencies
-- crosshair axis-label boxes support deterministic width-mode resolution (`FitText`/`FullAxis`) per axis panel layout
+- crosshair axis-label boxes support deterministic width-mode resolution (`FitText`/`FullAxis`) with shared default and per-axis overrides
 - crosshair axis-label box border visibility can be toggled deterministically and independently for time/price axis labels
 - crosshair axis-label anchor Y offsets are deterministic and independently configurable for time/price labels
 - crosshair axis-label horizontal insets are deterministic and independently configurable for time/price labels

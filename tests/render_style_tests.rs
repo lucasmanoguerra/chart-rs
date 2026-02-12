@@ -83,6 +83,8 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_price_label_box_padding_x_px: 7.0,
         crosshair_price_label_box_padding_y_px: 3.0,
         crosshair_label_box_width_mode: CrosshairLabelBoxWidthMode::FitText,
+        crosshair_time_label_box_width_mode: Some(CrosshairLabelBoxWidthMode::FullAxis),
+        crosshair_price_label_box_width_mode: Some(CrosshairLabelBoxWidthMode::FitText),
         crosshair_label_box_border_width_px: 1.25,
         crosshair_time_label_box_border_width_px: 1.5,
         crosshair_price_label_box_border_width_px: 1.0,

@@ -134,7 +134,7 @@ Responsibilities:
 - configurable crosshair axis-label box policy (deterministic fit-text boxes with dedicated fill, padding, and independent time/price visibility toggles)
 - configurable crosshair axis-label box border/radius policy (deterministic border width/color and corner-radius styling)
 - configurable crosshair axis-label box text policy (manual text color or automatic contrast from box fill luminance)
-- configurable crosshair axis-label box width-mode policy (`FitText`/`FullAxis`) for time/price axis panels
+- configurable crosshair axis-label box width-mode policy (`FitText`/`FullAxis`) with shared default and optional per-axis overrides
 - configurable crosshair axis-label box border visibility policy (independent time/price border toggles)
 - configurable crosshair axis-label vertical-offset policy (independent time/price Y offsets)
 - configurable crosshair axis-label horizontal-inset policy (independent time/price X insets)
@@ -202,7 +202,7 @@ Render invariants:
 - crosshair axis-label boxes are deterministic style knobs (`crosshair_label_box_color`, `crosshair_label_box_padding_x_px`, `crosshair_label_box_padding_y_px`, `show_crosshair_time_label_box`, `show_crosshair_price_label_box`)
 - crosshair axis-label boxes support deterministic border/radius style knobs (`crosshair_label_box_border_width_px`, `crosshair_label_box_border_color`, `crosshair_label_box_corner_radius_px`)
 - crosshair axis-label box text color is deterministic with manual/auto-contrast policy (`crosshair_label_box_text_color`, `crosshair_label_box_auto_text_contrast`)
-- crosshair axis-label boxes support deterministic width mode selection (`crosshair_label_box_width_mode`)
+- crosshair axis-label boxes support deterministic width mode selection with shared default and per-axis overrides (`crosshair_label_box_width_mode`, `crosshair_time_label_box_width_mode`, `crosshair_price_label_box_width_mode`)
 - crosshair axis-label box border visibility is deterministic per axis (`show_crosshair_time_label_box_border`, `show_crosshair_price_label_box_border`)
 - crosshair axis-label vertical offsets are deterministic per axis (`crosshair_time_label_offset_y_px`, `crosshair_price_label_offset_y_px`)
 - crosshair axis-label horizontal insets are deterministic per axis (`crosshair_time_label_padding_x_px`, `crosshair_price_label_padding_right_px`)
