@@ -8,6 +8,9 @@ and this project adheres to Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Crosshair axis-label box border-visibility parity baseline (`R-049`) with deterministic independent border toggles for time and price axis labels.
+- New render-style knobs: `show_crosshair_time_label_box_border` and `show_crosshair_price_label_box_border`.
+- New render-frame/property tests and criterion benchmark coverage for crosshair axis-label box border-visibility behavior.
 - Crosshair axis-label box width-mode parity baseline (`R-048`) with deterministic `FitText`/`FullAxis` layout behavior on time/price axis panels.
 - New render-style knob: `crosshair_label_box_width_mode` with `CrosshairLabelBoxWidthMode::{FitText, FullAxis}`.
 - New render-frame/property tests and criterion benchmark coverage for crosshair axis-label box width-mode behavior.

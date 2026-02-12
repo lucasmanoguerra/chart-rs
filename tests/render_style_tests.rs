@@ -107,6 +107,8 @@ fn custom_render_style_is_applied_to_frame() {
         show_crosshair_price_label: true,
         show_crosshair_time_label_box: true,
         show_crosshair_price_label_box: true,
+        show_crosshair_time_label_box_border: true,
+        show_crosshair_price_label_box_border: true,
         price_axis_label_padding_right_px: 7.0,
         price_axis_tick_mark_length_px: 8.0,
         show_last_price_line: true,

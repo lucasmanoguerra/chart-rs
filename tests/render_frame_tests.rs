@@ -1864,3 +1864,44 @@ fn crosshair_axis_label_box_width_mode_full_axis_expands_boxes() {
             && rect.y <= plot_bottom + 1e-9
     }));
 }
+
+#[test]
+fn crosshair_axis_label_box_border_visibility_toggles_are_independent() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(900, 500), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+    engine.set_crosshair_mode(CrosshairMode::Normal);
+    let style = RenderStyle {
+        crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.17),
+        crosshair_label_box_border_color: Color::rgb(0.15, 0.20, 0.35),
+        crosshair_label_box_border_width_px: 1.5,
+        show_crosshair_time_label_box: true,
+        show_crosshair_price_label_box: true,
+        show_crosshair_time_label_box_border: false,
+        show_crosshair_price_label_box_border: true,
+        ..engine.render_style()
+    };
+    engine.set_render_style(style).expect("set style");
+    engine.pointer_move(260.0, 210.0);
+    let frame = engine.build_render_frame().expect("build frame");
+
+    let viewport_width = f64::from(engine.viewport().width);
+    let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+    let boxes: Vec<_> = frame
+        .rects
+        .iter()
+        .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        .collect();
+    assert_eq!(boxes.len(), 2);
+    assert!(boxes.iter().any(|rect| {
+        rect.x < plot_right
+            && rect.border_width == 0.0
+            && rect.border_color == Color::rgba(0.0, 0.0, 0.0, 0.0)
+    }));
+    assert!(boxes.iter().any(|rect| {
+        rect.x >= plot_right
+            && (rect.border_width - style.crosshair_label_box_border_width_px).abs() <= 1e-9
+            && rect.border_color == style.crosshair_label_box_border_color
+    }));
+}

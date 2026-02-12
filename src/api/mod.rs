@@ -342,6 +342,10 @@ pub struct RenderStyle {
     pub show_crosshair_time_label_box: bool,
     /// Controls visibility of the crosshair price-axis label box.
     pub show_crosshair_price_label_box: bool,
+    /// Controls visibility of the border stroke for the crosshair time-axis label box.
+    pub show_crosshair_time_label_box_border: bool,
+    /// Controls visibility of the border stroke for the crosshair price-axis label box.
+    pub show_crosshair_price_label_box_border: bool,
     /// Horizontal inset from right edge used by price-axis labels.
     pub price_axis_label_padding_right_px: f64,
     /// Length of short axis tick marks extending into the price-axis panel.
@@ -449,6 +453,8 @@ impl Default for RenderStyle {
             show_crosshair_price_label: true,
             show_crosshair_time_label_box: true,
             show_crosshair_price_label_box: true,
+            show_crosshair_time_label_box_border: true,
+            show_crosshair_price_label_box_border: true,
             price_axis_label_padding_right_px: 6.0,
             price_axis_tick_mark_length_px: 6.0,
             show_last_price_line: true,
@@ -2300,7 +2306,9 @@ impl<R: Renderer> ChartEngine<R> {
                             box_height,
                             style.crosshair_label_box_color,
                         );
-                        if style.crosshair_label_box_border_width_px > 0.0 {
+                        if style.show_crosshair_time_label_box_border
+                            && style.crosshair_label_box_border_width_px > 0.0
+                        {
                             rect = rect.with_border(
                                 style.crosshair_label_box_border_width_px,
                                 style.crosshair_label_box_border_color,
@@ -2379,7 +2387,9 @@ impl<R: Renderer> ChartEngine<R> {
                             box_height,
                             style.crosshair_label_box_color,
                         );
-                        if style.crosshair_label_box_border_width_px > 0.0 {
+                        if style.show_crosshair_price_label_box_border
+                            && style.crosshair_label_box_border_width_px > 0.0
+                        {
                             rect = rect.with_border(
                                 style.crosshair_label_box_border_width_px,
                                 style.crosshair_label_box_border_color,

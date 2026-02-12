@@ -319,4 +319,54 @@ proptest! {
         prop_assert!(boxes.iter().any(|rect| (rect.width - plot_right).abs() <= 1e-9));
         prop_assert!(boxes.iter().any(|rect| (rect.width - axis_panel_width).abs() <= 1e-9));
     }
+
+    #[test]
+    fn crosshair_axis_label_box_border_visibility_is_deterministic(
+        show_time_border in any::<bool>(),
+        show_price_border in any::<bool>(),
+    ) {
+        let renderer = NullRenderer::default();
+        let config = ChartEngineConfig::new(Viewport::new(1280, 720), 0.0, 2000.0)
+            .with_price_domain(-6000.0, 6000.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+        engine.set_data(vec![
+            DataPoint::new(10.0, 100.0),
+            DataPoint::new(100.0, 200.0),
+            DataPoint::new(250.0, -50.0),
+        ]);
+        engine.set_crosshair_mode(CrosshairMode::Normal);
+        let style = RenderStyle {
+            crosshair_label_box_color: Color::rgb(0.93, 0.82, 0.18),
+            crosshair_label_box_border_width_px: 1.5,
+            show_crosshair_time_label_box: true,
+            show_crosshair_price_label_box: true,
+            show_crosshair_time_label_box_border: show_time_border,
+            show_crosshair_price_label_box_border: show_price_border,
+            ..engine.render_style()
+        };
+        engine.set_render_style(style).expect("set style");
+        engine.pointer_move(400.0, 250.0);
+
+        let first = engine.build_render_frame().expect("first frame");
+        let second = engine.build_render_frame().expect("second frame");
+        prop_assert_eq!(first, second);
+
+        let viewport_width = f64::from(engine.viewport().width);
+        let plot_right = (viewport_width - style.price_axis_width_px).clamp(0.0, viewport_width);
+        let mut actual_time_border = false;
+        let mut actual_price_border = false;
+        for rect in first
+            .rects
+            .iter()
+            .filter(|rect| rect.fill_color == style.crosshair_label_box_color)
+        {
+            if rect.x < plot_right {
+                actual_time_border = rect.border_width > 0.0;
+            } else {
+                actual_price_border = rect.border_width > 0.0;
+            }
+        }
+        prop_assert_eq!(actual_time_border, show_time_border);
+        prop_assert_eq!(actual_price_border, show_price_border);
+    }
 }
