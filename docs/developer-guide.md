@@ -147,6 +147,7 @@ Responsibilities:
 - configurable crosshair axis-label box min-width policy per axis (independent time/price minimum-width constraints)
 - configurable crosshair axis-label box text-alignment policy per axis (independent time/price text alignment with shared fallback)
 - configurable crosshair axis-label box vertical-anchor policy per axis (independent time/price vertical anchoring with shared fallback)
+- configurable crosshair axis-label box horizontal-anchor policy per axis (independent time/price horizontal anchoring with shared fallback)
 - timezone/session-aware time-axis labeling for trading-hour style charts
 - major time-tick visual emphasis for session/day boundaries
 - render style contract for grid/axis parity tuning
@@ -220,6 +221,7 @@ Render invariants:
 - crosshair axis-label box min-widths are deterministic per axis (`crosshair_label_box_min_width_px`, `crosshair_time_label_box_min_width_px`, `crosshair_price_label_box_min_width_px`)
 - crosshair axis-label box text alignment is deterministic per axis (`crosshair_label_box_text_h_align`, `crosshair_time_label_box_text_h_align`, `crosshair_price_label_box_text_h_align`)
 - crosshair axis-label box vertical anchor is deterministic per axis (`crosshair_label_box_vertical_anchor`, `crosshair_time_label_box_vertical_anchor`, `crosshair_price_label_box_vertical_anchor`)
+- crosshair axis-label box horizontal anchor is deterministic per axis (`crosshair_label_box_horizontal_anchor`, `crosshair_time_label_box_horizontal_anchor`, `crosshair_price_label_box_horizontal_anchor`)
 - render style controls grid/border/axis panel visuals without leaking backend logic into `api`
 
 ## 3) Data Flow

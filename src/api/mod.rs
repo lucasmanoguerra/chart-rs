@@ -261,6 +261,15 @@ pub enum CrosshairLabelBoxVerticalAnchor {
     Bottom,
 }
 
+/// Horizontal anchor used for crosshair axis-label box layout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CrosshairLabelBoxHorizontalAnchor {
+    Left,
+    #[default]
+    Center,
+    Right,
+}
+
 /// Style contract for the current render frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderStyle {
@@ -324,6 +333,9 @@ pub struct RenderStyle {
     pub crosshair_label_box_vertical_anchor: CrosshairLabelBoxVerticalAnchor,
     pub crosshair_time_label_box_vertical_anchor: Option<CrosshairLabelBoxVerticalAnchor>,
     pub crosshair_price_label_box_vertical_anchor: Option<CrosshairLabelBoxVerticalAnchor>,
+    pub crosshair_label_box_horizontal_anchor: Option<CrosshairLabelBoxHorizontalAnchor>,
+    pub crosshair_time_label_box_horizontal_anchor: Option<CrosshairLabelBoxHorizontalAnchor>,
+    pub crosshair_price_label_box_horizontal_anchor: Option<CrosshairLabelBoxHorizontalAnchor>,
     pub crosshair_label_box_min_width_px: f64,
     pub crosshair_time_label_box_min_width_px: f64,
     pub crosshair_price_label_box_min_width_px: f64,
@@ -489,6 +501,9 @@ impl Default for RenderStyle {
             crosshair_label_box_vertical_anchor: CrosshairLabelBoxVerticalAnchor::Center,
             crosshair_time_label_box_vertical_anchor: None,
             crosshair_price_label_box_vertical_anchor: None,
+            crosshair_label_box_horizontal_anchor: None,
+            crosshair_time_label_box_horizontal_anchor: None,
+            crosshair_price_label_box_horizontal_anchor: None,
             crosshair_label_box_min_width_px: 0.0,
             crosshair_time_label_box_min_width_px: 0.0,
             crosshair_price_label_box_min_width_px: 0.0,
@@ -2442,8 +2457,21 @@ impl<R: Renderer> ChartEngine<R> {
                     let box_width = requested_box_width
                         .max(time_box_min_width)
                         .clamp(0.0, plot_right);
+                    let time_box_horizontal_anchor = style
+                        .crosshair_time_label_box_horizontal_anchor
+                        .or(style.crosshair_label_box_horizontal_anchor)
+                        .unwrap_or(CrosshairLabelBoxHorizontalAnchor::Center);
                     let max_left = (plot_right - box_width).max(0.0);
-                    let box_left = (crosshair_time_label_x - box_width * 0.5).clamp(0.0, max_left);
+                    let requested_left = match time_box_horizontal_anchor {
+                        CrosshairLabelBoxHorizontalAnchor::Left => crosshair_time_label_x,
+                        CrosshairLabelBoxHorizontalAnchor::Center => {
+                            crosshair_time_label_x - box_width * 0.5
+                        }
+                        CrosshairLabelBoxHorizontalAnchor::Right => {
+                            crosshair_time_label_x - box_width
+                        }
+                    };
+                    let box_left = requested_left.clamp(0.0, max_left);
                     let (resolved_time_label_y, box_top, box_bottom) =
                         Self::resolve_crosshair_box_vertical_layout(
                             time_label_anchor_y,
@@ -2579,7 +2607,19 @@ impl<R: Renderer> ChartEngine<R> {
                     let box_width = requested_box_width
                         .max(price_box_min_width)
                         .clamp(0.0, axis_panel_width);
-                    let box_left = (viewport_width - box_width).max(axis_panel_left);
+                    let price_box_horizontal_anchor = style
+                        .crosshair_price_label_box_horizontal_anchor
+                        .or(style.crosshair_label_box_horizontal_anchor)
+                        .unwrap_or(CrosshairLabelBoxHorizontalAnchor::Right);
+                    let requested_left = match price_box_horizontal_anchor {
+                        CrosshairLabelBoxHorizontalAnchor::Left => axis_panel_left,
+                        CrosshairLabelBoxHorizontalAnchor::Center => {
+                            axis_panel_left + (axis_panel_width - box_width) * 0.5
+                        }
+                        CrosshairLabelBoxHorizontalAnchor::Right => viewport_width - box_width,
+                    };
+                    let box_left =
+                        requested_left.clamp(axis_panel_left, viewport_width - box_width);
                     let (resolved_price_label_y, box_top, box_bottom) =
                         Self::resolve_crosshair_box_vertical_layout(
                             price_label_anchor_y,
