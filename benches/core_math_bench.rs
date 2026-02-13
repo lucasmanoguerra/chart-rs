@@ -3,8 +3,8 @@ use chart_rs::api::{
     CrosshairLabelBoxOverflowPolicy, CrosshairLabelBoxVerticalAnchor,
     CrosshairLabelBoxVisibilityPriority, CrosshairLabelBoxWidthMode, CrosshairLabelBoxZOrderPolicy,
     LastPriceLabelBoxWidthMode, LastPriceSourceMode, PriceAxisDisplayMode, PriceAxisLabelConfig,
-    PriceAxisLabelPolicy, RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy,
-    TimeAxisSessionConfig, TimeAxisTimeZone,
+    PriceAxisLabelPolicy, PriceScaleTransformedBaseBehavior, PriceScaleTransformedBaseSource,
+    RenderStyle, TimeAxisLabelConfig, TimeAxisLabelPolicy, TimeAxisSessionConfig, TimeAxisTimeZone,
 };
 use chart_rs::core::{
     DataPoint, LinearScale, OhlcBar, PriceScale, PriceScaleMode, TimeScale, Viewport,
@@ -291,6 +291,114 @@ fn bench_engine_snapshot_json_2k(c: &mut Criterion) {
             let _ = engine
                 .snapshot_json_pretty(black_box(7.0))
                 .expect("snapshot json should succeed");
+        })
+    });
+}
+
+fn bench_price_scale_transformed_base_dynamic_refresh_visible_window(c: &mut Criterion) {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(1200, 700), 0.0, 4_000.0)
+        .with_price_domain(80.0, 220.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let points: Vec<DataPoint> = (0..4_000)
+        .map(|idx| {
+            let time = idx as f64;
+            let value = 100.0 + (time * 0.015).sin() * 8.0 + time * 0.01;
+            DataPoint::new(time, value)
+        })
+        .collect();
+    engine.set_data(points);
+
+    engine
+        .set_price_scale_mode(PriceScaleMode::Percentage)
+        .expect("percentage mode");
+    engine
+        .set_price_scale_transformed_base_behavior(PriceScaleTransformedBaseBehavior {
+            explicit_base_price: None,
+            dynamic_source: PriceScaleTransformedBaseSource::LastVisibleData,
+        })
+        .expect("transformed base behavior");
+
+    let mut window_start = 0.0f64;
+    c.bench_function(
+        "price_scale_transformed_base_dynamic_refresh_visible_window",
+        |b| {
+            b.iter(|| {
+                window_start += 7.0;
+                if window_start > 3_400.0 {
+                    window_start = 0.0;
+                }
+                let window_end = window_start + 500.0;
+                engine
+                    .set_time_visible_range(black_box(window_start), black_box(window_end))
+                    .expect("set visible range");
+                let _ = black_box(engine.price_scale_transformed_base_value());
+            })
+        },
+    );
+}
+
+fn bench_time_scale_sparse_nearest_filled_slot_lookup(c: &mut Criterion) {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(1200, 700), 0.0, 10_000.0).with_price_domain(0.0, 1.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let points: Vec<DataPoint> = (0..20_000)
+        .map(|idx| {
+            let time = (idx as f64) * 0.5;
+            let value = 0.5 + (time * 0.002).sin() * 0.2;
+            DataPoint::new(time, value)
+        })
+        .collect();
+    engine.set_data(points);
+
+    let mut pixel = 0.0f64;
+    c.bench_function("time_scale_sparse_nearest_filled_slot_lookup", |b| {
+        b.iter(|| {
+            pixel += 17.0;
+            if pixel >= 1200.0 {
+                pixel -= 1200.0;
+            }
+            let _ = black_box(
+                engine
+                    .nearest_filled_logical_slot_at_pixel(black_box(pixel))
+                    .expect("nearest filled slot"),
+            );
+        })
+    });
+}
+
+fn bench_time_scale_sparse_next_prev_filled_lookup(c: &mut Criterion) {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(1200, 700), 0.0, 10_000.0).with_price_domain(0.0, 1.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let points: Vec<DataPoint> = (0..20_000)
+        .map(|idx| {
+            let time = (idx as f64) * 0.5;
+            let value = 0.5 + (time * 0.002).cos() * 0.2;
+            DataPoint::new(time, value)
+        })
+        .collect();
+    engine.set_data(points);
+
+    let mut query = 0.0f64;
+    c.bench_function("time_scale_sparse_next_prev_filled_lookup", |b| {
+        b.iter(|| {
+            query += 3.75;
+            if query > 19_990.0 {
+                query = 0.0;
+            }
+            let next = engine
+                .next_filled_logical_index(black_box(query))
+                .expect("next filled");
+            let prev = engine
+                .prev_filled_logical_index(black_box(query))
+                .expect("prev filled");
+            let _ = black_box((next, prev));
         })
     });
 }
@@ -1826,6 +1934,76 @@ fn bench_render_axis_layout_narrow(c: &mut Criterion) {
     });
 }
 
+fn make_axis_density_zoom_bench_engine(zoom_in: bool) -> ChartEngine<NullRenderer> {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(1200, 520), 0.0, 40_000.0)
+            .with_price_domain(80.0, 220.0),
+    )
+    .expect("engine init");
+
+    let points: Vec<DataPoint> = (0..20_000)
+        .map(|i| {
+            let t = i as f64 * 2.0;
+            let y = 120.0 + (t * 0.003).sin() * 12.0 + (t * 0.0002);
+            DataPoint::new(t, y)
+        })
+        .collect();
+    engine.set_data(points);
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::LogicalDecimal { precision: 0 },
+            ..TimeAxisLabelConfig::default()
+        })
+        .expect("set time-axis policy");
+    engine
+        .set_render_style(RenderStyle {
+            show_last_price_line: false,
+            show_last_price_label: false,
+            ..engine.render_style()
+        })
+        .expect("set style");
+
+    if zoom_in {
+        engine
+            .set_time_visible_range(19_500.0, 20_500.0)
+            .expect("set zoomed-in time range");
+        let _ = engine
+            .axis_drag_scale_price(-720.0, 260.0, 0.2, 1e-6)
+            .expect("zoom in price scale");
+    } else {
+        engine
+            .set_time_visible_range(0.0, 40_000.0)
+            .expect("set zoomed-out time range");
+        let _ = engine
+            .axis_drag_scale_price(420.0, 260.0, 0.2, 1e-6)
+            .expect("zoom out price scale");
+    }
+
+    engine
+}
+
+fn bench_axis_density_zoom_adaptive_out_render(c: &mut Criterion) {
+    let engine = make_axis_density_zoom_bench_engine(false);
+
+    c.bench_function("axis_density_zoom_adaptive_out_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_axis_density_zoom_adaptive_in_render(c: &mut Criterion) {
+    let engine = make_axis_density_zoom_bench_engine(true);
+
+    c.bench_function("axis_density_zoom_adaptive_in_render", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 fn bench_time_axis_datetime_formatter(c: &mut Criterion) {
     let mut engine = ChartEngine::new(
         NullRenderer::default(),
@@ -2205,6 +2383,42 @@ fn bench_price_axis_log_mode_display(c: &mut Criterion) {
     });
 }
 
+fn bench_price_axis_percentage_scale_mode_display(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 1_000.0)
+            .with_price_domain(95.0, 105.0),
+    )
+    .expect("engine init");
+    engine
+        .set_price_scale_mode(PriceScaleMode::Percentage)
+        .expect("set percentage scale mode");
+
+    c.bench_function("price_axis_percentage_scale_mode_display", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn bench_price_axis_indexed_scale_mode_display(c: &mut Criterion) {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 1_000.0)
+            .with_price_domain(50.0, 150.0),
+    )
+    .expect("engine init");
+    engine
+        .set_price_scale_mode(PriceScaleMode::IndexedTo100)
+        .expect("set indexed scale mode");
+
+    c.bench_function("price_axis_indexed_scale_mode_display", |b| {
+        b.iter(|| {
+            let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
 fn bench_price_scale_log_ladder_ticks(c: &mut Criterion) {
     let scale = PriceScale::new_with_mode(1.0, 1_000_000.0, PriceScaleMode::Log).expect("scale");
 
@@ -2235,6 +2449,146 @@ fn bench_price_axis_label_cache_hot(c: &mut Criterion) {
     c.bench_function("price_axis_label_cache_hot", |b| {
         b.iter(|| {
             let _ = engine.build_render_frame().expect("build render frame");
+        })
+    });
+}
+
+fn make_price_axis_fallback_bench_engine(
+    display_mode: PriceAxisDisplayMode,
+    domain_min: f64,
+    domain_max: f64,
+    data: Vec<DataPoint>,
+    locale: AxisLabelLocale,
+) -> ChartEngine<NullRenderer> {
+    let mut engine = ChartEngine::new(
+        NullRenderer::default(),
+        ChartEngineConfig::new(Viewport::new(920, 420), 0.0, 1_000.0)
+            .with_price_domain(domain_min, domain_max),
+    )
+    .expect("engine init");
+    if !data.is_empty() {
+        engine.set_data(data);
+    }
+    engine
+        .set_price_axis_label_config(PriceAxisLabelConfig {
+            locale,
+            policy: PriceAxisLabelPolicy::FixedDecimals { precision: 2 },
+            display_mode,
+        })
+        .expect("set fallback display mode");
+    engine
+}
+
+fn bench_price_axis_display_mode_fallback_cache_cost(c: &mut Criterion) {
+    let hot_percentage_invalid = make_price_axis_fallback_bench_engine(
+        PriceAxisDisplayMode::Percentage {
+            base_price: Some(f64::NAN),
+        },
+        -20.0,
+        120.0,
+        vec![
+            DataPoint::new(0.0, 100.0),
+            DataPoint::new(1.0, 101.0),
+            DataPoint::new(2.0, 99.5),
+            DataPoint::new(3.0, 102.0),
+        ],
+        AxisLabelLocale::EnUs,
+    );
+    let hot_percentage_none_zero = make_price_axis_fallback_bench_engine(
+        PriceAxisDisplayMode::Percentage { base_price: None },
+        -20.0,
+        120.0,
+        vec![
+            DataPoint::new(0.0, 0.0),
+            DataPoint::new(1.0, 100.0),
+            DataPoint::new(2.0, 99.0),
+            DataPoint::new(3.0, 101.0),
+        ],
+        AxisLabelLocale::EsEs,
+    );
+    let hot_indexed_domain_zero = make_price_axis_fallback_bench_engine(
+        PriceAxisDisplayMode::IndexedTo100 { base_price: None },
+        0.0,
+        20.0,
+        Vec::new(),
+        AxisLabelLocale::EnUs,
+    );
+
+    hot_percentage_invalid.clear_price_label_cache();
+    hot_percentage_none_zero.clear_price_label_cache();
+    hot_indexed_domain_zero.clear_price_label_cache();
+    let _ = hot_percentage_invalid
+        .build_render_frame()
+        .expect("warm invalid fallback cache");
+    let _ = hot_percentage_none_zero
+        .build_render_frame()
+        .expect("warm none-zero fallback cache");
+    let _ = hot_indexed_domain_zero
+        .build_render_frame()
+        .expect("warm domain fallback cache");
+
+    c.bench_function("price_axis_display_mode_fallback_cache_hot_mixed", |b| {
+        b.iter(|| {
+            let _ = hot_percentage_invalid
+                .build_render_frame()
+                .expect("build render frame");
+            let _ = hot_percentage_none_zero
+                .build_render_frame()
+                .expect("build render frame");
+            let _ = hot_indexed_domain_zero
+                .build_render_frame()
+                .expect("build render frame");
+        })
+    });
+
+    let cold_percentage_invalid = make_price_axis_fallback_bench_engine(
+        PriceAxisDisplayMode::Percentage {
+            base_price: Some(f64::NAN),
+        },
+        -20.0,
+        120.0,
+        vec![
+            DataPoint::new(0.0, 100.0),
+            DataPoint::new(1.0, 101.0),
+            DataPoint::new(2.0, 99.5),
+            DataPoint::new(3.0, 102.0),
+        ],
+        AxisLabelLocale::EnUs,
+    );
+    let cold_percentage_none_zero = make_price_axis_fallback_bench_engine(
+        PriceAxisDisplayMode::Percentage { base_price: None },
+        -20.0,
+        120.0,
+        vec![
+            DataPoint::new(0.0, 0.0),
+            DataPoint::new(1.0, 100.0),
+            DataPoint::new(2.0, 99.0),
+            DataPoint::new(3.0, 101.0),
+        ],
+        AxisLabelLocale::EsEs,
+    );
+    let cold_indexed_domain_zero = make_price_axis_fallback_bench_engine(
+        PriceAxisDisplayMode::IndexedTo100 { base_price: None },
+        0.0,
+        20.0,
+        Vec::new(),
+        AxisLabelLocale::EnUs,
+    );
+
+    c.bench_function("price_axis_display_mode_fallback_cache_cold_mixed", |b| {
+        b.iter(|| {
+            cold_percentage_invalid.clear_price_label_cache();
+            cold_percentage_none_zero.clear_price_label_cache();
+            cold_indexed_domain_zero.clear_price_label_cache();
+            let _ = cold_percentage_invalid
+                .build_render_frame()
+                .expect("build render frame");
+            let _ = cold_percentage_none_zero
+                .build_render_frame()
+                .expect("build render frame");
+            let _ = cold_indexed_domain_zero
+                .build_render_frame()
+                .expect("build render frame");
         })
     });
 }
@@ -3041,6 +3395,8 @@ criterion_group!(
     bench_kinetic_pan_step,
     bench_render_frame_build_20k,
     bench_render_axis_layout_narrow,
+    bench_axis_density_zoom_adaptive_out_render,
+    bench_axis_density_zoom_adaptive_in_render,
     bench_time_axis_datetime_formatter,
     bench_time_axis_label_cache_hot,
     bench_time_axis_label_typography_render,
@@ -3061,8 +3417,11 @@ criterion_group!(
     bench_price_axis_min_move_formatter,
     bench_price_axis_percentage_display,
     bench_price_axis_log_mode_display,
+    bench_price_axis_percentage_scale_mode_display,
+    bench_price_axis_indexed_scale_mode_display,
     bench_price_scale_log_ladder_ticks,
     bench_price_axis_label_cache_hot,
+    bench_price_axis_display_mode_fallback_cache_cost,
     bench_last_price_marker_render,
     bench_last_price_trend_color_render,
     bench_last_price_label_collision_filter,
@@ -3078,6 +3437,9 @@ criterion_group!(
     bench_price_axis_grid_lines_hidden_render,
     bench_price_axis_labels_hidden_render,
     bench_price_axis_grid_line_style_render,
+    bench_price_scale_transformed_base_dynamic_refresh_visible_window,
+    bench_time_scale_sparse_nearest_filled_slot_lookup,
+    bench_time_scale_sparse_next_prev_filled_lookup,
     bench_engine_snapshot_json_2k
 );
 criterion_main!(benches);

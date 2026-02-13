@@ -1,0 +1,15 @@
+[build]
+# Limit cargo parallelism to keep test/compile RSS bounded on low-memory machines.
+jobs = 1
+
+[env]
+# Keep each test binary single-threaded to avoid high stack/thread overhead.
+RUST_TEST_THREADS = "1"
+# Bound default property-test workload; dedicated stress jobs override these.
+PROPTEST_CASES = "96"
+PROPTEST_MAX_SHRINK_ITERS = "512"
+
+[alias]
+test-core = "test --all-features -j 1 -- --test-threads=1"
+test-visual = "test --all-features -j 1 --test lightweight_visual_differential_tests -- --ignored --exact lightweight_visual_baseline_png_diff_stays_within_tolerance --test-threads=1"
+test-low-mem = "test --all-features -j 1 -- --test-threads=1"

@@ -37,9 +37,141 @@ jobs:
         run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Test
-        run: cargo test --all-features
+        run: cargo test --all-features -j 1 -- --test-threads=1
 
       - name: Docs
         env:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --no-deps --all-features
+
+  parity_visual_property_guard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-4-dev \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libglib2.0-dev
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Visual differential guard (C-110)
+        env:
+          LIGHTWEIGHT_VISUAL_DIFF_ARTIFACT_DIR: target/lightweight_visual_diff_artifacts
+        run: cargo test --all-features -j 1 --test lightweight_visual_differential_tests -- --ignored --exact lightweight_visual_baseline_png_diff_stays_within_tolerance --test-threads=1
+
+      - name: Property stress guard (C-111)
+        env:
+          PROPTEST_CASES: "512"
+          PROPTEST_MAX_SHRINK_ITERS: "2048"
+        run: cargo test --all-features -j 1 --test property_extreme_scale_roundtrip_tests -- --test-threads=1
+
+      - name: Upload visual diff artifacts (C-117)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lightweight-visual-diff-${{ github.run_id }}-${{ github.run_attempt }}
+          path: target/lightweight_visual_diff_artifacts
+          if-no-files-found: warn
+          retention-days: 14
+
+  perf_fallback_guard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-4-dev \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libglib2.0-dev
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run focused fallback benchmarks
+        run: cargo bench --all-features --bench core_math_bench -- price_axis_display_mode_fallback_cache_ --noplot
+
+      - name: Validate fallback benchmark guardrails
+        run: python3 scripts/check_fallback_bench_regressions.py --criterion-root target/criterion
+
+  perf_axis_density_guard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-4-dev \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libglib2.0-dev
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run focused axis-density benchmarks
+        run: cargo bench --all-features --bench core_math_bench -- axis_density_zoom_adaptive_ --noplot
+
+      - name: Validate axis-density benchmark guardrails
+        run: python3 scripts/check_axis_density_bench_regressions.py --criterion-root target/criterion
+
+  perf_new_parity_guard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-4-dev \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libglib2.0-dev
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run transformed-base parity benchmark
+        run: cargo bench --all-features --bench core_math_bench -- price_scale_transformed_base_dynamic_refresh_visible_window --noplot
+
+      - name: Run sparse nearest-slot parity benchmark
+        run: cargo bench --all-features --bench core_math_bench -- time_scale_sparse_nearest_filled_slot_lookup --noplot
+
+      - name: Run sparse next-prev parity benchmark
+        run: cargo bench --all-features --bench core_math_bench -- time_scale_sparse_next_prev_filled_lookup --noplot
+
+      - name: Validate new parity benchmark guardrails
+        run: python3 scripts/check_new_parity_bench_regressions.py --criterion-root target/criterion

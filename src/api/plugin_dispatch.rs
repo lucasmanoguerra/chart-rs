@@ -49,6 +49,12 @@ impl<R: Renderer> ChartEngine<R> {
     }
 
     pub(super) fn emit_visible_range_changed(&mut self) {
+        if let Err(err) = self.refresh_price_scale_transformed_base() {
+            warn!(
+                error = %err,
+                "skipping transformed-base refresh on visible-range change"
+            );
+        }
         self.clear_crosshair_context_formatter_caches_if_needed();
         self.maybe_autoscale_price_after_time_range_change();
         let (start, end) = self.time_scale.visible_range();

@@ -107,6 +107,58 @@ pub(super) fn format_time_axis_label(
     }
 }
 
+pub(super) fn format_time_axis_tick_label(
+    logical_time: f64,
+    config: TimeAxisLabelConfig,
+    visible_span_abs: f64,
+    tick_step_abs: f64,
+    is_major_tick: bool,
+) -> String {
+    if !logical_time.is_finite() {
+        return "nan".to_owned();
+    }
+
+    match resolve_time_axis_tick_pattern(
+        config.policy,
+        visible_span_abs,
+        tick_step_abs,
+        is_major_tick,
+    ) {
+        ResolvedTimeLabelPattern::LogicalDecimal { precision } => {
+            format_axis_decimal(logical_time, usize::from(precision), config.locale)
+        }
+        ResolvedTimeLabelPattern::Utc { pattern } => {
+            format_utc_time_label(logical_time, config, pattern)
+        }
+    }
+}
+
+pub(super) fn resolve_time_axis_tick_pattern(
+    policy: TimeAxisLabelPolicy,
+    visible_span_abs: f64,
+    tick_step_abs: f64,
+    is_major_tick: bool,
+) -> ResolvedTimeLabelPattern {
+    match policy {
+        TimeAxisLabelPolicy::LogicalDecimal { precision } => {
+            ResolvedTimeLabelPattern::LogicalDecimal { precision }
+        }
+        TimeAxisLabelPolicy::UtcDateTime { show_seconds } => {
+            let pattern = if show_seconds {
+                TimeLabelPattern::DateSecond
+            } else {
+                TimeLabelPattern::DateMinute
+            };
+            ResolvedTimeLabelPattern::Utc { pattern }
+        }
+        TimeAxisLabelPolicy::UtcAdaptive => {
+            let pattern =
+                resolve_adaptive_tick_pattern(visible_span_abs, tick_step_abs.abs(), is_major_tick);
+            ResolvedTimeLabelPattern::Utc { pattern }
+        }
+    }
+}
+
 pub(super) fn format_time_axis_label_with_precision(
     logical_time: f64,
     config: TimeAxisLabelConfig,
@@ -143,6 +195,82 @@ fn resolve_session_time_label_pattern(
         TimeLabelPattern::DateSecond => TimeLabelPattern::TimeSecond,
         other => other,
     }
+}
+
+fn resolve_adaptive_tick_pattern(
+    visible_span_abs: f64,
+    tick_step_abs: f64,
+    is_major_tick: bool,
+) -> TimeLabelPattern {
+    let base = if visible_span_abs <= 600.0 {
+        TimeLabelPattern::DateSecond
+    } else if visible_span_abs <= 172_800.0 {
+        TimeLabelPattern::DateMinute
+    } else {
+        TimeLabelPattern::Date
+    };
+    let step = if tick_step_abs.is_finite() {
+        tick_step_abs.max(0.0)
+    } else {
+        f64::INFINITY
+    };
+
+    if is_major_tick {
+        return if step < 60.0 {
+            TimeLabelPattern::DateSecond
+        } else if step < 3_600.0 {
+            TimeLabelPattern::DateMinute
+        } else {
+            TimeLabelPattern::Date
+        };
+    }
+
+    match base {
+        TimeLabelPattern::DateSecond | TimeLabelPattern::DateMinute => {
+            if step < 60.0 {
+                TimeLabelPattern::TimeSecond
+            } else if step < 86_400.0 {
+                TimeLabelPattern::TimeMinute
+            } else {
+                TimeLabelPattern::Date
+            }
+        }
+        TimeLabelPattern::Date => {
+            if step < 86_400.0 {
+                TimeLabelPattern::TimeMinute
+            } else {
+                TimeLabelPattern::Date
+            }
+        }
+        TimeLabelPattern::TimeMinute | TimeLabelPattern::TimeSecond => base,
+    }
+}
+
+fn format_utc_time_label(
+    logical_time: f64,
+    config: TimeAxisLabelConfig,
+    base_pattern: TimeLabelPattern,
+) -> String {
+    let seconds = logical_time.round() as i64;
+    let Some(dt) = DateTime::<Utc>::from_timestamp(seconds, 0) else {
+        return format_axis_decimal(logical_time, 2, config.locale);
+    };
+    let local_dt = dt.with_timezone(&config.timezone.fixed_offset());
+    let pattern = resolve_session_time_label_pattern(base_pattern, config.session, local_dt);
+
+    let pattern = match (config.locale, pattern) {
+        (AxisLabelLocale::EnUs, TimeLabelPattern::Date) => "%Y-%m-%d",
+        (AxisLabelLocale::EnUs, TimeLabelPattern::DateMinute) => "%Y-%m-%d %H:%M",
+        (AxisLabelLocale::EnUs, TimeLabelPattern::DateSecond) => "%Y-%m-%d %H:%M:%S",
+        (AxisLabelLocale::EnUs, TimeLabelPattern::TimeMinute) => "%H:%M",
+        (AxisLabelLocale::EnUs, TimeLabelPattern::TimeSecond) => "%H:%M:%S",
+        (AxisLabelLocale::EsEs, TimeLabelPattern::Date) => "%d/%m/%Y",
+        (AxisLabelLocale::EsEs, TimeLabelPattern::DateMinute) => "%d/%m/%Y %H:%M",
+        (AxisLabelLocale::EsEs, TimeLabelPattern::DateSecond) => "%d/%m/%Y %H:%M:%S",
+        (AxisLabelLocale::EsEs, TimeLabelPattern::TimeMinute) => "%H:%M",
+        (AxisLabelLocale::EsEs, TimeLabelPattern::TimeSecond) => "%H:%M:%S",
+    };
+    local_dt.format(pattern).to_string()
 }
 
 pub(super) fn is_major_time_tick(logical_time: f64, config: TimeAxisLabelConfig) -> bool {

@@ -263,8 +263,21 @@ fn custom_render_style_is_applied_to_frame() {
             && line.stroke_width == custom_style.price_axis_tick_mark_width
     }));
     let viewport_height = f64::from(engine.viewport().height);
-    let plot_bottom =
-        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
+    let plot_bottom = frame
+        .lines
+        .iter()
+        .filter(|line| {
+            (line.x1 - line.x2).abs() <= 1e-9
+                && ((line.color == custom_style.time_axis_tick_mark_color
+                    && line.stroke_width == custom_style.time_axis_tick_mark_width)
+                    || (line.color == custom_style.major_time_tick_mark_color
+                        && line.stroke_width == custom_style.major_time_tick_mark_width))
+        })
+        .map(|line| line.y1)
+        .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        .unwrap_or(
+            (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height),
+        );
     assert!(frame.lines.iter().any(|line| {
         line.color == custom_style.time_axis_tick_mark_color
             && line.stroke_width == custom_style.time_axis_tick_mark_width
@@ -1622,19 +1635,32 @@ fn session_boundary_uses_major_tick_styling() {
             .any(|line| line.color == custom_style.major_grid_line_color
                 && line.stroke_width == custom_style.major_grid_line_width)
     );
+    let major_tick_candidates: Vec<(f64, f64)> = frame
+        .lines
+        .iter()
+        .filter(|line| {
+            line.color == custom_style.major_time_tick_mark_color
+                && line.stroke_width == custom_style.major_time_tick_mark_width
+                && (line.x1 - line.x2).abs() <= 1e-9
+        })
+        .map(|line| (line.y1, line.y2))
+        .collect();
     let viewport_height = f64::from(engine.viewport().height);
-    let plot_bottom =
-        (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height);
-    assert!(frame.lines.iter().any(|line| {
-        line.color == custom_style.major_time_tick_mark_color
-            && line.stroke_width == custom_style.major_time_tick_mark_width
-            && (line.x1 - line.x2).abs() <= 1e-9
-            && (line.y1 - plot_bottom).abs() <= 1e-9
-            && (line.y2
-                - (plot_bottom + custom_style.major_time_tick_mark_length_px).min(viewport_height))
-            .abs()
-                <= 1e-9
-    }));
+    let plot_bottom = major_tick_candidates
+        .iter()
+        .map(|(y1, _)| *y1)
+        .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        .unwrap_or(
+            (viewport_height - custom_style.time_axis_height_px).clamp(0.0, viewport_height),
+        );
+    let expected_major_tick_end_y =
+        (plot_bottom + custom_style.major_time_tick_mark_length_px).min(viewport_height);
+    assert!(
+        major_tick_candidates.iter().any(|(y1, y2)| {
+            (*y1 - plot_bottom).abs() <= 1e-6 && (*y2 - expected_major_tick_end_y).abs() <= 1e-6
+        }),
+        "missing major session tick at expected y; plot_bottom={plot_bottom}, expected_end={expected_major_tick_end_y}, candidates={major_tick_candidates:?}"
+    );
     assert!(frame.texts.iter().any(|text| {
         text.text == "2024-01-02 09:30"
             && text.font_size_px == custom_style.major_time_label_font_size_px

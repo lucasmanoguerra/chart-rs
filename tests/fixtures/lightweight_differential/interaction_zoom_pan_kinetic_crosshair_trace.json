@@ -1,0 +1,757 @@
+{
+  "trace_name": "interaction-zoom-pan-kinetic-crosshair",
+  "source": "lightweight-charts-v5.1",
+  "source_notes": "Reference interaction scenarios for wheel/pinch zoom, kinetic pan, and crosshair snap visibility state transitions.",
+  "viewport": {
+    "width": 1000,
+    "height": 500
+  },
+  "time_range": {
+    "start": 0.0,
+    "end": 100.0
+  },
+  "price_range": {
+    "min": 0.0,
+    "max": 100.0
+  },
+  "tolerance": 1e-6,
+  "scenarios": [
+    {
+      "id": "wheel-pinch-kinetic-and-magnet-snap",
+      "points": [
+        {
+          "time": 0.0,
+          "value": 10.0
+        },
+        {
+          "time": 10.0,
+          "value": 14.0
+        },
+        {
+          "time": 20.0,
+          "value": 17.0
+        },
+        {
+          "time": 30.0,
+          "value": 24.0
+        },
+        {
+          "time": 40.0,
+          "value": 28.0
+        },
+        {
+          "time": 50.0,
+          "value": 32.0
+        },
+        {
+          "time": 60.0,
+          "value": 39.0
+        },
+        {
+          "time": 70.0,
+          "value": 44.0
+        },
+        {
+          "time": 80.0,
+          "value": 48.0
+        },
+        {
+          "time": 90.0,
+          "value": 53.0
+        },
+        {
+          "time": 100.0,
+          "value": 57.0
+        }
+      ],
+      "steps": [
+        {
+          "action": {
+            "type": "set_navigation",
+            "right_offset_bars": 0.0,
+            "bar_spacing_px": null
+          },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 100.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": 0.0,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "wheel_pan",
+            "wheel_delta_x": 120.0,
+            "pan_step_ratio": 0.1
+          },
+          "expect": {
+            "visible_start": 10.0,
+            "visible_end": 110.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": 1.0,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "touch_drag_pan",
+            "delta_x_px": 20.0,
+            "delta_y_px": 6.0
+          },
+          "expect": {
+            "visible_start": 8.0,
+            "visible_end": 108.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": 0.8,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "wheel_zoom",
+            "wheel_delta_y": -120.0,
+            "anchor_px": 500.0,
+            "zoom_step_ratio": 0.2,
+            "min_span_absolute": 1e-6
+          },
+          "expect": {
+            "visible_start": 16.33333333333333,
+            "visible_end": 99.66666666666667,
+            "visible_span": 83.33333333333334,
+            "scroll_position_bars": -0.03333333333333286,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "pinch_zoom",
+            "factor": 0.85,
+            "anchor_px": 250.0,
+            "min_span_absolute": 1e-6
+          },
+          "expect": {
+            "visible_start": 12.656862745098035,
+            "visible_end": 110.69607843137256,
+            "visible_span": 98.03921568627452,
+            "scroll_position_bars": 1.0696078431372555,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "start_kinetic_pan",
+            "velocity_time_per_sec": 20.0
+          },
+          "expect": {
+            "visible_start": 12.656862745098035,
+            "visible_end": 110.69607843137256,
+            "visible_span": 98.03921568627452,
+            "scroll_position_bars": 1.0696078431372555,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 20.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "step_kinetic_pan",
+            "delta_seconds": 0.5
+          },
+          "expect": {
+            "visible_start": 22.656862745098035,
+            "visible_end": 120.69607843137256,
+            "visible_span": 98.03921568627452,
+            "scroll_position_bars": 2.0696078431372555,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 18.439088914585774,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "step_kinetic_pan",
+            "delta_seconds": 0.5
+          },
+          "expect": {
+            "visible_start": 31.876407202390922,
+            "visible_end": 129.91562288866544,
+            "visible_span": 98.03921568627452,
+            "scroll_position_bars": 2.991562288866544,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 17.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "set_crosshair_mode",
+            "mode": "magnet"
+          },
+          "expect": {
+            "visible_start": 31.876407202390922,
+            "visible_end": 129.91562288866544,
+            "visible_span": 98.03921568627452,
+            "scroll_position_bars": 2.991562288866544,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 17.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "pointer_move",
+            "x": 333.0,
+            "y": 111.0
+          },
+          "expect": {
+            "visible_start": 31.876407202390922,
+            "visible_end": 129.91562288866544,
+            "visible_span": 98.03921568627452,
+            "scroll_position_bars": 2.991562288866544,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 17.0,
+            "crosshair_visible": true,
+            "crosshair_x": 333.0,
+            "crosshair_y": 111.0,
+            "crosshair_snapped_x": 286.86064653561255,
+            "crosshair_snapped_y": 310.2011494252873,
+            "crosshair_snapped_time": 60.0,
+            "crosshair_snapped_price": 39.0
+          }
+        },
+        {
+          "action": {
+            "type": "pointer_leave"
+          },
+          "expect": {
+            "visible_start": 31.876407202390922,
+            "visible_end": 129.91562288866544,
+            "visible_span": 98.03921568627452,
+            "scroll_position_bars": 2.991562288866544,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 17.0,
+            "crosshair_visible": false,
+            "crosshair_x": 333.0,
+            "crosshair_y": 111.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "crosshair-mode-visibility-and-snap-transitions",
+      "points": [
+        {
+          "time": 0.0,
+          "value": 20.0
+        },
+        {
+          "time": 25.0,
+          "value": 22.0
+        },
+        {
+          "time": 50.0,
+          "value": 30.0
+        },
+        {
+          "time": 75.0,
+          "value": 35.0
+        },
+        {
+          "time": 100.0,
+          "value": 40.0
+        }
+      ],
+      "steps": [
+        {
+          "action": {
+            "type": "set_crosshair_mode",
+            "mode": "normal"
+          },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 100.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": 0.0,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "pointer_move",
+            "x": 444.0,
+            "y": 222.0
+          },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 100.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": 0.0,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": true,
+            "crosshair_x": 444.0,
+            "crosshair_y": 222.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "set_crosshair_mode",
+            "mode": "hidden"
+          },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 100.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": 0.0,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 444.0,
+            "crosshair_y": 222.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "pointer_move",
+            "x": 480.0,
+            "y": 200.0
+          },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 100.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": 0.0,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 480.0,
+            "crosshair_y": 200.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "set_crosshair_mode",
+            "mode": "magnet"
+          },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 100.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": 0.0,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 480.0,
+            "crosshair_y": 200.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "pointer_move",
+            "x": 480.0,
+            "y": 200.0
+          },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 100.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": 0.0,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": true,
+            "crosshair_x": 480.0,
+            "crosshair_y": 200.0,
+            "crosshair_snapped_x": 500.0,
+            "crosshair_snapped_y": 275.0,
+            "crosshair_snapped_time": 50.0,
+            "crosshair_snapped_price": 30.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "touch-pinch-kinetic-gap-snap-advanced",
+      "points": [
+        {
+          "time": 0.0,
+          "value": 14.0
+        },
+        {
+          "time": 8.0,
+          "value": 18.0
+        },
+        {
+          "time": 22.0,
+          "value": 25.0
+        },
+        {
+          "time": 78.0,
+          "value": 66.0
+        },
+        {
+          "time": 92.0,
+          "value": 72.0
+        },
+        {
+          "time": 100.0,
+          "value": 75.0
+        }
+      ],
+      "steps": [
+        {
+          "action": {
+            "type": "set_navigation",
+            "right_offset_bars": 0.0,
+            "bar_spacing_px": null
+          },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 100.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": 0.0,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "set_crosshair_mode",
+            "mode": "magnet"
+          },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 100.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": 0.0,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "touch_drag_pan",
+            "delta_x_px": 45.0,
+            "delta_y_px": 18.0
+          },
+          "expect": {
+            "visible_start": -4.5,
+            "visible_end": 95.5,
+            "visible_span": 100.0,
+            "scroll_position_bars": -0.32142857142857145,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "pinch_zoom",
+            "factor": 0.9,
+            "anchor_px": 180.0,
+            "min_span_absolute": 1e-6
+          },
+          "expect": {
+            "visible_start": -6.5,
+            "visible_end": 104.61111111111111,
+            "visible_span": 111.11111111111111,
+            "scroll_position_bars": 0.3293650793650796,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "pinch_zoom",
+            "factor": 1.12,
+            "anchor_px": 640.0,
+            "min_span_absolute": 1e-6
+          },
+          "expect": {
+            "visible_start": 1.1190476190476204,
+            "visible_end": 100.32539682539682,
+            "visible_span": 99.2063492063492,
+            "scroll_position_bars": 0.02324263038548732,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "pinch_zoom",
+            "factor": 0.92,
+            "anchor_px": 420.0,
+            "min_span_absolute": 1e-6
+          },
+          "expect": {
+            "visible_start": -2.504140786749481,
+            "visible_end": 105.3288474810214,
+            "visible_span": 107.83298826777087,
+            "scroll_position_bars": 0.3806319629300999,
+            "kinetic_active": false,
+            "kinetic_velocity_time_per_sec": 0.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "start_kinetic_pan",
+            "velocity_time_per_sec": 28.0
+          },
+          "expect": {
+            "visible_start": -2.504140786749481,
+            "visible_end": 105.3288474810214,
+            "visible_span": 107.83298826777087,
+            "scroll_position_bars": 0.3806319629300999,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 28.0,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "step_kinetic_pan",
+            "delta_seconds": 0.25
+          },
+          "expect": {
+            "visible_start": 4.495859213250519,
+            "visible_end": 112.3288474810214,
+            "visible_span": 107.83298826777087,
+            "scroll_position_bars": 0.8806319629300999,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 26.88516850331726,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "step_kinetic_pan",
+            "delta_seconds": 0.25
+          },
+          "expect": {
+            "visible_start": 11.217151339079834,
+            "visible_end": 119.0501396068507,
+            "visible_span": 107.83298826777087,
+            "scroll_position_bars": 1.3607242576321934,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 25.814724480420086,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "step_kinetic_pan",
+            "delta_seconds": 0.25
+          },
+          "expect": {
+            "visible_start": 17.670832459184854,
+            "visible_end": 125.50382072695572,
+            "visible_span": 107.83298826777087,
+            "scroll_position_bars": 1.8217014804968374,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 24.786900625814397,
+            "crosshair_visible": false,
+            "crosshair_x": 0.0,
+            "crosshair_y": 0.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "pointer_move",
+            "x": 500.0,
+            "y": 210.0
+          },
+          "expect": {
+            "visible_start": 17.670832459184854,
+            "visible_end": 125.50382072695572,
+            "visible_span": 107.83298826777087,
+            "scroll_position_bars": 1.8217014804968374,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 24.786900625814397,
+            "crosshair_visible": true,
+            "crosshair_x": 500.0,
+            "crosshair_y": 210.0,
+            "crosshair_snapped_x": 559.4685681065033,
+            "crosshair_snapped_y": 181.66666666666663,
+            "crosshair_snapped_time": 78.0,
+            "crosshair_snapped_price": 66.0
+          }
+        },
+        {
+          "action": {
+            "type": "pointer_leave"
+          },
+          "expect": {
+            "visible_start": 17.670832459184854,
+            "visible_end": 125.50382072695572,
+            "visible_span": 107.83298826777087,
+            "scroll_position_bars": 1.8217014804968374,
+            "kinetic_active": true,
+            "kinetic_velocity_time_per_sec": 24.786900625814397,
+            "crosshair_visible": false,
+            "crosshair_x": 500.0,
+            "crosshair_y": 210.0,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        }
+      ]
+    }
+  ]
+}
