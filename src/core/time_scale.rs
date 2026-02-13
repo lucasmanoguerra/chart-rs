@@ -2,6 +2,207 @@ use crate::core::{DataPoint, LinearScale, OhlcBar, Viewport};
 use crate::error::{ChartError, ChartResult};
 use serde::{Deserialize, Serialize};
 
+/// Lightweight-style logical-index coordinate space.
+///
+/// This helper mirrors the `TimeScale` index/coordinate formulas used by
+/// Lightweight Charts internals (`indexToCoordinate` / `coordinateToIndex`),
+/// including center-of-bar (`+0.5`) and right-edge pixel (`-1`) offsets.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct TimeIndexCoordinateSpace {
+    pub base_index: f64,
+    pub right_offset_bars: f64,
+    pub bar_spacing_px: f64,
+    pub width_px: f64,
+}
+
+impl TimeIndexCoordinateSpace {
+    /// Maps logical bar index to canvas X coordinate.
+    ///
+    /// Formula:
+    /// `x = width - (base + rightOffset - index + 0.5) * barSpacing - 1`
+    pub fn index_to_coordinate(self, logical_index: f64) -> ChartResult<f64> {
+        self.validate()?;
+        if !logical_index.is_finite() {
+            return Err(ChartError::InvalidData(
+                "time logical index must be finite".to_owned(),
+            ));
+        }
+        Ok(self.width_px
+            - (self.base_index + self.right_offset_bars - logical_index + 0.5)
+                * self.bar_spacing_px
+            - 1.0)
+    }
+
+    /// Maps canvas X coordinate to floating logical bar index.
+    ///
+    /// Inverse formula:
+    /// `index = base + rightOffset + 0.5 - (width - x - 1) / barSpacing`
+    pub fn coordinate_to_logical_index(self, coordinate_px: f64) -> ChartResult<f64> {
+        self.validate()?;
+        if !coordinate_px.is_finite() {
+            return Err(ChartError::InvalidData(
+                "time coordinate must be finite".to_owned(),
+            ));
+        }
+        Ok(self.base_index + self.right_offset_bars + 0.5
+            - (self.width_px - coordinate_px - 1.0) / self.bar_spacing_px)
+    }
+
+    /// Maps canvas X coordinate to discrete logical index using ceil semantics.
+    pub fn coordinate_to_index_ceil(self, coordinate_px: f64) -> ChartResult<i64> {
+        let logical = self.coordinate_to_logical_index(coordinate_px)?;
+        if logical < (i64::MIN as f64) || logical > (i64::MAX as f64) {
+            return Err(ChartError::InvalidData(
+                "time logical index exceeds i64 range".to_owned(),
+            ));
+        }
+        Ok(logical.ceil() as i64)
+    }
+
+    /// Resolves nearest filled slot for sparse logical-index datasets.
+    ///
+    /// This mirrors Lightweight's "ignore whitespace indices" behavior by
+    /// selecting the nearest available data slot instead of returning a hole.
+    ///
+    /// The caller provides monotonic ascending logical indices via `index_at`.
+    pub fn coordinate_to_nearest_filled_slot<F>(
+        self,
+        coordinate_px: f64,
+        len: usize,
+        mut index_at: F,
+    ) -> ChartResult<Option<usize>>
+    where
+        F: FnMut(usize) -> f64,
+    {
+        self.validate()?;
+        if !coordinate_px.is_finite() {
+            return Err(ChartError::InvalidData(
+                "time coordinate must be finite".to_owned(),
+            ));
+        }
+        if len == 0 {
+            return Ok(None);
+        }
+
+        let logical = self.coordinate_to_logical_index(coordinate_px)?;
+        let mut left = 0usize;
+        let mut right = len;
+        while left < right {
+            let mid = left + (right - left) / 2;
+            let mid_value = index_at(mid);
+            if !mid_value.is_finite() {
+                return Err(ChartError::InvalidData(
+                    "filled logical indices must be finite".to_owned(),
+                ));
+            }
+            if mid_value < logical {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+
+        if left == 0 {
+            return Ok(Some(0));
+        }
+        if left >= len {
+            return Ok(Some(len - 1));
+        }
+
+        let lower_slot = left - 1;
+        let upper_slot = left;
+        let lower_index = index_at(lower_slot);
+        let upper_index = index_at(upper_slot);
+        if !lower_index.is_finite() || !upper_index.is_finite() {
+            return Err(ChartError::InvalidData(
+                "filled logical indices must be finite".to_owned(),
+            ));
+        }
+
+        let lower_distance = (logical - lower_index).abs();
+        let upper_distance = (upper_index - logical).abs();
+        if upper_distance <= lower_distance {
+            Ok(Some(upper_slot))
+        } else {
+            Ok(Some(lower_slot))
+        }
+    }
+
+    /// Applies pixel pan delta to right offset in bars.
+    ///
+    /// Formula: `rightOffset += deltaPx / barSpacing`
+    pub fn pan_right_offset_by_pixels(self, delta_px: f64) -> ChartResult<f64> {
+        self.validate()?;
+        if !delta_px.is_finite() {
+            return Err(ChartError::InvalidData(
+                "pan delta px must be finite".to_owned(),
+            ));
+        }
+        Ok(self.right_offset_bars + delta_px / self.bar_spacing_px)
+    }
+
+    /// Solves new right offset for anchor-preserving zoom.
+    ///
+    /// Given `old_bar_spacing_px`, this computes the right offset that keeps
+    /// `anchor_logical_index` at the same screen X after switching to
+    /// `self.bar_spacing_px`.
+    pub fn solve_right_offset_for_anchor_preserving_zoom(
+        self,
+        old_bar_spacing_px: f64,
+        old_right_offset_bars: f64,
+        anchor_logical_index: f64,
+    ) -> ChartResult<f64> {
+        self.validate()?;
+        if !old_bar_spacing_px.is_finite() || old_bar_spacing_px <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "old bar spacing must be finite and > 0".to_owned(),
+            ));
+        }
+        if !old_right_offset_bars.is_finite() {
+            return Err(ChartError::InvalidData(
+                "old right offset must be finite".to_owned(),
+            ));
+        }
+        if !anchor_logical_index.is_finite() {
+            return Err(ChartError::InvalidData(
+                "zoom anchor logical index must be finite".to_owned(),
+            ));
+        }
+
+        let old_distance_bars =
+            self.base_index + old_right_offset_bars - anchor_logical_index + 0.5;
+        Ok(
+            old_distance_bars * (old_bar_spacing_px / self.bar_spacing_px) - self.base_index
+                + anchor_logical_index
+                - 0.5,
+        )
+    }
+
+    fn validate(self) -> ChartResult<()> {
+        if !self.base_index.is_finite() {
+            return Err(ChartError::InvalidData(
+                "base index must be finite".to_owned(),
+            ));
+        }
+        if !self.right_offset_bars.is_finite() {
+            return Err(ChartError::InvalidData(
+                "right offset bars must be finite".to_owned(),
+            ));
+        }
+        if !self.bar_spacing_px.is_finite() || self.bar_spacing_px <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "bar spacing px must be finite and > 0".to_owned(),
+            ));
+        }
+        if !self.width_px.is_finite() || self.width_px <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "width px must be finite and > 0".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// Tuning controls for visible time range fitting.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct TimeScaleTuning {
@@ -309,6 +510,94 @@ impl TimeScale {
         let fitted = Self::from_data_tuned(points, tuning)?;
         *self = fitted;
         Ok(())
+    }
+
+    /// Derives current visible bar spacing and right offset in bar units.
+    ///
+    /// This mirrors the internal time-scale state model used by Lightweight:
+    /// visible range can be represented as `{barSpacing, rightOffset}` against
+    /// full-range right edge and a reference bar step.
+    pub fn derive_visible_bar_spacing_and_right_offset(
+        self,
+        reference_step: f64,
+        viewport_width_px: f64,
+    ) -> ChartResult<(f64, f64)> {
+        if !reference_step.is_finite() || reference_step <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "reference step must be finite and > 0".to_owned(),
+            ));
+        }
+        if !viewport_width_px.is_finite() || viewport_width_px <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "viewport width must be finite and > 0".to_owned(),
+            ));
+        }
+
+        let visible_span = self.visible_end - self.visible_start;
+        if !visible_span.is_finite() || visible_span <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "visible time span must be finite and > 0".to_owned(),
+            ));
+        }
+
+        let visible_bars = visible_span / reference_step;
+        if !visible_bars.is_finite() || visible_bars <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "visible bars must be finite and > 0".to_owned(),
+            ));
+        }
+
+        let bar_spacing_px = viewport_width_px / visible_bars;
+        if !bar_spacing_px.is_finite() || bar_spacing_px <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "derived bar spacing must be finite and > 0".to_owned(),
+            ));
+        }
+
+        let right_offset_bars = (self.visible_end - self.full_end) / reference_step;
+        if !right_offset_bars.is_finite() {
+            return Err(ChartError::InvalidData(
+                "derived right offset must be finite".to_owned(),
+            ));
+        }
+
+        Ok((bar_spacing_px, right_offset_bars))
+    }
+
+    /// Rebuilds visible range from explicit bar spacing and right offset.
+    pub fn set_visible_range_from_bar_spacing_and_right_offset(
+        &mut self,
+        bar_spacing_px: f64,
+        right_offset_bars: f64,
+        reference_step: f64,
+        viewport_width_px: f64,
+    ) -> ChartResult<()> {
+        if !bar_spacing_px.is_finite() || bar_spacing_px <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "bar spacing must be finite and > 0".to_owned(),
+            ));
+        }
+        if !right_offset_bars.is_finite() {
+            return Err(ChartError::InvalidData(
+                "right offset bars must be finite".to_owned(),
+            ));
+        }
+        if !reference_step.is_finite() || reference_step <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "reference step must be finite and > 0".to_owned(),
+            ));
+        }
+        if !viewport_width_px.is_finite() || viewport_width_px <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "viewport width must be finite and > 0".to_owned(),
+            ));
+        }
+
+        let visible_bars = (viewport_width_px / bar_spacing_px).max(f64::EPSILON);
+        let visible_span = reference_step * visible_bars;
+        let target_end = self.full_end + right_offset_bars * reference_step;
+        let target_start = target_end - visible_span;
+        self.set_visible_range(target_start, target_end)
     }
 
     pub fn time_to_pixel(self, time: f64, viewport: Viewport) -> ChartResult<f64> {

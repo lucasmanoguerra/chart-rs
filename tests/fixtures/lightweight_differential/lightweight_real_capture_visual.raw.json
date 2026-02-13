@@ -1,0 +1,130 @@
+{
+  "trace_name": "lwc-real-capture-visual-raw",
+  "source_notes": "Browser-side captured Lightweight visual event stream without manual normalization, with mixed naming conventions.",
+  "fixtures": [
+    {
+      "id": "lwc-real-capture-candles-log-visual",
+      "description": "Candles/log visual capture imported directly from Lightweight.",
+      "viewport": {
+        "width": 920,
+        "height": 460
+      },
+      "time_range": {
+        "start": 0.0,
+        "end": 100.0
+      },
+      "price_range": {
+        "min": 60.0,
+        "max": 320.0
+      },
+      "candles": [
+        { "time": 0.0, "open": 70.0, "high": 86.0, "low": 64.0, "close": 82.0 },
+        { "time": 10.0, "open": 82.0, "high": 95.0, "low": 75.0, "close": 90.0 },
+        { "time": 20.0, "open": 90.0, "high": 108.0, "low": 84.0, "close": 101.0 },
+        { "time": 30.0, "open": 101.0, "high": 122.0, "low": 95.0, "close": 115.0 },
+        { "time": 40.0, "open": 115.0, "high": 136.0, "low": 108.0, "close": 128.0 },
+        { "time": 50.0, "open": 128.0, "high": 156.0, "low": 121.0, "close": 145.0 },
+        { "time": 60.0, "open": 145.0, "high": 178.0, "low": 138.0, "close": 168.0 },
+        { "time": 70.0, "open": 168.0, "high": 206.0, "low": 160.0, "close": 194.0 },
+        { "time": 80.0, "open": 194.0, "high": 238.0, "low": 185.0, "close": 225.0 },
+        { "time": 90.0, "open": 225.0, "high": 272.0, "low": 214.0, "close": 258.0 },
+        { "time": 100.0, "open": 258.0, "high": 306.0, "low": 246.0, "close": 292.0 }
+      ],
+      "events": [
+        {
+          "type": "price_scale_mode",
+          "mode": "log"
+        },
+        {
+          "event": "axis_scale_price",
+          "deltaY": 80.0,
+          "anchorY": 360.0,
+          "zoomStepRatio": 0.15,
+          "minSpanAbsolute": 0.000001
+        },
+        {
+          "kind": "axis_scale_price",
+          "deltaY": -80.0,
+          "anchorY": 360.0,
+          "zoomStepRatio": 0.15,
+          "minSpanAbsolute": 0.000001
+        },
+        {
+          "type": "crosshair_mode",
+          "mode": "magnet"
+        },
+        {
+          "kind": "crosshair_move",
+          "x": 530.0,
+          "y": 170.0
+        }
+      ]
+    },
+    {
+      "id": "lwc-real-capture-session-timezone-visual",
+      "description": "Session/timezone visual capture imported directly from Lightweight.",
+      "viewport": {
+        "width": 960,
+        "height": 460
+      },
+      "time_range": {
+        "start": 1704205800.0,
+        "end": 1704207600.0
+      },
+      "price_range": {
+        "min": 10.0,
+        "max": 50.0
+      },
+      "points": [
+        { "x": 1704205800.0, "y": 20.0 },
+        { "x": 1704206100.0, "y": 22.0 },
+        { "x": 1704206400.0, "y": 24.0 },
+        { "x": 1704206700.0, "y": 28.0 },
+        { "x": 1704207000.0, "y": 26.0 },
+        { "x": 1704207300.0, "y": 30.0 },
+        { "x": 1704207600.0, "y": 34.0 }
+      ],
+      "time_axis_label_config": {
+        "locale": "EsEs",
+        "policy": { "UtcDateTime": { "show_seconds": false } },
+        "timezone": { "FixedOffsetMinutes": { "minutes": -300 } },
+        "session": {
+          "start_hour": 9,
+          "start_minute": 30,
+          "end_hour": 16,
+          "end_minute": 0
+        }
+      },
+      "events": [
+        {
+          "type": "set_visible_range_time",
+          "start": 1704205950.0,
+          "end": 1704207450.0
+        },
+        {
+          "type": "axis_scale_time",
+          "deltaX": 180.0,
+          "anchorX": 540.0,
+          "zoomStepRatio": 0.2,
+          "minSpanAbsolute": 0.000001
+        },
+        {
+          "event": "axis_scale_time",
+          "deltaX": -300.0,
+          "anchorX": 540.0,
+          "zoomStepRatio": 0.2,
+          "minSpanAbsolute": 0.000001
+        },
+        {
+          "event": "set_crosshair_mode",
+          "mode": "magnet"
+        },
+        {
+          "kind": "pointer_move",
+          "x": 520.0,
+          "y": 210.0
+        }
+      ]
+    }
+  ]
+}

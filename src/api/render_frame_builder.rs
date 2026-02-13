@@ -5,17 +5,19 @@ use crate::render::{
 };
 
 use super::axis_label_format::{
-    format_price_axis_label, format_price_axis_label_with_precision, format_time_axis_label,
-    format_time_axis_label_with_precision, is_major_time_tick, map_price_step_to_display_value,
-    map_price_to_display_value, price_display_mode_suffix, quantize_logical_time_millis,
-    quantize_price_label_value,
+    ResolvedTimeLabelPattern, format_price_axis_label, format_price_axis_label_with_precision,
+    format_time_axis_label, format_time_axis_label_with_precision, format_time_axis_tick_label,
+    is_major_time_tick, map_price_step_to_display_value, map_price_to_display_value,
+    price_display_mode_suffix, quantize_logical_time_millis, quantize_price_label_value,
+    resolve_time_axis_tick_pattern,
 };
 use super::axis_ticks::{
     AXIS_PRICE_MIN_SPACING_PX, AXIS_PRICE_TARGET_SPACING_PX, AXIS_TIME_MIN_SPACING_PX,
-    AXIS_TIME_TARGET_SPACING_PX, axis_tick_target_count, axis_ticks, select_ticks_with_min_spacing,
-    tick_step_hint_from_values,
+    AXIS_TIME_TARGET_SPACING_PX, axis_tick_target_count_with_density, axis_ticks,
+    density_scale_from_zoom_ratio, select_positions_with_min_spacing_prioritized,
+    select_ticks_with_min_spacing, tick_step_hint_from_values,
 };
-use super::label_cache::{PriceLabelCacheKey, TimeLabelCacheKey};
+use super::label_cache::{PriceLabelCacheKey, TimeLabelCacheKey, TimeLabelCacheProfile};
 use super::layout_helpers::{
     estimate_label_text_width_px, rects_overlap, resolve_axis_layout,
     resolve_crosshair_box_vertical_layout, stabilize_position,
@@ -24,10 +26,199 @@ use super::{
     ChartEngine, CrosshairLabelBoxHorizontalAnchor, CrosshairLabelBoxOverflowPolicy,
     CrosshairLabelBoxVisibilityPriority, CrosshairLabelBoxWidthMode, CrosshairLabelBoxZOrderPolicy,
     CrosshairLabelSourceMode, CrosshairPriceLabelFormatterContext,
-    CrosshairTimeLabelFormatterContext, LastPriceLabelBoxWidthMode,
+    CrosshairTimeLabelFormatterContext, LastPriceLabelBoxWidthMode, RenderStyle,
 };
 
 impl<R: Renderer> ChartEngine<R> {
+    fn lwc_time_label_width_budget_px(font_size_px: f64) -> f64 {
+        if !font_size_px.is_finite() {
+            return AXIS_TIME_MIN_SPACING_PX;
+        }
+        // Lightweight Charts uses an 8-char budget to keep cadence stable even
+        // when a few labels are much longer than the typical tick text.
+        let pixels_per_eight_chars = (font_size_px.max(1.0) + 4.0) * 5.0;
+        pixels_per_eight_chars.max(AXIS_TIME_MIN_SPACING_PX)
+    }
+
+    fn estimate_required_time_axis_height(style: RenderStyle) -> f64 {
+        let mut required: f64 = 0.0;
+        if style.show_time_axis_tick_marks {
+            required = required.max(style.time_axis_tick_mark_length_px);
+        }
+        if style.show_major_time_tick_marks {
+            required = required.max(style.major_time_tick_mark_length_px);
+        }
+        if style.show_time_axis_labels {
+            required = required
+                .max(style.time_axis_label_offset_y_px + style.time_axis_label_font_size_px);
+        }
+        if style.show_major_time_labels {
+            required = required
+                .max(style.major_time_label_offset_y_px + style.major_time_label_font_size_px);
+        }
+        // Keep a small deterministic buffer so labels are not glued to panel edges.
+        (required + 2.0).max(1.0)
+    }
+
+    fn resolve_time_axis_density_scale(&self) -> f64 {
+        let (visible_start, visible_end) = self.time_scale.visible_range();
+        let visible_span = (visible_end - visible_start).abs();
+        let (full_start, full_end) = self.time_scale.full_range();
+        let full_span = (full_end - full_start).abs();
+        if !visible_span.is_finite() || !full_span.is_finite() || full_span <= 0.0 {
+            return 1.0;
+        }
+
+        let zoom_ratio = visible_span / full_span;
+        density_scale_from_zoom_ratio(zoom_ratio, 0.06, 0.70, 0.62, 0.45, 1.90)
+    }
+
+    fn resolve_series_price_span(&self) -> Option<f64> {
+        let mut min_price = f64::INFINITY;
+        let mut max_price = f64::NEG_INFINITY;
+
+        for point in &self.points {
+            if !point.y.is_finite() {
+                continue;
+            }
+            min_price = min_price.min(point.y);
+            max_price = max_price.max(point.y);
+        }
+        for candle in &self.candles {
+            if candle.low.is_finite() {
+                min_price = min_price.min(candle.low);
+            }
+            if candle.high.is_finite() {
+                max_price = max_price.max(candle.high);
+            }
+        }
+
+        let span = max_price - min_price;
+        if span.is_finite() && span > 0.0 {
+            Some(span.abs())
+        } else {
+            None
+        }
+    }
+
+    fn resolve_price_axis_density_scale(&self) -> f64 {
+        let (domain_start, domain_end) = self.price_scale.domain();
+        let domain_span = (domain_end - domain_start).abs();
+        if !domain_span.is_finite() || domain_span <= 0.0 {
+            return 1.0;
+        }
+
+        let Some(series_span) = self.resolve_series_price_span() else {
+            return 1.0;
+        };
+        let zoom_ratio = domain_span / series_span;
+        density_scale_from_zoom_ratio(zoom_ratio, 0.10, 0.75, 0.65, 0.55, 1.80)
+    }
+
+    fn resolve_price_axis_span_px(&self, plot_bottom: f64) -> ChartResult<f64> {
+        let (domain_start, domain_end) = self.price_scale.domain();
+        let start_py = self
+            .price_scale
+            .price_to_pixel(domain_start, self.viewport)?;
+        let end_py = self.price_scale.price_to_pixel(domain_end, self.viewport)?;
+        let span = (start_py - end_py).abs();
+        if span.is_finite() && span > 0.0 {
+            Ok(span.min(plot_bottom).max(1.0))
+        } else {
+            Ok(plot_bottom.max(1.0))
+        }
+    }
+
+    fn estimate_required_price_axis_width(
+        &self,
+        style: RenderStyle,
+        plot_bottom: f64,
+        visible_start: f64,
+        visible_end: f64,
+    ) -> ChartResult<f64> {
+        let mut required_width = style.price_axis_width_px;
+        let price_density_scale = self.resolve_price_axis_density_scale();
+        let price_axis_span_px = self.resolve_price_axis_span_px(plot_bottom)?;
+        let price_tick_count = axis_tick_target_count_with_density(
+            price_axis_span_px,
+            AXIS_PRICE_TARGET_SPACING_PX,
+            AXIS_PRICE_MIN_SPACING_PX,
+            2,
+            16,
+            price_density_scale,
+        );
+        let raw_price_ticks = self.price_scale.ticks(price_tick_count)?;
+        let mut price_ticks = Vec::with_capacity(raw_price_ticks.len());
+        for price in raw_price_ticks.iter().copied() {
+            let py = self.price_scale.price_to_pixel(price, self.viewport)?;
+            let clamped_py = py.clamp(0.0, plot_bottom);
+            price_ticks.push((price, clamped_py));
+        }
+
+        let selected_price_ticks =
+            select_ticks_with_min_spacing(price_ticks, AXIS_PRICE_MIN_SPACING_PX);
+        let price_tick_step_abs = tick_step_hint_from_values(&raw_price_ticks);
+        let fallback_display_base_price = self.resolve_price_display_base_price();
+        let display_tick_step_abs = map_price_step_to_display_value(
+            price_tick_step_abs,
+            self.price_axis_label_config.display_mode,
+            fallback_display_base_price,
+        )
+        .abs();
+        let display_suffix = price_display_mode_suffix(self.price_axis_label_config.display_mode);
+
+        if style.show_price_axis_labels {
+            for (price, _) in selected_price_ticks.iter().copied() {
+                let display_price = map_price_to_display_value(
+                    price,
+                    self.price_axis_label_config.display_mode,
+                    fallback_display_base_price,
+                );
+                let text = self.format_price_axis_label(
+                    display_price,
+                    display_tick_step_abs,
+                    display_suffix,
+                );
+                let text_width =
+                    estimate_label_text_width_px(&text, style.price_axis_label_font_size_px);
+                required_width =
+                    required_width.max(text_width + style.price_axis_label_padding_right_px + 2.0);
+            }
+        }
+
+        if style.show_last_price_label {
+            if let Some((last_price, _previous_price)) = self
+                .resolve_latest_and_previous_price_values(
+                    style.last_price_source_mode,
+                    visible_start,
+                    visible_end,
+                )
+            {
+                let display_price = map_price_to_display_value(
+                    last_price,
+                    self.price_axis_label_config.display_mode,
+                    fallback_display_base_price,
+                );
+                let text = self.format_price_axis_label(
+                    display_price,
+                    display_tick_step_abs,
+                    display_suffix,
+                );
+                let text_width =
+                    estimate_label_text_width_px(&text, style.last_price_label_font_size_px);
+                let padding_right = if style.show_last_price_label_box {
+                    (2.0 * style.last_price_label_box_padding_x_px)
+                        .max(style.last_price_label_padding_right_px)
+                } else {
+                    style.last_price_label_padding_right_px
+                };
+                required_width = required_width.max(text_width + padding_right + 2.0);
+            }
+        }
+
+        Ok(required_width.max(1.0))
+    }
+
     fn crosshair_source_mode_tag(source_mode: CrosshairLabelSourceMode) -> u8 {
         match source_mode {
             CrosshairLabelSourceMode::SnappedData => 1,
@@ -75,6 +266,65 @@ impl<R: Renderer> ChartEngine<R> {
             formatter(logical_time)
         } else {
             format_time_axis_label(logical_time, self.time_axis_label_config, visible_span_abs)
+        };
+        self.time_label_cache
+            .borrow_mut()
+            .insert(key, value.clone());
+        value
+    }
+
+    fn format_time_axis_tick_label(
+        &self,
+        logical_time: f64,
+        visible_span_abs: f64,
+        tick_step_abs: f64,
+        is_major_tick: bool,
+    ) -> String {
+        let profile = if self.time_label_formatter.is_some() {
+            TimeLabelCacheProfile::Custom {
+                formatter_generation: self.time_label_formatter_generation,
+                source_mode_tag: 0,
+                visible_span_millis: 0,
+            }
+        } else {
+            match resolve_time_axis_tick_pattern(
+                self.time_axis_label_config.policy,
+                visible_span_abs,
+                tick_step_abs,
+                is_major_tick,
+            ) {
+                ResolvedTimeLabelPattern::LogicalDecimal { precision } => {
+                    TimeLabelCacheProfile::LogicalDecimal {
+                        precision,
+                        locale: self.time_axis_label_config.locale,
+                    }
+                }
+                ResolvedTimeLabelPattern::Utc { pattern } => TimeLabelCacheProfile::Utc {
+                    locale: self.time_axis_label_config.locale,
+                    pattern,
+                    timezone: self.time_axis_label_config.timezone,
+                    session: self.time_axis_label_config.session,
+                },
+            }
+        };
+        let key = TimeLabelCacheKey {
+            profile,
+            logical_time_millis: quantize_logical_time_millis(logical_time),
+        };
+        if let Some(cached) = self.time_label_cache.borrow_mut().get(key) {
+            return cached;
+        }
+
+        let value = if let Some(formatter) = &self.time_label_formatter {
+            formatter(logical_time)
+        } else {
+            format_time_axis_tick_label(
+                logical_time,
+                self.time_axis_label_config,
+                visible_span_abs,
+                tick_step_abs,
+                is_major_tick,
+            )
         };
         self.time_label_cache
             .borrow_mut()
@@ -279,12 +529,32 @@ impl<R: Renderer> ChartEngine<R> {
 
         let viewport_width = f64::from(self.viewport.width);
         let viewport_height = f64::from(self.viewport.height);
-        let layout = resolve_axis_layout(
+        let visible_span_abs = (visible_end - visible_start).abs();
+        let mut requested_price_axis_width = style.price_axis_width_px;
+        let requested_time_axis_height = style
+            .time_axis_height_px
+            .max(Self::estimate_required_time_axis_height(style));
+        let mut layout = resolve_axis_layout(
             viewport_width,
             viewport_height,
-            style.price_axis_width_px,
-            style.time_axis_height_px,
+            requested_price_axis_width,
+            requested_time_axis_height,
         );
+        let adaptive_price_axis_width = self.estimate_required_price_axis_width(
+            style,
+            layout.plot_bottom,
+            visible_start,
+            visible_end,
+        )?;
+        if adaptive_price_axis_width > requested_price_axis_width {
+            requested_price_axis_width = adaptive_price_axis_width;
+            layout = resolve_axis_layout(
+                viewport_width,
+                viewport_height,
+                requested_price_axis_width,
+                requested_time_axis_height,
+            );
+        }
         let plot_right = layout.plot_right;
         let plot_bottom = layout.plot_bottom;
         let price_axis_label_anchor_x = (viewport_width - style.price_axis_label_padding_right_px)
@@ -295,10 +565,25 @@ impl<R: Renderer> ChartEngine<R> {
             (plot_right + style.price_axis_tick_mark_length_px).clamp(plot_right, viewport_width);
         let axis_color = style.axis_border_color;
         let price_label_color = style.axis_label_color;
-        let time_tick_count =
-            axis_tick_target_count(plot_right, AXIS_TIME_TARGET_SPACING_PX, 2, 12);
-        let price_tick_count =
-            axis_tick_target_count(plot_bottom, AXIS_PRICE_TARGET_SPACING_PX, 2, 16);
+        let time_density_scale = self.resolve_time_axis_density_scale();
+        let price_density_scale = self.resolve_price_axis_density_scale();
+        let price_axis_span_px = self.resolve_price_axis_span_px(plot_bottom)?;
+        let time_tick_count = axis_tick_target_count_with_density(
+            plot_right,
+            AXIS_TIME_TARGET_SPACING_PX,
+            AXIS_TIME_MIN_SPACING_PX,
+            2,
+            12,
+            time_density_scale,
+        );
+        let price_tick_count = axis_tick_target_count_with_density(
+            price_axis_span_px,
+            AXIS_PRICE_TARGET_SPACING_PX,
+            AXIS_PRICE_MIN_SPACING_PX,
+            2,
+            16,
+            price_density_scale,
+        );
 
         // Axis borders remain explicit frame primitives, keeping visual output
         // deterministic across all renderer backends.
@@ -323,16 +608,47 @@ impl<R: Renderer> ChartEngine<R> {
             ));
         }
 
-        let mut time_ticks = Vec::with_capacity(time_tick_count);
-        for time in axis_ticks(self.time_scale.visible_range(), time_tick_count) {
-            let px = self.time_scale.time_to_pixel(time, self.viewport)?;
-            let clamped_px = px.clamp(0.0, plot_right);
-            time_ticks.push((time, clamped_px));
+        let raw_time_ticks = axis_ticks(self.time_scale.visible_range(), time_tick_count);
+        let time_tick_step_abs = tick_step_hint_from_values(&raw_time_ticks).abs();
+        let mut time_label_min_spacing_px = AXIS_TIME_MIN_SPACING_PX;
+        if style.show_time_axis_labels {
+            let mut max_label_width_px: f64 = 0.0;
+            for time in raw_time_ticks.iter().copied() {
+                let is_major_tick = is_major_time_tick(time, self.time_axis_label_config);
+                let label_font_size_px = if is_major_tick {
+                    style.major_time_label_font_size_px
+                } else {
+                    style.time_axis_label_font_size_px
+                };
+                let text = self.format_time_axis_tick_label(
+                    time,
+                    visible_span_abs,
+                    time_tick_step_abs,
+                    is_major_tick,
+                );
+                let measured_width = estimate_label_text_width_px(&text, label_font_size_px);
+                let capped_width =
+                    measured_width.min(Self::lwc_time_label_width_budget_px(label_font_size_px));
+                max_label_width_px = max_label_width_px.max(capped_width);
+            }
+            if max_label_width_px.is_finite() && max_label_width_px > 0.0 {
+                time_label_min_spacing_px = time_label_min_spacing_px
+                    .max((max_label_width_px + 4.0).min(plot_right.max(AXIS_TIME_MIN_SPACING_PX)));
+            }
         }
 
-        let visible_span_abs = (visible_end - visible_start).abs();
-        for (time, px) in select_ticks_with_min_spacing(time_ticks, AXIS_TIME_MIN_SPACING_PX) {
+        let mut time_ticks = Vec::with_capacity(time_tick_count);
+        for time in raw_time_ticks {
+            let px = self.time_scale.time_to_pixel(time, self.viewport)?;
+            let clamped_px = px.clamp(0.0, plot_right);
             let is_major_tick = is_major_time_tick(time, self.time_axis_label_config);
+            time_ticks.push((time, clamped_px, is_major_tick));
+        }
+
+        let mut time_label_candidates: Vec<(TextPrimitive, bool)> = Vec::new();
+        for (time, px, is_major_tick) in
+            select_positions_with_min_spacing_prioritized(time_ticks, time_label_min_spacing_px)
+        {
             let (
                 grid_color,
                 grid_line_width,
@@ -367,20 +683,28 @@ impl<R: Renderer> ChartEngine<R> {
             };
             let time_label_y = (plot_bottom + label_offset_y_px)
                 .min((viewport_height - label_font_size_px).max(0.0));
-            let text = self.format_time_axis_label(time, visible_span_abs);
+            let text = self.format_time_axis_tick_label(
+                time,
+                visible_span_abs,
+                time_tick_step_abs,
+                is_major_tick,
+            );
             if style.show_time_axis_labels && (!is_major_tick || style.show_major_time_labels) {
                 let estimated_width = estimate_label_text_width_px(&text, label_font_size_px);
                 if estimated_width <= (plot_right - 2.0).max(0.0) {
                     let half_width = (estimated_width * 0.5).clamp(0.0, plot_right * 0.5);
                     let time_label_x =
                         px.clamp(half_width, (plot_right - half_width).max(half_width));
-                    frame = frame.with_text(TextPrimitive::new(
-                        text,
-                        time_label_x,
-                        time_label_y,
-                        label_font_size_px,
-                        label_color,
-                        TextHAlign::Center,
+                    time_label_candidates.push((
+                        TextPrimitive::new(
+                            text,
+                            time_label_x,
+                            time_label_y,
+                            label_font_size_px,
+                            label_color,
+                            TextHAlign::Center,
+                        ),
+                        is_major_tick,
                     ));
                 }
             }
@@ -405,6 +729,43 @@ impl<R: Renderer> ChartEngine<R> {
                     tick_mark_width,
                     tick_mark_color,
                 ));
+            }
+        }
+
+        if !time_label_candidates.is_empty() {
+            let index_candidates: Vec<(usize, f64, bool)> = time_label_candidates
+                .iter()
+                .enumerate()
+                .map(|(index, (label, is_major))| (index, label.x, *is_major))
+                .collect();
+            let mut selected_labels: Vec<(TextPrimitive, bool)> =
+                select_positions_with_min_spacing_prioritized(
+                    index_candidates,
+                    time_label_min_spacing_px,
+                )
+                .into_iter()
+                .map(|(index, _, _)| time_label_candidates[index].clone())
+                .collect();
+            selected_labels.sort_by(|left, right| left.0.x.total_cmp(&right.0.x));
+
+            if selected_labels.len() >= 3 {
+                let first_gap = selected_labels[1].0.x - selected_labels[0].0.x;
+                let second_gap = selected_labels[2].0.x - selected_labels[1].0.x;
+                if first_gap > second_gap * 1.70 && !selected_labels[0].1 {
+                    selected_labels.remove(0);
+                }
+            }
+            if selected_labels.len() >= 3 {
+                let len = selected_labels.len();
+                let last_gap = selected_labels[len - 1].0.x - selected_labels[len - 2].0.x;
+                let penultimate_gap = selected_labels[len - 2].0.x - selected_labels[len - 3].0.x;
+                if last_gap > penultimate_gap * 1.70 && !selected_labels[len - 1].1 {
+                    selected_labels.pop();
+                }
+            }
+
+            for (label, _) in selected_labels {
+                frame = frame.with_text(label);
             }
         }
 

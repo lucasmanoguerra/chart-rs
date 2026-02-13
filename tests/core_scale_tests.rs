@@ -65,6 +65,40 @@ fn time_scale_visible_range_controls_mapping() {
 }
 
 #[test]
+fn time_scale_derives_visible_bar_spacing_and_right_offset() {
+    let mut scale = TimeScale::new(0.0, 100.0).expect("valid scale");
+    scale
+        .set_visible_range(20.0, 80.0)
+        .expect("set visible range");
+
+    let (bar_spacing_px, right_offset_bars) = scale
+        .derive_visible_bar_spacing_and_right_offset(10.0, 600.0)
+        .expect("derive runtime coordinate space");
+
+    assert!((bar_spacing_px - 100.0).abs() <= 1e-9);
+    assert!((right_offset_bars + 2.0).abs() <= 1e-9);
+}
+
+#[test]
+fn time_scale_rebuilds_visible_range_from_spacing_and_right_offset() {
+    let mut scale = TimeScale::new(0.0, 100.0).expect("valid scale");
+    scale
+        .set_visible_range(20.0, 80.0)
+        .expect("set visible range");
+
+    let (spacing, right_offset) = scale
+        .derive_visible_bar_spacing_and_right_offset(10.0, 600.0)
+        .expect("derive runtime coordinate space");
+    scale
+        .set_visible_range_from_bar_spacing_and_right_offset(spacing, right_offset, 10.0, 600.0)
+        .expect("rebuild visible range");
+
+    let (start, end) = scale.visible_range();
+    assert!((start - 20.0).abs() <= 1e-9);
+    assert!((end - 80.0).abs() <= 1e-9);
+}
+
+#[test]
 fn time_scale_from_data_tuned_applies_padding() {
     let points = vec![DataPoint::new(10.0, 1.0), DataPoint::new(20.0, 2.0)];
     let tuning = TimeScaleTuning {

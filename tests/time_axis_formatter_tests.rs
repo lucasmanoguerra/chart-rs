@@ -136,6 +136,39 @@ fn utc_adaptive_policy_changes_label_detail_with_zoom() {
 }
 
 #[test]
+fn utc_adaptive_policy_keeps_mixed_date_context_and_time_only_ticks_near_day_boundary() {
+    let renderer = NullRenderer::default();
+    let config = ChartEngineConfig::new(Viewport::new(1000, 340), 1_704_153_000.0, 1_704_154_200.0)
+        .with_price_domain(0.0, 10.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    engine
+        .set_time_axis_label_config(TimeAxisLabelConfig {
+            locale: AxisLabelLocale::EnUs,
+            policy: TimeAxisLabelPolicy::UtcAdaptive,
+            timezone: TimeAxisTimeZone::Utc,
+            session: None,
+        })
+        .expect("set adaptive policy");
+
+    let frame = engine.build_render_frame().expect("frame");
+    let time_labels: Vec<&str> = frame
+        .texts
+        .iter()
+        .filter(|label| label.h_align == TextHAlign::Center)
+        .map(|label| label.text.as_str())
+        .collect();
+
+    assert!(!time_labels.is_empty());
+    assert!(
+        time_labels
+            .iter()
+            .any(|text| text.contains(':') && !text.contains('-')),
+        "expected at least one time-only tick"
+    );
+}
+
+#[test]
 fn time_label_cache_reports_hits_for_repeated_frame_builds() {
     let renderer = NullRenderer::default();
     let config = ChartEngineConfig::new(

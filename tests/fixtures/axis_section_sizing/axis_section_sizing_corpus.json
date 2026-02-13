@@ -1,0 +1,3672 @@
+{
+  "schema_version": 1,
+  "fixtures": [
+    {
+      "id": "balanced-default",
+      "description": "Baseline layout without aggressive typography pressure",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          0.0,
+          50.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 10.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 25.0
+          },
+          {
+            "x": 1704206400.0,
+            "y": 15.0
+          },
+          {
+            "x": 1704206700.0,
+            "y": 32.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": {
+            "FixedOffsetMinutes": {
+              "minutes": -300
+            }
+          },
+          "session": {
+            "start_hour": 9,
+            "start_minute": 30,
+            "end_hour": 16,
+            "end_minute": 0
+          }
+        },
+        "price_axis_label_config": null,
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "2024-01-02 09:30",
+        "top_price_label_text": "34.20",
+        "major_time_tick_mark_count": 1
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/balanced-default.png"
+      }
+    },
+    {
+      "id": "price-axis-pressure",
+      "description": "Price-axis width expands for wide numeric labels and larger typography",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          10000000.0,
+          10001000.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 10000123.456789
+          },
+          {
+            "x": 1704206100.0,
+            "y": 10000567.891234
+          },
+          {
+            "x": 1704206400.0,
+            "y": 10000345.678912
+          },
+          {
+            "x": 1704206700.0,
+            "y": 10000999.012345
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": 56.0,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": 22.0,
+          "price_axis_label_padding_right_px": 12.0,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": null,
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 6
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 687.56,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 212.44000000000005,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 8,
+        "major_time_label_count": 8,
+        "leftmost_time_label_text": "14:30",
+        "top_price_label_text": "10001086.567901",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/price-axis-pressure.png"
+      }
+    },
+    {
+      "id": "time-axis-pressure",
+      "description": "Time-axis height expands when label/tick typography exceeds configured section height",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          0.0,
+          50.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 10.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 25.0
+          },
+          {
+            "x": 1704206400.0,
+            "y": 15.0
+          },
+          {
+            "x": 1704206700.0,
+            "y": 32.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": 30.0,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": 24.0,
+          "major_time_label_font_size_px": 30.0,
+          "time_axis_label_offset_y_px": 8.0,
+          "major_time_label_offset_y_px": 16.0,
+          "time_axis_tick_mark_length_px": 14.0,
+          "major_time_tick_mark_length_px": 18.0,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": {
+            "FixedOffsetMinutes": {
+              "minutes": -300
+            }
+          },
+          "session": {
+            "start_hour": 9,
+            "start_minute": 30,
+            "end_hour": 16,
+            "end_minute": 0
+          }
+        },
+        "price_axis_label_config": null,
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 372.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 48.0,
+        "price_label_count": 11,
+        "time_label_count": 3,
+        "major_time_label_count": 1,
+        "leftmost_time_label_text": "2024-01-02 09:30",
+        "top_price_label_text": "34.20",
+        "major_time_tick_mark_count": 1
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/time-axis-pressure.png"
+      }
+    },
+    {
+      "id": "tiny-viewport-extreme",
+      "description": "Tiny viewport keeps section clamps stable under dense labels and large typography",
+      "input": {
+        "viewport": {
+          "width": 120,
+          "height": 84
+        },
+        "time_range": [
+          1704205800.0,
+          1704206100.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          0.0,
+          10.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 1.0
+          },
+          {
+            "x": 1704205900.0,
+            "y": 8.0
+          },
+          {
+            "x": 1704206000.0,
+            "y": 3.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 9.5
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": 72.0,
+          "time_axis_height_px": 22.0,
+          "price_axis_label_font_size_px": 14.0,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": 16.0,
+          "major_time_label_font_size_px": 18.0,
+          "time_axis_label_offset_y_px": 6.0,
+          "major_time_label_offset_y_px": 9.0,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": null,
+          "show_last_price_line": null
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": {
+            "FixedOffsetMinutes": {
+              "minutes": -300
+            }
+          },
+          "session": {
+            "start_hour": 9,
+            "start_minute": 30,
+            "end_hour": 16,
+            "end_minute": 0
+          }
+        },
+        "price_axis_label_config": null,
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 80.0,
+        "plot_bottom_px": 56.0,
+        "price_axis_width_px": 40.0,
+        "time_axis_height_px": 28.0,
+        "price_label_count": 2,
+        "time_label_count": 1,
+        "major_time_label_count": 0,
+        "leftmost_time_label_text": "09:35",
+        "top_price_label_text": "9.50",
+        "major_time_tick_mark_count": 1
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/tiny-viewport-extreme.png"
+      }
+    },
+    {
+      "id": "narrow-domain-high-precision",
+      "description": "Narrow price domain with high precision formatting expands right axis deterministically",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          1.00000001,
+          1.00000009
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 1.00000002
+          },
+          {
+            "x": 1704206100.0,
+            "y": 1.00000007
+          },
+          {
+            "x": 1704206400.0,
+            "y": 1.00000003
+          },
+          {
+            "x": 1704206700.0,
+            "y": 1.00000008
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": 48.0,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": 15.0,
+          "price_axis_label_padding_right_px": 10.0,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": null,
+          "show_last_price_line": null
+        },
+        "time_axis_label_config": null,
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 10
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 780.6,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 119.39999999999998,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 9,
+        "major_time_label_count": 9,
+        "leftmost_time_label_text": "14:30",
+        "top_price_label_text": "1.0000000860",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/narrow-domain-high-precision.png"
+      }
+    },
+    {
+      "id": "sparse-series-wide-range",
+      "description": "Sparse series across wide time range keeps axis sections stable with high precision labels",
+      "input": {
+        "viewport": {
+          "width": 720,
+          "height": 320
+        },
+        "time_range": [
+          1704200000.0,
+          1704300000.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          99999.0,
+          100001.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704200500.0,
+            "y": 99999.12345
+          },
+          {
+            "x": 1704250000.0,
+            "y": 100000.54321
+          },
+          {
+            "x": 1704299500.0,
+            "y": 100000.99999
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": 56.0,
+          "time_axis_height_px": 18.0,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": null,
+          "show_last_price_line": null
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": "UtcAdaptive",
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 5
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 626.0799999999999,
+        "plot_bottom_px": 302.0,
+        "price_axis_width_px": 93.92000000000007,
+        "time_axis_height_px": 18.0,
+        "price_label_count": 7,
+        "time_label_count": 8,
+        "major_time_label_count": 8,
+        "leftmost_time_label_text": "12:53",
+        "top_price_label_text": "100000.99999",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/sparse-series-wide-range.png"
+      }
+    },
+    {
+      "id": "extreme-magnitude-normal",
+      "description": "Extreme positive and negative magnitudes in normal display keep adaptive price axis stable",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704208500.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          -1000000000000.0,
+          1000000000000.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": -999999999999.1234
+          },
+          {
+            "x": 1704206700.0,
+            "y": -250000000000.5
+          },
+          {
+            "x": 1704207600.0,
+            "y": 500000000000.75
+          },
+          {
+            "x": 1704208500.0,
+            "y": 999999999999.875
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": 64.0,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": 14.0,
+          "price_axis_label_padding_right_px": 10.0,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": null,
+          "show_last_price_line": null
+        },
+        "time_axis_label_config": null,
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 4
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 735.6800000000001,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 164.31999999999994,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 9,
+        "major_time_label_count": 9,
+        "leftmost_time_label_text": "14:30",
+        "top_price_label_text": "1199999999999.7747",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/extreme-magnitude-normal.png"
+      }
+    },
+    {
+      "id": "extreme-magnitude-percentage",
+      "description": "Percentage display mode under extreme magnitude spread keeps deterministic axis width expansion",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704208500.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          900000000.0,
+          1100000000.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 905000000.0
+          },
+          {
+            "x": 1704206700.0,
+            "y": 955000000.0
+          },
+          {
+            "x": 1704207600.0,
+            "y": 1045000000.0
+          },
+          {
+            "x": 1704208500.0,
+            "y": 1095000000.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": 64.0,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": 14.0,
+          "price_axis_label_padding_right_px": 10.0,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": null,
+          "show_last_price_line": null
+        },
+        "time_axis_label_config": null,
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 4
+            }
+          },
+          "display_mode": {
+            "Percentage": {
+              "base_price": 1000000000.0
+            }
+          }
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 819.4,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 80.60000000000002,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 11,
+        "major_time_label_count": 11,
+        "leftmost_time_label_text": "14:30",
+        "top_price_label_text": "11.4000%",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/extreme-magnitude-percentage.png"
+      }
+    },
+    {
+      "id": "extreme-magnitude-indexed-to-100",
+      "description": "IndexedTo100 display mode under extreme spread keeps deterministic axis width adaptation",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704208500.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          500000000.0,
+          1500000000.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 550000000.0
+          },
+          {
+            "x": 1704206700.0,
+            "y": 750000000.0
+          },
+          {
+            "x": 1704207600.0,
+            "y": 1250000000.0
+          },
+          {
+            "x": 1704208500.0,
+            "y": 1450000000.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": 64.0,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": 14.0,
+          "price_axis_label_padding_right_px": 10.0,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": null,
+          "show_last_price_line": null
+        },
+        "time_axis_label_config": null,
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 4
+            }
+          },
+          "display_mode": {
+            "IndexedTo100": {
+              "base_price": 1000000000.0
+            }
+          }
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 822.48,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 77.51999999999998,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 11,
+        "major_time_label_count": 11,
+        "leftmost_time_label_text": "14:30",
+        "top_price_label_text": "154.0000",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/extreme-magnitude-indexed-to-100.png"
+      }
+    },
+    {
+      "id": "locale-enus-utc-session",
+      "description": "EnUs locale with UTC timezone and session boundaries keeps deterministic major tick density",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704213000.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          0.0,
+          200.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 100.0
+          },
+          {
+            "x": 1704207600.0,
+            "y": 110.0
+          },
+          {
+            "x": 1704209400.0,
+            "y": 120.0
+          },
+          {
+            "x": 1704211200.0,
+            "y": 115.0
+          },
+          {
+            "x": 1704213000.0,
+            "y": 130.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": {
+            "start_hour": 9,
+            "start_minute": 30,
+            "end_hour": 16,
+            "end_minute": 0
+          }
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "14:30",
+        "top_price_label_text": "133.00",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/locale-enus-utc-session.png"
+      }
+    },
+    {
+      "id": "locale-eses-fixed-offset-session",
+      "description": "EsEs locale with fixed-offset timezone and session boundaries keeps deterministic date/time label transforms",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704213000.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          0.0,
+          200.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 100.0
+          },
+          {
+            "x": 1704207600.0,
+            "y": 110.0
+          },
+          {
+            "x": 1704209400.0,
+            "y": 120.0
+          },
+          {
+            "x": 1704211200.0,
+            "y": 115.0
+          },
+          {
+            "x": 1704213000.0,
+            "y": 130.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": {
+            "FixedOffsetMinutes": {
+              "minutes": -180
+            }
+          },
+          "session": {
+            "start_hour": 9,
+            "start_minute": 30,
+            "end_hour": 16,
+            "end_minute": 0
+          }
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 11,
+        "major_time_label_count": 11,
+        "leftmost_time_label_text": "11:30",
+        "top_price_label_text": "133,00",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/locale-eses-fixed-offset-session.png"
+      }
+    },
+    {
+      "id": "locale-eses-utc-adaptive-no-session",
+      "description": "EsEs locale with UTC adaptive policy and no session tracks date-format width and midnight-major density",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704067200.0,
+          1704326400.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          10.0,
+          20.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704067200.0,
+            "y": 11.0
+          },
+          {
+            "x": 1704153600.0,
+            "y": 13.0
+          },
+          {
+            "x": 1704240000.0,
+            "y": 17.0
+          },
+          {
+            "x": 1704326400.0,
+            "y": 16.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": "UtcAdaptive",
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 4
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 9,
+        "major_time_label_count": 9,
+        "leftmost_time_label_text": "01/01/2024",
+        "top_price_label_text": "17,6000",
+        "major_time_tick_mark_count": 2
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/locale-eses-utc-adaptive-no-session.png"
+      }
+    },
+    {
+      "id": "locale-enus-utcplus14-rollover-session-wrap",
+      "description": "EnUs locale with UTC+14 and wrap-around session tracks day-rollover labels near midnight",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704097800.0,
+          1704112200.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          90.0,
+          140.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704097800.0,
+            "y": 101.0
+          },
+          {
+            "x": 1704101400.0,
+            "y": 108.0
+          },
+          {
+            "x": 1704105000.0,
+            "y": 112.0
+          },
+          {
+            "x": 1704108600.0,
+            "y": 117.0
+          },
+          {
+            "x": 1704112200.0,
+            "y": 121.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": {
+            "FixedOffsetMinutes": {
+              "minutes": 840
+            }
+          },
+          "session": {
+            "start_hour": 23,
+            "start_minute": 30,
+            "end_hour": 0,
+            "end_minute": 30
+          }
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "2024-01-01 22:30",
+        "top_price_label_text": "123.00",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/locale-enus-utcplus14-rollover-session-wrap.png"
+      }
+    },
+    {
+      "id": "locale-eses-utcminus12-rollover-session-wrap",
+      "description": "EsEs locale with UTC-12 and wrap-around session tracks date flip and major tick boundaries",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704106800.0,
+          1704121200.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          20.0,
+          60.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704106800.0,
+            "y": 24.0
+          },
+          {
+            "x": 1704110400.0,
+            "y": 28.5
+          },
+          {
+            "x": 1704114000.0,
+            "y": 31.25
+          },
+          {
+            "x": 1704117600.0,
+            "y": 34.0
+          },
+          {
+            "x": 1704121200.0,
+            "y": 36.75
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": {
+            "FixedOffsetMinutes": {
+              "minutes": -720
+            }
+          },
+          "session": {
+            "start_hour": 22,
+            "start_minute": 0,
+            "end_hour": 1,
+            "end_minute": 0
+          }
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 3
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "23:00",
+        "top_price_label_text": "38,025",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/locale-eses-utcminus12-rollover-session-wrap.png"
+      }
+    },
+    {
+      "id": "seconds-enus-utc-subminute-no-session",
+      "description": "EnUs locale with show_seconds=true and sub-minute UTC span keeps second-level label formatting stable",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704205880.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          100.0,
+          130.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 104.0
+          },
+          {
+            "x": 1704205820.0,
+            "y": 108.0
+          },
+          {
+            "x": 1704205840.0,
+            "y": 111.0
+          },
+          {
+            "x": 1704205860.0,
+            "y": 116.0
+          },
+          {
+            "x": 1704205880.0,
+            "y": 119.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": true
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 3
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "2024-01-02 14:30:00",
+        "top_price_label_text": "120.500",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/seconds-enus-utc-subminute-no-session.png"
+      }
+    },
+    {
+      "id": "seconds-eses-fixed-offset-subminute-session",
+      "description": "EsEs locale with show_seconds=true and fixed-offset session boundary tracks second-level boundary labeling",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205760.0,
+          1704205840.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          40.0,
+          80.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205760.0,
+            "y": 45.0
+          },
+          {
+            "x": 1704205780.0,
+            "y": 49.0
+          },
+          {
+            "x": 1704205800.0,
+            "y": 53.0
+          },
+          {
+            "x": 1704205820.0,
+            "y": 57.0
+          },
+          {
+            "x": 1704205840.0,
+            "y": 61.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": true
+            }
+          },
+          "timezone": {
+            "FixedOffsetMinutes": {
+              "minutes": -300
+            }
+          },
+          "session": {
+            "start_hour": 9,
+            "start_minute": 30,
+            "end_hour": 16,
+            "end_minute": 0
+          }
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 3
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "02/01/2024 09:29:20",
+        "top_price_label_text": "62,600",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/seconds-eses-fixed-offset-subminute-session.png"
+      }
+    },
+    {
+      "id": "adaptive-enus-span-599s-utc",
+      "description": "UtcAdaptive keeps second-level datetime pattern when visible span is below 600 seconds",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206399.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          100.0,
+          140.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 103.0
+          },
+          {
+            "x": 1704205950.0,
+            "y": 109.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 114.0
+          },
+          {
+            "x": 1704206250.0,
+            "y": 119.0
+          },
+          {
+            "x": 1704206399.0,
+            "y": 124.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": "UtcAdaptive",
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 3
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 8,
+        "major_time_label_count": 8,
+        "leftmost_time_label_text": "14:30:00",
+        "top_price_label_text": "126.100",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/adaptive-enus-span-599s-utc.png"
+      }
+    },
+    {
+      "id": "adaptive-enus-span-601s-utc",
+      "description": "UtcAdaptive switches to minute-level datetime pattern when visible span crosses 600 seconds",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206401.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          100.0,
+          140.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 103.0
+          },
+          {
+            "x": 1704205950.0,
+            "y": 109.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 114.0
+          },
+          {
+            "x": 1704206250.0,
+            "y": 119.0
+          },
+          {
+            "x": 1704206401.0,
+            "y": 124.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": "UtcAdaptive",
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 3
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 8,
+        "major_time_label_count": 8,
+        "leftmost_time_label_text": "14:30:00",
+        "top_price_label_text": "126.100",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/adaptive-enus-span-601s-utc.png"
+      }
+    },
+    {
+      "id": "adaptive-eses-span-172799s-utc",
+      "description": "UtcAdaptive keeps minute-level date pattern when visible span stays below 172800 seconds",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704067200.0,
+          1704239999.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          20.0,
+          60.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704067200.0,
+            "y": 24.0
+          },
+          {
+            "x": 1704110400.0,
+            "y": 29.0
+          },
+          {
+            "x": 1704153600.0,
+            "y": 34.0
+          },
+          {
+            "x": 1704196800.0,
+            "y": 39.0
+          },
+          {
+            "x": 1704239999.0,
+            "y": 44.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": "UtcAdaptive",
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 3
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 8,
+        "major_time_label_count": 8,
+        "leftmost_time_label_text": "01/01/2024",
+        "top_price_label_text": "46,000",
+        "major_time_tick_mark_count": 1
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/adaptive-eses-span-172799s-utc.png"
+      }
+    },
+    {
+      "id": "adaptive-eses-span-172801s-utc",
+      "description": "UtcAdaptive switches to date-only pattern when visible span exceeds 172800 seconds",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704067200.0,
+          1704240001.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          20.0,
+          60.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704067200.0,
+            "y": 24.0
+          },
+          {
+            "x": 1704110400.0,
+            "y": 29.0
+          },
+          {
+            "x": 1704153600.0,
+            "y": 34.0
+          },
+          {
+            "x": 1704196800.0,
+            "y": 39.0
+          },
+          {
+            "x": 1704240001.0,
+            "y": 44.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": "UtcAdaptive",
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 3
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 8,
+        "major_time_label_count": 8,
+        "leftmost_time_label_text": "01/01/2024",
+        "top_price_label_text": "46,000",
+        "major_time_tick_mark_count": 1
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/adaptive-eses-span-172801s-utc.png"
+      }
+    },
+    {
+      "id": "logicaldecimal-enus-precision10",
+      "description": "LogicalDecimal EnUs high precision keeps dot separator and stable axis sizing",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          12345.678901234,
+          12345.679901234
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          1.0,
+          2.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 12345.678901234,
+            "y": 1.15
+          },
+          {
+            "x": 12345.679101234,
+            "y": 1.27
+          },
+          {
+            "x": 12345.679301234,
+            "y": 1.34
+          },
+          {
+            "x": 12345.679501234,
+            "y": 1.46
+          },
+          {
+            "x": 12345.679901234,
+            "y": 1.58
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "LogicalDecimal": {
+              "precision": 10
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 4
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "12345.6789012340",
+        "top_price_label_text": "1.6230",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/logicaldecimal-enus-precision10.png"
+      }
+    },
+    {
+      "id": "logicaldecimal-eses-precision10",
+      "description": "LogicalDecimal EsEs high precision keeps comma separator and stable axis sizing",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          12345.678901234,
+          12345.679901234
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          1.0,
+          2.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 12345.678901234,
+            "y": 1.15
+          },
+          {
+            "x": 12345.679101234,
+            "y": 1.27
+          },
+          {
+            "x": 12345.679301234,
+            "y": 1.34
+          },
+          {
+            "x": 12345.679501234,
+            "y": 1.46
+          },
+          {
+            "x": 12345.679901234,
+            "y": 1.58
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "LogicalDecimal": {
+              "precision": 10
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 4
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "12345,6789012340",
+        "top_price_label_text": "1,6230",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/logicaldecimal-eses-precision10.png"
+      }
+    },
+    {
+      "id": "minmove-enus-trim-false",
+      "description": "Price MinMove EnUs without trimming keeps trailing zeros in labels",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          1.0,
+          2.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 1.05
+          },
+          {
+            "x": 1704206100.0,
+            "y": 1.3
+          },
+          {
+            "x": 1704206400.0,
+            "y": 1.55
+          },
+          {
+            "x": 1704206700.0,
+            "y": 1.95
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "MinMove": {
+              "min_move": 0.25,
+              "trim_trailing_zeros": false
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "2024-01-02 14:30",
+        "top_price_label_text": "2.00",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/minmove-enus-trim-false.png"
+      }
+    },
+    {
+      "id": "minmove-enus-trim-true",
+      "description": "Price MinMove EnUs with trimming removes trailing zeros",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          1.0,
+          2.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 1.05
+          },
+          {
+            "x": 1704206100.0,
+            "y": 1.3
+          },
+          {
+            "x": 1704206400.0,
+            "y": 1.55
+          },
+          {
+            "x": 1704206700.0,
+            "y": 1.95
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "MinMove": {
+              "min_move": 0.25,
+              "trim_trailing_zeros": true
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "2024-01-02 14:30",
+        "top_price_label_text": "2",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/minmove-enus-trim-true.png"
+      }
+    },
+    {
+      "id": "minmove-eses-trim-false",
+      "description": "Price MinMove EsEs without trimming keeps trailing zeros with comma separator",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          1.0,
+          2.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 1.05
+          },
+          {
+            "x": 1704206100.0,
+            "y": 1.3
+          },
+          {
+            "x": 1704206400.0,
+            "y": 1.55
+          },
+          {
+            "x": 1704206700.0,
+            "y": 1.95
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "MinMove": {
+              "min_move": 0.25,
+              "trim_trailing_zeros": false
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "02/01/2024 14:30",
+        "top_price_label_text": "2,00",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/minmove-eses-trim-false.png"
+      }
+    },
+    {
+      "id": "minmove-eses-trim-true",
+      "description": "Price MinMove EsEs with trimming removes trailing zeros while keeping comma separator",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          1.0,
+          2.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 1.05
+          },
+          {
+            "x": 1704206100.0,
+            "y": 1.3
+          },
+          {
+            "x": 1704206400.0,
+            "y": 1.55
+          },
+          {
+            "x": 1704206700.0,
+            "y": 1.95
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "MinMove": {
+              "min_move": 0.25,
+              "trim_trailing_zeros": true
+            }
+          },
+          "display_mode": "Normal"
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "02/01/2024 14:30",
+        "top_price_label_text": "2",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/minmove-eses-trim-true.png"
+      }
+    },
+    {
+      "id": "displaymode-percentage-base-none-fallback-one",
+      "description": "Percentage mode with base_price=None falls back to resolved base and uses 1 when resolved base is zero",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          -0.5,
+          0.75
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 0.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 0.25
+          },
+          {
+            "x": 1704206400.0,
+            "y": -0.25
+          },
+          {
+            "x": 1704206700.0,
+            "y": 0.5
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": {
+            "Percentage": {
+              "base_price": null
+            }
+          }
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "2024-01-02 14:30",
+        "top_price_label_text": "-42.50%",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/displaymode-percentage-base-none-fallback-one.png"
+      }
+    },
+    {
+      "id": "displaymode-indexed-base-none-fallback-one",
+      "description": "IndexedTo100 mode with base_price=None falls back to resolved base and uses 1 when resolved base is zero",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          -0.5,
+          0.75
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 0.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 0.25
+          },
+          {
+            "x": 1704206400.0,
+            "y": -0.25
+          },
+          {
+            "x": 1704206700.0,
+            "y": 0.5
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": {
+            "IndexedTo100": {
+              "base_price": null
+            }
+          }
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "02/01/2024 14:30",
+        "top_price_label_text": "57,50",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/displaymode-indexed-base-none-fallback-one.png"
+      }
+    },
+    {
+      "id": "displaymode-percentage-base-zero-fallback-one",
+      "description": "Percentage mode with explicit base_price=0 falls back to 1 to avoid zero-division drift",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          -0.5,
+          0.75
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 0.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 0.25
+          },
+          {
+            "x": 1704206400.0,
+            "y": -0.25
+          },
+          {
+            "x": 1704206700.0,
+            "y": 0.5
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": {
+            "Percentage": {
+              "base_price": 0.0
+            }
+          }
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "2024-01-02 14:30",
+        "top_price_label_text": "-42.50%",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/displaymode-percentage-base-zero-fallback-one.png"
+      }
+    },
+    {
+      "id": "displaymode-percentage-base-nan-fallback-one",
+      "description": "Percentage mode with explicit base_price=NaN falls back to 1 for deterministic formatting",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          -0.5,
+          0.75
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 0.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 0.25
+          },
+          {
+            "x": 1704206400.0,
+            "y": -0.25
+          },
+          {
+            "x": 1704206700.0,
+            "y": 0.5
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": {
+            "Percentage": {
+              "base_price": null
+            }
+          }
+        },
+        "price_axis_display_base_override": "nan"
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "2024-01-02 14:30",
+        "top_price_label_text": "-42.50%",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/displaymode-percentage-base-nan-fallback-one.png"
+      }
+    },
+    {
+      "id": "displaymode-percentage-base-posinf-fallback-one",
+      "description": "Percentage mode with explicit base_price=+inf falls back to 1 for deterministic formatting",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          -0.5,
+          0.75
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 0.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 0.25
+          },
+          {
+            "x": 1704206400.0,
+            "y": -0.25
+          },
+          {
+            "x": 1704206700.0,
+            "y": 0.5
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": {
+            "Percentage": {
+              "base_price": null
+            }
+          }
+        },
+        "price_axis_display_base_override": "pos_inf"
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "2024-01-02 14:30",
+        "top_price_label_text": "-42.50%",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/displaymode-percentage-base-posinf-fallback-one.png"
+      }
+    },
+    {
+      "id": "displaymode-percentage-base-neginf-fallback-one",
+      "description": "Percentage mode with explicit base_price=-inf falls back to 1 for deterministic formatting",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          -0.5,
+          0.75
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 0.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 0.25
+          },
+          {
+            "x": 1704206400.0,
+            "y": -0.25
+          },
+          {
+            "x": 1704206700.0,
+            "y": 0.5
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": {
+            "Percentage": {
+              "base_price": null
+            }
+          }
+        },
+        "price_axis_display_base_override": "neg_inf"
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "2024-01-02 14:30",
+        "top_price_label_text": "-42.50%",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/displaymode-percentage-base-neginf-fallback-one.png"
+      }
+    },
+    {
+      "id": "displaymode-indexed-base-zero-fallback-one",
+      "description": "IndexedTo100 mode with explicit base_price=0 falls back to 1 to avoid zero-division drift",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          -0.5,
+          0.75
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 0.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 0.25
+          },
+          {
+            "x": 1704206400.0,
+            "y": -0.25
+          },
+          {
+            "x": 1704206700.0,
+            "y": 0.5
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": {
+            "IndexedTo100": {
+              "base_price": 0.0
+            }
+          }
+        },
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "02/01/2024 14:30",
+        "top_price_label_text": "57,50",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/displaymode-indexed-base-zero-fallback-one.png"
+      }
+    },
+    {
+      "id": "displaymode-indexed-base-nan-fallback-one",
+      "description": "IndexedTo100 mode with explicit base_price=NaN falls back to 1 for deterministic formatting",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          -0.5,
+          0.75
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 0.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 0.25
+          },
+          {
+            "x": 1704206400.0,
+            "y": -0.25
+          },
+          {
+            "x": 1704206700.0,
+            "y": 0.5
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": {
+            "IndexedTo100": {
+              "base_price": null
+            }
+          }
+        },
+        "price_axis_display_base_override": "nan"
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "02/01/2024 14:30",
+        "top_price_label_text": "57,50",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/displaymode-indexed-base-nan-fallback-one.png"
+      }
+    },
+    {
+      "id": "displaymode-indexed-base-posinf-fallback-one",
+      "description": "IndexedTo100 mode with explicit base_price=+inf falls back to 1 for deterministic formatting",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          -0.5,
+          0.75
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 0.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 0.25
+          },
+          {
+            "x": 1704206400.0,
+            "y": -0.25
+          },
+          {
+            "x": 1704206700.0,
+            "y": 0.5
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": {
+            "IndexedTo100": {
+              "base_price": null
+            }
+          }
+        },
+        "price_axis_display_base_override": "pos_inf"
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "02/01/2024 14:30",
+        "top_price_label_text": "57,50",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/displaymode-indexed-base-posinf-fallback-one.png"
+      }
+    },
+    {
+      "id": "displaymode-indexed-base-neginf-fallback-one",
+      "description": "IndexedTo100 mode with explicit base_price=-inf falls back to 1 for deterministic formatting",
+      "input": {
+        "viewport": {
+          "width": 900,
+          "height": 420
+        },
+        "time_range": [
+          1704205800.0,
+          1704206700.0
+        ],
+        "time_visible_range_override": null,
+        "price_domain": [
+          -0.5,
+          0.75
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704205800.0,
+            "y": 0.0
+          },
+          {
+            "x": 1704206100.0,
+            "y": 0.25
+          },
+          {
+            "x": 1704206400.0,
+            "y": -0.25
+          },
+          {
+            "x": 1704206700.0,
+            "y": 0.5
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": {
+          "locale": "EsEs",
+          "policy": {
+            "FixedDecimals": {
+              "precision": 2
+            }
+          },
+          "display_mode": {
+            "IndexedTo100": {
+              "base_price": null
+            }
+          }
+        },
+        "price_axis_display_base_override": "neg_inf"
+      },
+      "expected": {
+        "plot_right_px": 828.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 6,
+        "major_time_label_count": 6,
+        "leftmost_time_label_text": "02/01/2024 14:30",
+        "top_price_label_text": "57,50",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/displaymode-indexed-base-neginf-fallback-one.png"
+      }
+    },
+    {
+      "id": "zoom-extreme-axis-density-time-out",
+      "description": "Time-axis zoomed-out cadence keeps labels collision-safe with sparser density",
+      "input": {
+        "viewport": {
+          "width": 1200,
+          "height": 420
+        },
+        "time_range": [
+          1704200000.0,
+          1704286400.0
+        ],
+        "time_visible_range_override": [
+          1704200000.0,
+          1704286400.0
+        ],
+        "price_domain": [
+          90.0,
+          130.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704200000.0,
+            "y": 95.0
+          },
+          {
+            "x": 1704221600.0,
+            "y": 101.0
+          },
+          {
+            "x": 1704243200.0,
+            "y": 107.5
+          },
+          {
+            "x": 1704264800.0,
+            "y": 112.0
+          },
+          {
+            "x": 1704286400.0,
+            "y": 118.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": null,
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 1128.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 11,
+        "time_label_count": 10,
+        "major_time_label_count": 10,
+        "leftmost_time_label_text": "2024-01-02 12:53",
+        "top_price_label_text": "120.30",
+        "major_time_tick_mark_count": 0
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/zoom-extreme-axis-density-time-out.png"
+      }
+    },
+    {
+      "id": "zoom-extreme-axis-density-time-in",
+      "description": "Time-axis zoomed-in cadence increases label density while preserving min spacing",
+      "input": {
+        "viewport": {
+          "width": 1200,
+          "height": 420
+        },
+        "time_range": [
+          1704200000.0,
+          1704286400.0
+        ],
+        "time_visible_range_override": [
+          1704240000.0,
+          1704243600.0
+        ],
+        "price_domain": [
+          90.0,
+          130.0
+        ],
+        "disable_autoscale_on_data_set": false,
+        "points": [
+          {
+            "x": 1704200000.0,
+            "y": 95.0
+          },
+          {
+            "x": 1704221600.0,
+            "y": 101.0
+          },
+          {
+            "x": 1704243200.0,
+            "y": 107.5
+          },
+          {
+            "x": 1704264800.0,
+            "y": 112.0
+          },
+          {
+            "x": 1704286400.0,
+            "y": 118.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": null,
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 1128.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 13,
+        "time_label_count": 8,
+        "major_time_label_count": 8,
+        "leftmost_time_label_text": "2024-01-03 00:00",
+        "top_price_label_text": "107.50",
+        "major_time_tick_mark_count": 1
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/zoom-extreme-axis-density-time-in.png"
+      }
+    },
+    {
+      "id": "zoom-extreme-axis-density-price-out",
+      "description": "Price-axis zoomed-out cadence keeps labels sparse under wide domain span",
+      "input": {
+        "viewport": {
+          "width": 1200,
+          "height": 420
+        },
+        "time_range": [
+          1704200000.0,
+          1704286400.0
+        ],
+        "time_visible_range_override": [
+          1704240000.0,
+          1704243600.0
+        ],
+        "price_domain": [
+          50.0,
+          250.0
+        ],
+        "disable_autoscale_on_data_set": true,
+        "points": [
+          {
+            "x": 1704200000.0,
+            "y": 95.0
+          },
+          {
+            "x": 1704221600.0,
+            "y": 101.0
+          },
+          {
+            "x": 1704243200.0,
+            "y": 107.5
+          },
+          {
+            "x": 1704264800.0,
+            "y": 112.0
+          },
+          {
+            "x": 1704286400.0,
+            "y": 118.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": null,
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 1128.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 7,
+        "time_label_count": 8,
+        "major_time_label_count": 8,
+        "leftmost_time_label_text": "2024-01-03 00:00",
+        "top_price_label_text": "250.00",
+        "major_time_tick_mark_count": 1
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/zoom-extreme-axis-density-price-out.png"
+      }
+    },
+    {
+      "id": "zoom-extreme-axis-density-price-in",
+      "description": "Price-axis zoomed-in cadence increases label density under narrow domain span",
+      "input": {
+        "viewport": {
+          "width": 1200,
+          "height": 420
+        },
+        "time_range": [
+          1704200000.0,
+          1704286400.0
+        ],
+        "time_visible_range_override": [
+          1704240000.0,
+          1704243600.0
+        ],
+        "price_domain": [
+          108.0,
+          112.0
+        ],
+        "disable_autoscale_on_data_set": true,
+        "points": [
+          {
+            "x": 1704200000.0,
+            "y": 95.0
+          },
+          {
+            "x": 1704221600.0,
+            "y": 101.0
+          },
+          {
+            "x": 1704243200.0,
+            "y": 107.5
+          },
+          {
+            "x": 1704264800.0,
+            "y": 112.0
+          },
+          {
+            "x": 1704286400.0,
+            "y": 118.0
+          }
+        ],
+        "price_axis_scale_steps": [],
+        "render_style_overrides": {
+          "price_axis_width_px": null,
+          "time_axis_height_px": null,
+          "price_axis_label_font_size_px": null,
+          "price_axis_label_padding_right_px": null,
+          "time_axis_label_font_size_px": null,
+          "major_time_label_font_size_px": null,
+          "time_axis_label_offset_y_px": null,
+          "major_time_label_offset_y_px": null,
+          "time_axis_tick_mark_length_px": null,
+          "major_time_tick_mark_length_px": null,
+          "show_time_axis_tick_marks": true,
+          "show_major_time_tick_marks": true,
+          "show_last_price_label": false,
+          "show_last_price_line": false
+        },
+        "time_axis_label_config": {
+          "locale": "EnUs",
+          "policy": {
+            "UtcDateTime": {
+              "show_seconds": false
+            }
+          },
+          "timezone": "Utc",
+          "session": null
+        },
+        "price_axis_label_config": null,
+        "price_axis_display_base_override": null
+      },
+      "expected": {
+        "plot_right_px": 1128.0,
+        "plot_bottom_px": 396.0,
+        "price_axis_width_px": 72.0,
+        "time_axis_height_px": 24.0,
+        "price_label_count": 13,
+        "time_label_count": 8,
+        "major_time_label_count": 8,
+        "leftmost_time_label_text": "2024-01-03 00:00",
+        "top_price_label_text": "112.00",
+        "major_time_tick_mark_count": 1
+      },
+      "artifacts": {
+        "reference_png_relpath": "tests/fixtures/axis_section_sizing/reference_png/zoom-extreme-axis-density-price-in.png"
+      }
+    }
+  ]
+}

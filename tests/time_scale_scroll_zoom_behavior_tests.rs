@@ -95,3 +95,26 @@ fn switching_behavior_runtime_changes_zoom_anchor_policy() {
     assert!((end_after_default - end_before).abs() > 1e-9);
     assert!((end_after_anchor_right - end_before).abs() <= 1e-9);
 }
+
+#[test]
+fn wheel_zoom_with_right_bar_stays_and_right_offset_px_preserves_right_margin_px() {
+    let mut engine = build_engine();
+    engine
+        .set_time_scale_right_offset_px(Some(100.0))
+        .expect("set right offset px");
+    engine
+        .set_time_scale_scroll_zoom_behavior(TimeScaleScrollZoomBehavior {
+            right_bar_stays_on_scroll: true,
+        })
+        .expect("set scroll zoom behavior");
+
+    engine
+        .wheel_zoom_time_visible(-120.0, 250.0, 0.2, 1e-6)
+        .expect("wheel zoom");
+
+    let (_, full_end) = engine.time_full_range();
+    let (start_after, end_after) = engine.time_visible_range();
+    let span_after = end_after - start_after;
+    let expected_offset = span_after * (100.0 / 1000.0);
+    assert!(((end_after - full_end) - expected_offset).abs() <= 1e-9);
+}

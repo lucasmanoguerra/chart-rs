@@ -1,0 +1,263 @@
+{
+  "trace_name": "price-scale-transformed-autoscale",
+  "source": "lightweight-charts-v5.1",
+  "source_notes": "Reference scenarios for transformed base behavior and visible autoscale flow.",
+  "viewport": {
+    "width": 1000,
+    "height": 500
+  },
+  "time_range": {
+    "start": 0.0,
+    "end": 100.0
+  },
+  "price_range": {
+    "min": 80.0,
+    "max": 140.0
+  },
+  "tolerance": 1e-6,
+  "scenarios": [
+    {
+      "id": "percentage-explicit-base-visible-autoscale",
+      "points": [
+        {
+          "time": 0.0,
+          "value": 100.0
+        },
+        {
+          "time": 10.0,
+          "value": 110.0
+        },
+        {
+          "time": 20.0,
+          "value": 120.0
+        },
+        {
+          "time": 30.0,
+          "value": 130.0
+        },
+        {
+          "time": 40.0,
+          "value": 140.0
+        }
+      ],
+      "probe_price": 130.0,
+      "probe_pixel": 250.0,
+      "steps": [
+        {
+          "action": {
+            "type": "set_price_scale_mode",
+            "mode": "percentage"
+          },
+          "expect": {
+            "base_value": 96.0,
+            "price_domain_start": 96.0,
+            "price_domain_end": 144.0,
+            "price_domain_span": 48.0,
+            "probe_price_pixel": 202.0833333333333,
+            "probe_pixel_price": 123.42857142857142
+          }
+        },
+        {
+          "action": {
+            "type": "set_transformed_base_behavior",
+            "explicit_base_price": 100.0,
+            "dynamic_source": "last_visible_data"
+          },
+          "expect": {
+            "base_value": 100.0,
+            "price_domain_start": 96.0,
+            "price_domain_end": 144.0,
+            "price_domain_span": 48.0,
+            "probe_price_pixel": 202.0833333333333,
+            "probe_pixel_price": 123.42857142857142
+          }
+        },
+        {
+          "action": {
+            "type": "set_time_visible_range",
+            "start": 0.0,
+            "end": 25.0
+          },
+          "expect": {
+            "base_value": 100.0,
+            "price_domain_start": 98.0,
+            "price_domain_end": 122.0,
+            "price_domain_span": 24.0,
+            "probe_price_pixel": -16.6666666666668,
+            "probe_pixel_price": 111.71428571428572
+          }
+        },
+        {
+          "action": {
+            "type": "autoscale_visible_data"
+          },
+          "expect": {
+            "base_value": 100.0,
+            "price_domain_start": 98.0,
+            "price_domain_end": 122.0,
+            "price_domain_span": 24.0,
+            "probe_price_pixel": -16.6666666666668,
+            "probe_pixel_price": 111.71428571428572
+          }
+        },
+        {
+          "action": {
+            "type": "set_time_visible_range",
+            "start": 20.0,
+            "end": 40.0
+          },
+          "expect": {
+            "base_value": 100.0,
+            "price_domain_start": 118.0,
+            "price_domain_end": 142.0,
+            "price_domain_span": 24.0,
+            "probe_price_pixel": 274.9999999999999,
+            "probe_pixel_price": 131.71428571428572
+          }
+        },
+        {
+          "action": {
+            "type": "autoscale_visible_data"
+          },
+          "expect": {
+            "base_value": 100.0,
+            "price_domain_start": 118.0,
+            "price_domain_end": 142.0,
+            "price_domain_span": 24.0,
+            "probe_price_pixel": 274.9999999999999,
+            "probe_pixel_price": 131.71428571428572
+          }
+        }
+      ]
+    },
+    {
+      "id": "indexed-dynamic-last-visible-autoscale",
+      "points": [
+        {
+          "time": 0.0,
+          "value": 100.0
+        },
+        {
+          "time": 10.0,
+          "value": 95.0
+        },
+        {
+          "time": 20.0,
+          "value": 105.0
+        },
+        {
+          "time": 30.0,
+          "value": 110.0
+        },
+        {
+          "time": 40.0,
+          "value": 108.0
+        }
+      ],
+      "probe_price": 115.0,
+      "probe_pixel": 260.0,
+      "steps": [
+        {
+          "action": {
+            "type": "set_price_scale_mode",
+            "mode": "indexed_to100"
+          },
+          "expect": {
+            "base_value": 93.5,
+            "price_domain_start": 93.5,
+            "price_domain_end": 111.5,
+            "price_domain_span": 18.0,
+            "probe_price_pixel": 31.944444444444628,
+            "probe_pixel_price": 103.27142857142859
+          }
+        },
+        {
+          "action": {
+            "type": "set_transformed_base_behavior",
+            "explicit_base_price": null,
+            "dynamic_source": "last_visible_data"
+          },
+          "expect": {
+            "base_value": 108.0,
+            "price_domain_start": 93.5,
+            "price_domain_end": 111.5,
+            "price_domain_span": 18.0,
+            "probe_price_pixel": 31.944444444444287,
+            "probe_pixel_price": 103.27142857142859
+          }
+        },
+        {
+          "action": {
+            "type": "set_time_visible_range",
+            "start": 0.0,
+            "end": 15.0
+          },
+          "expect": {
+            "base_value": 95.0,
+            "price_domain_start": 94.5,
+            "price_domain_end": 100.5,
+            "price_domain_span": 6.0,
+            "probe_price_pixel": -745.8333333333346,
+            "probe_pixel_price": 97.75714285714285
+          }
+        },
+        {
+          "action": {
+            "type": "autoscale_visible_data"
+          },
+          "expect": {
+            "base_value": 95.0,
+            "price_domain_start": 94.5,
+            "price_domain_end": 100.5,
+            "price_domain_span": 6.0,
+            "probe_price_pixel": -745.8333333333346,
+            "probe_pixel_price": 97.75714285714285
+          }
+        },
+        {
+          "action": {
+            "type": "append_point",
+            "time": 50.0,
+            "value": 150.0
+          },
+          "expect": {
+            "base_value": 95.0,
+            "price_domain_start": 89.5,
+            "price_domain_end": 155.5,
+            "price_domain_span": 66.0,
+            "probe_price_pixel": 314.77272727272725,
+            "probe_pixel_price": 125.32857142857142
+          }
+        },
+        {
+          "action": {
+            "type": "set_time_visible_range",
+            "start": 35.0,
+            "end": 60.0
+          },
+          "expect": {
+            "base_value": 150.0,
+            "price_domain_start": 103.8,
+            "price_domain_end": 154.2,
+            "price_domain_span": 50.39999999999999,
+            "probe_price_pixel": 372.22222222222206,
+            "probe_pixel_price": 131.16
+          }
+        },
+        {
+          "action": {
+            "type": "autoscale_visible_data"
+          },
+          "expect": {
+            "base_value": 150.0,
+            "price_domain_start": 103.8,
+            "price_domain_end": 154.2,
+            "price_domain_span": 50.39999999999999,
+            "probe_price_pixel": 372.22222222222206,
+            "probe_pixel_price": 131.16
+          }
+        }
+      ]
+    }
+  ]
+}

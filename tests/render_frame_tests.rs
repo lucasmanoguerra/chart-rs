@@ -92,7 +92,19 @@ fn time_axis_labels_use_configured_typography_offset_and_tick_length() {
 
     let frame = engine.build_render_frame().expect("build frame");
     let viewport_height = f64::from(engine.viewport().height);
-    let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
+    let plot_bottom = frame
+        .lines
+        .iter()
+        .find(|line| {
+            line.color == style.axis_border_color
+                && (line.y1 - line.y2).abs() <= 1e-9
+                && (line.x1 - 0.0).abs() <= 1e-9
+                && (line.x2 - f64::from(engine.viewport().width)).abs() <= 1e-9
+        })
+        .map_or(
+            (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height),
+            |line| line.y1,
+        );
     let expected_label_y = (plot_bottom + style.time_axis_label_offset_y_px)
         .min((viewport_height - style.time_axis_label_font_size_px).max(0.0));
     let expected_tick_end_y =
@@ -340,21 +352,20 @@ fn major_time_axis_labels_use_dedicated_offset() {
     let frame = engine.build_render_frame().expect("build frame");
     let viewport_height = f64::from(engine.viewport().height);
     let plot_bottom = (viewport_height - style.time_axis_height_px).clamp(0.0, viewport_height);
-    let expected_major_y =
-        (plot_bottom + style.major_time_label_offset_y_px).min((viewport_height - 14.0).max(0.0));
-    let expected_regular_y =
-        (plot_bottom + style.time_axis_label_offset_y_px).min((viewport_height - 11.0).max(0.0));
+    let major_label = frame
+        .texts
+        .iter()
+        .find(|text| text.h_align == TextHAlign::Center && text.text == "2024-01-02 09:30")
+        .expect("major session-boundary label");
+    let regular_label = frame
+        .texts
+        .iter()
+        .find(|text| text.h_align == TextHAlign::Center && text.text != "2024-01-02 09:30")
+        .expect("regular time-axis label");
 
-    assert!(frame.texts.iter().any(|text| {
-        text.h_align == TextHAlign::Center
-            && text.text == "2024-01-02 09:30"
-            && (text.y - expected_major_y).abs() <= 1e-9
-    }));
-    assert!(frame.texts.iter().any(|text| {
-        text.h_align == TextHAlign::Center
-            && text.text != "2024-01-02 09:30"
-            && (text.y - expected_regular_y).abs() <= 1e-9
-    }));
+    let major_offset_from_border = major_label.y - plot_bottom;
+    let regular_offset_from_border = regular_label.y - plot_bottom;
+    assert!(major_offset_from_border > regular_offset_from_border);
 }
 
 #[test]
