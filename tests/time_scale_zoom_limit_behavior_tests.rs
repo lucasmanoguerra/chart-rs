@@ -119,3 +119,25 @@ fn navigation_spacing_below_min_is_clamped_with_right_edge_preserved() {
     assert!(((end - start) - 50.0).abs() <= 1e-9);
     assert!((end - full_end).abs() <= 1e-9);
 }
+
+#[test]
+fn zoom_limit_clamp_preserves_right_offset_pixels_priority() {
+    let mut engine = prepare_fitted_engine();
+    engine
+        .set_time_scale_right_offset_px(Some(120.0))
+        .expect("set right offset px");
+
+    engine
+        .set_time_scale_zoom_limit_behavior(TimeScaleZoomLimitBehavior {
+            min_bar_spacing_px: 20.0,
+            max_bar_spacing_px: None,
+        })
+        .expect("set zoom limits");
+
+    let (_, full_end) = engine.time_full_range();
+    let (start, end) = engine.time_visible_range();
+    let span = end - start;
+    let expected_offset = span * (120.0 / 1000.0);
+    assert!((span - 50.0).abs() <= 1e-9);
+    assert!(((end - full_end) - expected_offset).abs() <= 1e-9);
+}

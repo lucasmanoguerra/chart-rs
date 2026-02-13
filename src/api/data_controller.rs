@@ -19,6 +19,12 @@ impl<R: Renderer> ChartEngine<R> {
         );
         self.points = points;
         self.maybe_autoscale_price_after_data_set_points();
+        if let Err(err) = self.refresh_price_scale_transformed_base() {
+            warn!(
+                error = %err,
+                "skipping transformed-base refresh after set_data"
+            );
+        }
         self.emit_plugin_event(PluginEvent::DataUpdated {
             points_len: self.points.len(),
         });
@@ -30,6 +36,12 @@ impl<R: Renderer> ChartEngine<R> {
         trace!(count = self.points.len(), "append data point");
         let visible_range_changed = self.handle_realtime_time_append(point.x);
         self.maybe_autoscale_price_after_realtime_data_update();
+        if let Err(err) = self.refresh_price_scale_transformed_base() {
+            warn!(
+                error = %err,
+                "skipping transformed-base refresh after append_point"
+            );
+        }
         self.emit_point_data_updated(visible_range_changed);
     }
 
@@ -71,6 +83,12 @@ impl<R: Renderer> ChartEngine<R> {
 
         trace!(count = self.points.len(), "update data point");
         self.maybe_autoscale_price_after_realtime_data_update();
+        if let Err(err) = self.refresh_price_scale_transformed_base() {
+            warn!(
+                error = %err,
+                "skipping transformed-base refresh after update_point"
+            );
+        }
         self.emit_point_data_updated(visible_range_changed);
         Ok(())
     }
@@ -86,6 +104,12 @@ impl<R: Renderer> ChartEngine<R> {
         );
         self.candles = candles;
         self.maybe_autoscale_price_after_data_set_candles();
+        if let Err(err) = self.refresh_price_scale_transformed_base() {
+            warn!(
+                error = %err,
+                "skipping transformed-base refresh after set_candles"
+            );
+        }
         self.emit_plugin_event(PluginEvent::CandlesUpdated {
             candles_len: self.candles.len(),
         });
@@ -97,6 +121,12 @@ impl<R: Renderer> ChartEngine<R> {
         trace!(count = self.candles.len(), "append candle");
         let visible_range_changed = self.handle_realtime_time_append(candle.time);
         self.maybe_autoscale_price_after_realtime_data_update();
+        if let Err(err) = self.refresh_price_scale_transformed_base() {
+            warn!(
+                error = %err,
+                "skipping transformed-base refresh after append_candle"
+            );
+        }
         self.emit_candle_data_updated(visible_range_changed);
     }
 
@@ -138,6 +168,12 @@ impl<R: Renderer> ChartEngine<R> {
 
         trace!(count = self.candles.len(), "update candle");
         self.maybe_autoscale_price_after_realtime_data_update();
+        if let Err(err) = self.refresh_price_scale_transformed_base() {
+            warn!(
+                error = %err,
+                "skipping transformed-base refresh after update_candle"
+            );
+        }
         self.emit_candle_data_updated(visible_range_changed);
         Ok(())
     }

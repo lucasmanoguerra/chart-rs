@@ -55,17 +55,9 @@ pub(super) fn validate_price_axis_label_config(
     }
 
     match config.display_mode {
-        PriceAxisDisplayMode::Normal => {}
-        PriceAxisDisplayMode::Percentage { base_price }
-        | PriceAxisDisplayMode::IndexedTo100 { base_price } => {
-            if let Some(base_price) = base_price {
-                if !base_price.is_finite() || base_price == 0.0 {
-                    return Err(ChartError::InvalidData(
-                        "price-axis display base_price must be finite and != 0".to_owned(),
-                    ));
-                }
-            }
-        }
+        PriceAxisDisplayMode::Normal
+        | PriceAxisDisplayMode::Percentage { .. }
+        | PriceAxisDisplayMode::IndexedTo100 { .. } => {}
     }
 
     Ok(config)

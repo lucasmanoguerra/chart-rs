@@ -1,0 +1,154 @@
+{
+  "trace_name": "lwc-real-capture-interaction-raw",
+  "source": "lightweight-charts-v5.1-capture",
+  "source_notes": "Browser-side captured Lightweight event stream without manual normalization, with mixed naming conventions.",
+  "viewport": {
+    "width": 1000,
+    "height": 500
+  },
+  "time_range": {
+    "start": 0.0,
+    "end": 100.0
+  },
+  "price_range": {
+    "min": 0.0,
+    "max": 100.0
+  },
+  "tolerance": 1e-6,
+  "scenarios": [
+    {
+      "id": "lightweight-scenario-1",
+      "points": [
+        {
+          "time": 0.0,
+          "value": 10.0
+        },
+        {
+          "time": 10.0,
+          "value": 14.0
+        },
+        {
+          "time": 20.0,
+          "value": 17.0
+        },
+        {
+          "time": 30.0,
+          "value": 24.0
+        },
+        {
+          "time": 40.0,
+          "value": 28.0
+        },
+        {
+          "time": 50.0,
+          "value": 32.0
+        },
+        {
+          "time": 60.0,
+          "value": 39.0
+        },
+        {
+          "time": 70.0,
+          "value": 44.0
+        },
+        {
+          "time": 80.0,
+          "value": 48.0
+        },
+        {
+          "time": 90.0,
+          "value": 53.0
+        },
+        {
+          "time": 100.0,
+          "value": 57.0
+        }
+      ],
+      "steps": [
+        {
+          "action": {
+            "type": "set_navigation",
+            "right_offset_bars": 0.0,
+            "bar_spacing_px": null
+          },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 100.0,
+            "visible_span": 100.0,
+            "scroll_position_bars": null,
+            "kinetic_active": null,
+            "kinetic_velocity_time_per_sec": null,
+            "crosshair_visible": null,
+            "crosshair_x": null,
+            "crosshair_y": null,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "wheel_pan",
+            "wheel_delta_x": 120.0,
+            "pan_step_ratio": 0.1
+          },
+          "expect": {
+            "visible_start": null,
+            "visible_end": null,
+            "visible_span": null,
+            "scroll_position_bars": 1.0,
+            "kinetic_active": null,
+            "kinetic_velocity_time_per_sec": null,
+            "crosshair_visible": null,
+            "crosshair_x": null,
+            "crosshair_y": null,
+            "crosshair_snapped_x": null,
+            "crosshair_snapped_y": null,
+            "crosshair_snapped_time": null,
+            "crosshair_snapped_price": null
+          }
+        },
+        {
+          "action": {
+            "type": "touch_drag_pan",
+            "delta_x_px": 20.0,
+            "delta_y_px": 6.0
+          },
+          "expect": null
+        },
+        {
+          "action": {
+            "type": "wheel_zoom",
+            "wheel_delta_y": -120.0,
+            "anchor_px": 500.0,
+            "zoom_step_ratio": 0.2,
+            "min_span_absolute": 1e-6
+          },
+          "expect": null
+        },
+        {
+          "action": {
+            "type": "set_crosshair_mode",
+            "mode": "magnet"
+          },
+          "expect": null
+        },
+        {
+          "action": {
+            "type": "pointer_move",
+            "x": 333.0,
+            "y": 111.0
+          },
+          "expect": null
+        },
+        {
+          "action": {
+            "type": "pointer_leave"
+          },
+          "expect": null
+        }
+      ]
+    }
+  ]
+}

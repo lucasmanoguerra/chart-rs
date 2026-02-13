@@ -47,8 +47,8 @@ tests and CI gates in place. Ongoing work is focused on parity hardening
 ## Getting Started
 
 ```bash
-cargo test
-cargo test --all-features
+cargo test-core
+cargo test-visual
 cargo bench --bench core_math_bench
 ```
 

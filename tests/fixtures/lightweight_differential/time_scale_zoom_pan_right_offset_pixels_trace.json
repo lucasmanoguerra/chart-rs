@@ -1,0 +1,150 @@
+{
+  "trace_name": "time-scale-zoom-pan-right-offset-pixels",
+  "source": "lightweight-charts-v5.1",
+  "source_notes": "Reference scenarios for rightOffsetPixels interaction with pan and zoom flows.",
+  "viewport": {
+    "width": 1000,
+    "height": 500
+  },
+  "time_range": {
+    "start": 0.0,
+    "end": 1000.0
+  },
+  "price_range": {
+    "min": 0.0,
+    "max": 1.0
+  },
+  "tolerance": 0.000001,
+  "scenarios": [
+    {
+      "id": "pan-with-data-right-offset-pixels",
+      "points": [
+        { "time": 0.0, "value": 0.5 },
+        { "time": 10.0, "value": 0.55 },
+        { "time": 20.0, "value": 0.52 },
+        { "time": 30.0, "value": 0.6 },
+        { "time": 40.0, "value": 0.58 },
+        { "time": 50.0, "value": 0.61 },
+        { "time": 60.0, "value": 0.57 },
+        { "time": 70.0, "value": 0.64 },
+        { "time": 80.0, "value": 0.62 },
+        { "time": 90.0, "value": 0.66 },
+        { "time": 100.0, "value": 0.65 },
+        { "time": 200.0, "value": 0.68 },
+        { "time": 300.0, "value": 0.7 },
+        { "time": 400.0, "value": 0.71 },
+        { "time": 500.0, "value": 0.73 },
+        { "time": 600.0, "value": 0.74 },
+        { "time": 700.0, "value": 0.76 },
+        { "time": 800.0, "value": 0.77 },
+        { "time": 900.0, "value": 0.79 },
+        { "time": 1000.0, "value": 0.8 }
+      ],
+      "steps": [
+        {
+          "action": { "type": "set_navigation", "right_offset_bars": 0.0, "bar_spacing_px": 10.0 },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 1000.0,
+            "visible_span": 1000.0,
+            "right_margin_px": 0.0,
+            "scroll_position_bars": 0.0
+          }
+        },
+        {
+          "action": { "type": "set_right_offset_px", "value": 100.0 },
+          "expect": {
+            "visible_start": 100.0,
+            "visible_end": 1100.0,
+            "visible_span": 1000.0,
+            "right_margin_px": 100.0,
+            "scroll_position_bars": 10.0
+          }
+        },
+        {
+          "action": { "type": "pan_by_pixels", "delta_px": 50.0 },
+          "expect": {
+            "visible_start": 50.0,
+            "visible_end": 1050.0,
+            "visible_span": 1000.0,
+            "right_margin_px": 50.0,
+            "scroll_position_bars": 5.0
+          }
+        },
+        {
+          "action": { "type": "pan_by_pixels", "delta_px": -50.0 },
+          "expect": {
+            "visible_start": 100.0,
+            "visible_end": 1100.0,
+            "visible_span": 1000.0,
+            "right_margin_px": 100.0,
+            "scroll_position_bars": 10.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wheel-zoom-right-bar-stays-right-offset-pixels",
+      "points": [],
+      "steps": [
+        {
+          "action": { "type": "set_navigation", "right_offset_bars": 0.0, "bar_spacing_px": null },
+          "expect": {
+            "visible_start": 0.0,
+            "visible_end": 1000.0,
+            "visible_span": 1000.0,
+            "right_margin_px": 0.0
+          }
+        },
+        {
+          "action": { "type": "set_right_offset_px", "value": 120.0 },
+          "expect": {
+            "visible_start": 120.0,
+            "visible_end": 1120.0,
+            "visible_span": 1000.0,
+            "right_margin_px": 120.0
+          }
+        },
+        {
+          "action": { "type": "set_scroll_zoom_behavior", "right_bar_stays_on_scroll": true },
+          "expect": {
+            "visible_start": 120.0,
+            "visible_end": 1120.0,
+            "visible_span": 1000.0,
+            "right_margin_px": 120.0
+          }
+        },
+        {
+          "action": {
+            "type": "wheel_zoom",
+            "wheel_delta_y": -120.0,
+            "anchor_px": 350.0,
+            "zoom_step_ratio": 0.2,
+            "min_span_absolute": 0.000001
+          },
+          "expect": {
+            "visible_start": 266.66666666666663,
+            "visible_end": 1100.0,
+            "visible_span": 833.3333333333334,
+            "right_margin_px": 120.0
+          }
+        },
+        {
+          "action": {
+            "type": "wheel_zoom",
+            "wheel_delta_y": 120.0,
+            "anchor_px": 350.0,
+            "zoom_step_ratio": 0.2,
+            "min_span_absolute": 0.000001
+          },
+          "expect": {
+            "visible_start": 120.0,
+            "visible_end": 1120.0,
+            "visible_span": 1000.0,
+            "right_margin_px": 120.0
+          }
+        }
+      ]
+    }
+  ]
+}

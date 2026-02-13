@@ -1,0 +1,74 @@
+{
+  "trace_name": "lwc-real-capture-interaction-raw",
+  "source_notes": "Browser-side captured Lightweight event stream without manual normalization, with mixed naming conventions.",
+  "viewport": {
+    "width": 1000,
+    "height": 500
+  },
+  "time_range": {
+    "start": 0.0,
+    "end": 100.0
+  },
+  "price_range": {
+    "min": 0.0,
+    "max": 100.0
+  },
+  "tolerance": 0.000001,
+  "points": [
+    { "time": 0.0, "value": 10.0 },
+    { "time": 10.0, "value": 14.0 },
+    { "time": 20.0, "value": 17.0 },
+    { "time": 30.0, "value": 24.0 },
+    { "time": 40.0, "value": 28.0 },
+    { "time": 50.0, "value": 32.0 },
+    { "time": 60.0, "value": 39.0 },
+    { "time": 70.0, "value": 44.0 },
+    { "time": 80.0, "value": 48.0 },
+    { "time": 90.0, "value": 53.0 },
+    { "time": 100.0, "value": 57.0 }
+  ],
+  "events": [
+    {
+      "type": "set_navigation",
+      "rightOffsetBars": 0.0,
+      "barSpacingPx": null,
+      "observed": {
+        "visible_start": 0.0,
+        "visible_end": 100.0,
+        "visible_span": 100.0
+      }
+    },
+    {
+      "type": "wheel",
+      "deltaX": 120.0,
+      "panStepRatio": 0.1,
+      "observed": {
+        "scroll_position_bars": 1.0
+      }
+    },
+    {
+      "type": "touch_move",
+      "deltaX": 20.0,
+      "deltaY": 6.0
+    },
+    {
+      "type": "wheel_zoom",
+      "deltaY": -120.0,
+      "anchorX": 500.0,
+      "zoomStepRatio": 0.2,
+      "minSpanAbsolute": 0.000001
+    },
+    {
+      "event": "crosshair_mode",
+      "mode": "magnet"
+    },
+    {
+      "kind": "crosshair_move",
+      "x": 333.0,
+      "y": 111.0
+    },
+    {
+      "type": "crosshair_leave"
+    }
+  ]
+}

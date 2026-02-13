@@ -17,8 +17,8 @@ pub use baseline_series::{BaselineGeometry, BaselineVertex, project_baseline_geo
 pub use candlestick::{CandleGeometry, OhlcBar, project_candles};
 pub use histogram_series::{HistogramBar, project_histogram_bars};
 pub use line_series::{LineSegment, project_line_segments};
-pub use price_scale::{PriceScale, PriceScaleMode, PriceScaleTuning};
+pub use price_scale::{PriceCoordinateSpace, PriceScale, PriceScaleMode, PriceScaleTuning};
 pub use scale::LinearScale;
-pub use time_scale::{TimeScale, TimeScaleTuning};
+pub use time_scale::{TimeIndexCoordinateSpace, TimeScale, TimeScaleTuning};
 pub use types::{DataPoint, Viewport};
 pub use windowing::{candles_in_time_window, points_in_time_window};

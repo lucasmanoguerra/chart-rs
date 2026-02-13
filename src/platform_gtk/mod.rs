@@ -4,7 +4,9 @@ use std::rc::Rc;
 use gtk4 as gtk;
 use gtk4::prelude::{DrawingAreaExtManual, WidgetExt};
 
-use crate::api::{ChartEngine, CrosshairFormatterDiagnostics};
+use crate::api::{
+    ChartEngine, CrosshairFormatterDiagnostics, TimeCoordinateIndexPolicy, TimeFilledLogicalSlot,
+};
 use crate::core::Viewport;
 use crate::error::ChartResult;
 use crate::render::{CairoContextRenderer, Renderer};
@@ -25,6 +27,19 @@ pub struct GtkChartAdapter<R: Renderer + CairoContextRenderer + 'static> {
 }
 
 impl<R: Renderer + CairoContextRenderer + 'static> GtkChartAdapter<R> {
+    fn with_engine_ref<T>(
+        &self,
+        f: impl FnOnce(&ChartEngine<R>) -> ChartResult<T>,
+        context: &str,
+    ) -> ChartResult<T> {
+        let engine = self.engine.try_borrow().map_err(|_| {
+            crate::error::ChartError::InvalidData(format!(
+                "failed to borrow chart engine for {context}"
+            ))
+        })?;
+        f(&engine)
+    }
+
     #[must_use]
     pub fn new(engine: ChartEngine<R>) -> Self {
         let drawing_area = gtk::DrawingArea::new();
@@ -116,29 +131,147 @@ impl<R: Renderer + CairoContextRenderer + 'static> GtkChartAdapter<R> {
     }
 
     pub fn crosshair_formatter_diagnostics(&self) -> ChartResult<CrosshairFormatterDiagnostics> {
-        let engine = self.engine.try_borrow().map_err(|_| {
-            crate::error::ChartError::InvalidData(
-                "failed to borrow chart engine for diagnostics".to_owned(),
-            )
-        })?;
-        Ok(engine.crosshair_formatter_diagnostics())
+        self.with_engine_ref(
+            |engine| Ok(engine.crosshair_formatter_diagnostics()),
+            "diagnostics",
+        )
     }
 
     pub fn crosshair_formatter_diagnostics_json_contract_v1_pretty(&self) -> ChartResult<String> {
-        let engine = self.engine.try_borrow().map_err(|_| {
-            crate::error::ChartError::InvalidData(
-                "failed to borrow chart engine for diagnostics export".to_owned(),
-            )
-        })?;
-        engine.crosshair_formatter_diagnostics_json_contract_v1_pretty()
+        self.with_engine_ref(
+            ChartEngine::crosshair_formatter_diagnostics_json_contract_v1_pretty,
+            "diagnostics export",
+        )
     }
 
     pub fn snapshot_json_contract_v1_pretty(&self, body_width_px: f64) -> ChartResult<String> {
-        let engine = self.engine.try_borrow().map_err(|_| {
-            crate::error::ChartError::InvalidData(
-                "failed to borrow chart engine for snapshot export".to_owned(),
-            )
-        })?;
-        engine.snapshot_json_contract_v1_pretty(body_width_px)
+        self.with_engine_ref(
+            |engine| engine.snapshot_json_contract_v1_pretty(body_width_px),
+            "snapshot export",
+        )
+    }
+
+    pub fn map_pixel_to_logical_index(
+        &self,
+        pixel: f64,
+        policy: TimeCoordinateIndexPolicy,
+    ) -> ChartResult<Option<f64>> {
+        self.with_engine_ref(
+            |engine| engine.map_pixel_to_logical_index(pixel, policy),
+            "logical index mapping",
+        )
+    }
+
+    pub fn map_pixel_to_logical_index_ceil(
+        &self,
+        pixel: f64,
+        policy: TimeCoordinateIndexPolicy,
+    ) -> ChartResult<Option<i64>> {
+        self.with_engine_ref(
+            |engine| engine.map_pixel_to_logical_index_ceil(pixel, policy),
+            "logical index ceil mapping",
+        )
+    }
+
+    pub fn map_logical_index_to_pixel(&self, logical_index: f64) -> ChartResult<Option<f64>> {
+        self.with_engine_ref(
+            |engine| engine.map_logical_index_to_pixel(logical_index),
+            "logical to pixel mapping",
+        )
+    }
+
+    pub fn nearest_filled_logical_slot_at_pixel(
+        &self,
+        pixel: f64,
+    ) -> ChartResult<Option<TimeFilledLogicalSlot>> {
+        self.with_engine_ref(
+            |engine| engine.nearest_filled_logical_slot_at_pixel(pixel),
+            "nearest filled logical slot lookup",
+        )
+    }
+
+    pub fn next_filled_logical_index(&self, logical_index: f64) -> ChartResult<Option<f64>> {
+        self.with_engine_ref(
+            |engine| engine.next_filled_logical_index(logical_index),
+            "next filled logical index lookup",
+        )
+    }
+
+    pub fn prev_filled_logical_index(&self, logical_index: f64) -> ChartResult<Option<f64>> {
+        self.with_engine_ref(
+            |engine| engine.prev_filled_logical_index(logical_index),
+            "previous filled logical index lookup",
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{GtkChartAdapter, gtk};
+    use crate::api::{ChartEngine, ChartEngineConfig, TimeCoordinateIndexPolicy};
+    use crate::core::{DataPoint, Viewport};
+    use crate::render::CairoRenderer;
+
+    fn build_adapter() -> Option<GtkChartAdapter<CairoRenderer>> {
+        if gtk::is_initialized() && !gtk::is_initialized_main_thread() {
+            return None;
+        }
+        if !gtk::is_initialized_main_thread() && gtk::init().is_err() {
+            return None;
+        }
+
+        let renderer = CairoRenderer::new(16, 16).expect("renderer");
+        let config = ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 100.0)
+            .with_price_domain(0.0, 1.0);
+        let mut engine = ChartEngine::new(renderer, config).expect("engine");
+        engine.set_data(vec![
+            DataPoint::new(0.0, 10.0),
+            DataPoint::new(10.0, 11.0),
+            DataPoint::new(20.0, 12.0),
+            DataPoint::new(50.0, 15.0),
+        ]);
+        Some(GtkChartAdapter::new(engine))
+    }
+
+    #[test]
+    fn gtk_adapter_exposes_filled_slot_navigation_and_coordinate_policy_utilities() {
+        let Some(adapter) = build_adapter() else {
+            return;
+        };
+
+        let x = adapter
+            .map_logical_index_to_pixel(2.0)
+            .expect("logical->pixel")
+            .expect("space");
+        let nearest = adapter
+            .nearest_filled_logical_slot_at_pixel(x)
+            .expect("nearest")
+            .expect("slot");
+        assert!((nearest.logical_index - 2.0).abs() <= 1e-9);
+        assert!((nearest.time - 20.0).abs() <= 1e-9);
+
+        let next = adapter
+            .next_filled_logical_index(2.1)
+            .expect("next logical index");
+        let prev = adapter
+            .prev_filled_logical_index(4.9)
+            .expect("previous logical index");
+        assert_eq!(next, Some(5.0));
+        assert_eq!(prev, Some(2.0));
+
+        let x_policy = adapter
+            .map_logical_index_to_pixel(2.2)
+            .expect("logical->pixel")
+            .expect("space");
+        let allow = adapter
+            .map_pixel_to_logical_index_ceil(x_policy, TimeCoordinateIndexPolicy::AllowWhitespace)
+            .expect("allow whitespace")
+            .expect("index");
+        let ignore = adapter
+            .map_pixel_to_logical_index_ceil(x_policy, TimeCoordinateIndexPolicy::IgnoreWhitespace)
+            .expect("ignore whitespace")
+            .expect("index");
+        assert_eq!(allow, 3);
+        assert_eq!(ignore, 2);
     }
 }
