@@ -27,7 +27,7 @@ parallel-projection = ["dep:rayon"]
 telemetry = ["dep:tracing-subscriber"]
 
 [dependencies]
-cairo = { package = "cairo-rs", version = "0.21", optional = true }
+cairo = { package = "cairo-rs", version = "0.21", features = ["png"], optional = true }
 pango = { version = "0.21", optional = true }
 pangocairo = { version = "0.21", optional = true }
 gtk4 = { version = "0.10", optional = true }
@@ -93,3 +93,7 @@ required-features = ["desktop"]
 [[example]]
 name = "gtk_binance_defaults_normal_live"
 required-features = ["desktop"]
+
+[profile.test]
+# Reduce memory pressure during `cargo test` compilation in large integration suites.
+debug = 0

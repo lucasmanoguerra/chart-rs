@@ -270,6 +270,15 @@ fn axis_drag_scale_and_double_click_reset_are_enabled_by_default() {
         .axis_double_click_reset_price_scale()
         .expect("axis reset should be enabled by default");
     assert!(changed);
+
+    engine
+        .set_time_visible_range(30.0, 60.0)
+        .expect("set constrained time visible range");
+    let time_changed = engine
+        .axis_double_click_reset_time_scale()
+        .expect("time axis reset should be enabled by default");
+    assert!(time_changed);
+    assert_eq!(engine.time_visible_range(), engine.time_full_range());
 }
 
 #[test]
@@ -289,6 +298,10 @@ fn disabling_scale_master_gate_disables_axis_paths() {
         .axis_double_click_reset_price_scale()
         .expect("disabled axis reset should no-op");
     assert!(!changed);
+    let time_changed = engine
+        .axis_double_click_reset_time_scale()
+        .expect("disabled time axis reset should no-op");
+    assert!(!time_changed);
     assert_eq!(engine.price_domain(), before);
 }
 
@@ -310,6 +323,10 @@ fn disabling_axis_specific_gates_disables_only_axis_paths() {
         .axis_double_click_reset_price_scale()
         .expect("axis reset should be gated");
     assert!(!changed);
+    let time_changed = engine
+        .axis_double_click_reset_time_scale()
+        .expect("time axis reset should be gated");
+    assert!(!time_changed);
     assert_eq!(engine.price_domain(), before);
 
     // Non-axis scale path remains enabled.

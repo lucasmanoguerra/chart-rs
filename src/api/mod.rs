@@ -103,6 +103,8 @@ pub struct ChartEngineConfig {
     pub price_scale_inverted: bool,
     #[serde(default = "default_price_scale_margins")]
     pub price_scale_margins: PriceScaleMarginBehavior,
+    #[serde(default = "default_price_scale_transformed_base_behavior")]
+    pub price_scale_transformed_base_behavior: PriceScaleTransformedBaseBehavior,
     #[serde(default = "default_interaction_input_behavior")]
     pub interaction_input_behavior: InteractionInputBehavior,
     #[serde(default = "default_price_scale_realtime_behavior")]
@@ -155,6 +157,7 @@ impl ChartEngineConfig {
             price_scale_mode: default_price_scale_mode(),
             price_scale_inverted: false,
             price_scale_margins: default_price_scale_margins(),
+            price_scale_transformed_base_behavior: default_price_scale_transformed_base_behavior(),
             interaction_input_behavior: default_interaction_input_behavior(),
             price_scale_realtime_behavior: default_price_scale_realtime_behavior(),
             time_scale_navigation_behavior: default_time_scale_navigation_behavior(),
@@ -217,6 +220,16 @@ impl ChartEngineConfig {
             top_margin_ratio,
             bottom_margin_ratio,
         };
+        self
+    }
+
+    /// Sets transformed base behavior for percentage/indexed price-scale modes.
+    #[must_use]
+    pub fn with_price_scale_transformed_base_behavior(
+        mut self,
+        behavior: PriceScaleTransformedBaseBehavior,
+    ) -> Self {
+        self.price_scale_transformed_base_behavior = behavior;
         self
     }
 
@@ -401,6 +414,10 @@ fn default_price_scale_margins() -> PriceScaleMarginBehavior {
     PriceScaleMarginBehavior::default()
 }
 
+fn default_price_scale_transformed_base_behavior() -> PriceScaleTransformedBaseBehavior {
+    PriceScaleTransformedBaseBehavior::default()
+}
+
 fn default_interaction_input_behavior() -> InteractionInputBehavior {
     InteractionInputBehavior::default()
 }
@@ -564,6 +581,32 @@ impl Default for TimeScaleNavigationBehavior {
     }
 }
 
+/// Coordinate-to-logical-index mapping policy for sparse time series.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum TimeCoordinateIndexPolicy {
+    /// Returns floating logical indices, including whitespace slots.
+    #[default]
+    AllowWhitespace,
+    /// Returns nearest filled logical index, skipping whitespace slots.
+    IgnoreWhitespace,
+}
+
+/// Source collection of a resolved filled logical slot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TimeFilledLogicalSource {
+    Points,
+    Candles,
+}
+
+/// Filled logical-slot descriptor for sparse-series host integrations.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct TimeFilledLogicalSlot {
+    pub source: TimeFilledLogicalSource,
+    pub slot: usize,
+    pub logical_index: f64,
+    pub time: f64,
+}
+
 /// Time-scale zoom limits derived from effective bar spacing in pixels.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct TimeScaleZoomLimitBehavior {
@@ -643,6 +686,41 @@ impl Default for PriceScaleRealtimeBehavior {
         Self {
             autoscale_on_data_set: true,
             autoscale_on_data_update: true,
+        }
+    }
+}
+
+/// Dynamic source used when resolving transformed base for
+/// `PriceScaleMode::{Percentage, IndexedTo100}`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum PriceScaleTransformedBaseSource {
+    /// Uses current scale domain start as transformed base.
+    #[default]
+    DomainStart,
+    /// Uses earliest loaded sample by time (point/candle close).
+    FirstData,
+    /// Uses latest loaded sample by time (point/candle close).
+    LastData,
+    /// Uses earliest visible sample by time.
+    FirstVisibleData,
+    /// Uses latest visible sample by time.
+    LastVisibleData,
+}
+
+/// Base-resolution policy for transformed price-scale modes.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct PriceScaleTransformedBaseBehavior {
+    /// Optional explicit base override; when set, has highest priority.
+    pub explicit_base_price: Option<f64>,
+    /// Dynamic fallback source when explicit base is not set.
+    pub dynamic_source: PriceScaleTransformedBaseSource,
+}
+
+impl Default for PriceScaleTransformedBaseBehavior {
+    fn default() -> Self {
+        Self {
+            explicit_base_price: None,
+            dynamic_source: PriceScaleTransformedBaseSource::DomainStart,
         }
     }
 }
@@ -881,6 +959,7 @@ pub struct ChartEngine<R: Renderer> {
     interaction_input_behavior: InteractionInputBehavior,
     price_scale: PriceScale,
     price_scale_mode: PriceScaleMode,
+    price_scale_transformed_base_behavior: PriceScaleTransformedBaseBehavior,
     interaction: InteractionState,
     points: Vec<DataPoint>,
     candles: Vec<OhlcBar>,
@@ -914,15 +993,31 @@ impl<R: Renderer> ChartEngine<R> {
                 height: config.viewport.height,
             });
         }
+        if let Some(explicit_base) = config
+            .price_scale_transformed_base_behavior
+            .explicit_base_price
+        {
+            if !explicit_base.is_finite() || explicit_base == 0.0 {
+                return Err(ChartError::InvalidData(
+                    "price scale transformed explicit base must be finite and non-zero".to_owned(),
+                ));
+            }
+        }
 
         let time_scale = TimeScale::new(config.time_start, config.time_end)?;
-        let price_scale =
-            PriceScale::new_with_mode(config.price_min, config.price_max, config.price_scale_mode)?
-                .with_inverted(config.price_scale_inverted)
-                .with_margins(
-                    config.price_scale_margins.top_margin_ratio,
-                    config.price_scale_margins.bottom_margin_ratio,
-                )?;
+        let price_scale = PriceScale::new_with_mode_and_base(
+            config.price_min,
+            config.price_max,
+            config.price_scale_mode,
+            config
+                .price_scale_transformed_base_behavior
+                .explicit_base_price,
+        )?
+        .with_inverted(config.price_scale_inverted)
+        .with_margins(
+            config.price_scale_margins.top_margin_ratio,
+            config.price_scale_margins.bottom_margin_ratio,
+        )?;
         let mut interaction = InteractionState::default();
         interaction.set_crosshair_mode(config.crosshair_mode);
 
@@ -941,6 +1036,7 @@ impl<R: Renderer> ChartEngine<R> {
             interaction_input_behavior: config.interaction_input_behavior,
             price_scale,
             price_scale_mode: config.price_scale_mode,
+            price_scale_transformed_base_behavior: config.price_scale_transformed_base_behavior,
             interaction,
             points: Vec::new(),
             candles: Vec::new(),

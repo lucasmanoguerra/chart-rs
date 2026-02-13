@@ -184,3 +184,27 @@ fn resize_behavior_without_spacing_preserves_logical_span() {
     assert!((start_after - 20.0).abs() <= 1e-9);
     assert!((end_after - 60.0).abs() <= 1e-9);
 }
+
+#[test]
+fn resize_with_right_offset_px_preserves_pixel_margin_even_with_left_anchor() {
+    let mut engine = prepare_navigation_engine(1000);
+    engine
+        .set_time_scale_right_offset_px(Some(120.0))
+        .expect("set right offset px");
+    engine
+        .set_time_scale_resize_behavior(TimeScaleResizeBehavior {
+            lock_visible_range_on_resize: true,
+            anchor: TimeScaleResizeAnchor::Left,
+        })
+        .expect("set resize behavior");
+
+    engine
+        .set_viewport(Viewport::new(1500, 500))
+        .expect("resize should work");
+
+    let (_, full_end) = engine.time_full_range();
+    let (start_after, end_after) = engine.time_visible_range();
+    let span = end_after - start_after;
+    let expected_offset = span * (120.0 / 1500.0);
+    assert!(((end_after - full_end) - expected_offset).abs() <= 1e-9);
+}

@@ -163,3 +163,22 @@ fn switching_from_hidden_to_normal_restores_pointer_tracking() {
     assert!(crosshair.visible);
     assert!(crosshair.snapped_x.is_none());
 }
+
+#[test]
+fn magnet_crosshair_sparse_gap_tie_uses_upper_filled_index() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(1000, 500), 0.0, 10.0).with_price_domain(0.0, 100.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    engine.set_data(vec![DataPoint::new(2.0, 20.0), DataPoint::new(8.0, 80.0)]);
+
+    let mid_x = engine.map_x_to_pixel(5.0).expect("mid x");
+    engine.pointer_move(mid_x, 100.0);
+
+    let crosshair = engine.crosshair_state();
+    let snapped_time = crosshair.snapped_time.expect("snapped time");
+    let snapped_price = crosshair.snapped_price.expect("snapped price");
+    assert!((snapped_time - 8.0).abs() <= 1e-9);
+    assert!((snapped_price - 80.0).abs() <= 1e-9);
+}

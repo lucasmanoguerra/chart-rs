@@ -61,8 +61,12 @@ impl<R: Renderer> ChartEngine<R> {
             .time_scale_scroll_zoom_behavior
             .right_bar_stays_on_scroll
         {
-            let (_, right_edge) = self.time_scale.visible_range();
-            self.zoom_time_visible_around_time(factor, right_edge, min_span_absolute)?;
+            if let Some(anchor_px) = self.resolve_right_margin_zoom_anchor_px() {
+                self.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
+            } else {
+                let (_, right_edge) = self.time_scale.visible_range();
+                self.zoom_time_visible_around_time(factor, right_edge, min_span_absolute)?;
+            }
         } else {
             let viewport_width = f64::from(self.viewport.width);
             let viewport_height = f64::from(self.viewport.height);
@@ -76,5 +80,30 @@ impl<R: Renderer> ChartEngine<R> {
             self.zoom_time_visible_around_pixel(factor, anchor_x, min_span_absolute)?;
         }
         Ok(factor)
+    }
+
+    /// Resets time axis to full-range visible domain.
+    ///
+    /// This mirrors axis double-click reset semantics for time scale.
+    ///
+    /// Returns `true` when visible range changed.
+    pub fn axis_double_click_reset_time_scale(&mut self) -> ChartResult<bool> {
+        if !self
+            .interaction_input_behavior
+            .allows_axis_double_click_reset()
+        {
+            return Ok(false);
+        }
+
+        let before = self.time_scale.visible_range();
+        self.time_scale.reset_visible_range_to_full();
+        let mut changed = self.apply_time_scale_constraints()?;
+        let after = self.time_scale.visible_range();
+        changed |= (after.0 - before.0).abs() > 1e-12 || (after.1 - before.1).abs() > 1e-12;
+
+        if changed {
+            self.emit_visible_range_changed();
+        }
+        Ok(changed)
     }
 }

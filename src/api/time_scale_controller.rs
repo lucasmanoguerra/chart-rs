@@ -1,4 +1,4 @@
-use crate::core::{DataPoint, OhlcBar, TimeScaleTuning};
+use crate::core::{DataPoint, OhlcBar, TimeIndexCoordinateSpace, TimeScaleTuning};
 use crate::error::{ChartError, ChartResult};
 use crate::render::Renderer;
 
@@ -277,6 +277,21 @@ impl<R: Renderer> ChartEngine<R> {
             ));
         }
 
+        if let Some((space, reference_step)) = self.resolve_time_index_coordinate_space() {
+            let target_right_offset = space.pan_right_offset_by_pixels(-delta_px)?;
+            self.time_scale
+                .set_visible_range_from_bar_spacing_and_right_offset(
+                    space.bar_spacing_px,
+                    target_right_offset,
+                    reference_step,
+                    space.width_px,
+                )?;
+            let _ = self.apply_time_scale_zoom_limit_behavior()?;
+            let _ = self.apply_time_scale_edge_behavior()?;
+            self.emit_visible_range_changed();
+            return Ok(());
+        }
+
         let (start, end) = self.time_scale.visible_range();
         let span = end - start;
         let delta_time = -(delta_px / f64::from(self.viewport.width)) * span;
@@ -303,35 +318,47 @@ impl<R: Renderer> ChartEngine<R> {
             return Ok(0.0);
         }
 
-        if !delta_x_px.is_finite() || !delta_y_px.is_finite() {
+        if behavior.scroll_horz_touch_drag && !delta_x_px.is_finite() {
             return Err(ChartError::InvalidData(
-                "touch drag deltas must be finite".to_owned(),
+                "touch drag horizontal delta must be finite when horizontal touch pan is enabled"
+                    .to_owned(),
+            ));
+        }
+        if behavior.scroll_vert_touch_drag && !delta_y_px.is_finite() {
+            return Err(ChartError::InvalidData(
+                "touch drag vertical delta must be finite when vertical touch pan is enabled"
+                    .to_owned(),
             ));
         }
 
-        let driving_px = match (
+        let (driving_px, driving_axis_span_px) = match (
             behavior.scroll_horz_touch_drag,
             behavior.scroll_vert_touch_drag,
         ) {
-            (true, false) => delta_x_px,
-            (false, true) => delta_y_px,
+            (true, false) => (delta_x_px, f64::from(self.viewport.width)),
+            (false, true) => (delta_y_px, f64::from(self.viewport.height)),
             (true, true) => {
                 if delta_x_px.abs() >= delta_y_px.abs() {
-                    delta_x_px
+                    (delta_x_px, f64::from(self.viewport.width))
                 } else {
-                    delta_y_px
+                    (delta_y_px, f64::from(self.viewport.height))
                 }
             }
-            (false, false) => 0.0,
+            (false, false) => (0.0, f64::from(self.viewport.width)),
         };
 
         if driving_px == 0.0 {
             return Ok(0.0);
         }
+        if !driving_axis_span_px.is_finite() || driving_axis_span_px <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "touch drag driving axis span must be finite and > 0".to_owned(),
+            ));
+        }
 
         let (start, end) = self.time_scale.visible_range();
         let span = end - start;
-        let delta_time = -(driving_px / f64::from(self.viewport.width)) * span;
+        let delta_time = -(driving_px / driving_axis_span_px) * span;
         self.pan_time_visible_by(delta_time)?;
         Ok(delta_time)
     }
@@ -396,6 +423,65 @@ impl<R: Renderer> ChartEngine<R> {
         anchor_px: f64,
         min_span_absolute: f64,
     ) -> ChartResult<()> {
+        if !factor.is_finite() || factor <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "zoom factor must be finite and > 0".to_owned(),
+            ));
+        }
+        if !anchor_px.is_finite() {
+            return Err(ChartError::InvalidData(
+                "zoom anchor px must be finite".to_owned(),
+            ));
+        }
+        if !min_span_absolute.is_finite() || min_span_absolute <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "zoom min span must be finite and > 0".to_owned(),
+            ));
+        }
+
+        if let Some((space, reference_step)) = self.resolve_time_index_coordinate_space() {
+            let (start, end) = self.time_scale.visible_range();
+            let current_span = (end - start).max(1e-9);
+            let target_span = (current_span / factor).max(min_span_absolute);
+            let effective_factor = current_span / target_span;
+            let target_bar_spacing = (space.bar_spacing_px * effective_factor).max(f64::EPSILON);
+
+            let anchor_x = anchor_px.clamp(0.0, f64::from(self.viewport.width));
+            let anchor_time_before = self.map_pixel_to_x(anchor_x)?;
+            let anchor_logical_index = space.coordinate_to_logical_index(anchor_x)?;
+            let zoomed_space = TimeIndexCoordinateSpace {
+                bar_spacing_px: target_bar_spacing,
+                ..space
+            };
+            let target_right_offset = zoomed_space.solve_right_offset_for_anchor_preserving_zoom(
+                space.bar_spacing_px,
+                space.right_offset_bars,
+                anchor_logical_index,
+            )?;
+            let (_, full_end) = self.time_scale.full_range();
+            let target_end = full_end + target_right_offset * reference_step;
+            let target_start = target_end - target_span;
+            let viewport_width = f64::from(self.viewport.width);
+            let anchor_time_after = if viewport_width > 0.0 {
+                target_start + (anchor_x / viewport_width) * target_span
+            } else {
+                anchor_time_before
+            };
+            if (anchor_time_after - anchor_time_before).abs() <= 1e-9 {
+                self.time_scale
+                    .set_visible_range_from_bar_spacing_and_right_offset(
+                        target_bar_spacing,
+                        target_right_offset,
+                        reference_step,
+                        space.width_px,
+                    )?;
+                let _ = self.apply_time_scale_zoom_limit_behavior()?;
+                let _ = self.apply_time_scale_edge_behavior()?;
+                self.emit_visible_range_changed();
+                return Ok(());
+            }
+        }
+
         let anchor_time = self.map_pixel_to_x(anchor_px)?;
         self.time_scale
             .zoom_visible_by_factor(factor, anchor_time, min_span_absolute)?;
@@ -451,8 +537,12 @@ impl<R: Renderer> ChartEngine<R> {
             .time_scale_scroll_zoom_behavior
             .right_bar_stays_on_scroll
         {
-            let (_, right_edge) = self.time_scale.visible_range();
-            self.zoom_time_visible_around_time(factor, right_edge, min_span_absolute)?;
+            if let Some(anchor_px) = self.resolve_right_margin_zoom_anchor_px() {
+                self.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
+            } else {
+                let (_, right_edge) = self.time_scale.visible_range();
+                self.zoom_time_visible_around_time(factor, right_edge, min_span_absolute)?;
+            }
         } else {
             self.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
         }
@@ -476,8 +566,12 @@ impl<R: Renderer> ChartEngine<R> {
             .time_scale_scroll_zoom_behavior
             .right_bar_stays_on_scroll
         {
-            let (_, right_edge) = self.time_scale.visible_range();
-            self.zoom_time_visible_around_time(factor, right_edge, min_span_absolute)?;
+            if let Some(anchor_px) = self.resolve_right_margin_zoom_anchor_px() {
+                self.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
+            } else {
+                let (_, right_edge) = self.time_scale.visible_range();
+                self.zoom_time_visible_around_time(factor, right_edge, min_span_absolute)?;
+            }
         } else {
             self.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
         }
@@ -548,6 +642,24 @@ impl<R: Renderer> ChartEngine<R> {
         let (visible_start, visible_end) = self.time_scale.visible_range();
         let current_span = (visible_end - visible_start).max(1e-9);
 
+        let (_, full_end) = self.time_scale.full_range();
+        if self.time_scale_right_offset_px.is_none() {
+            if let (Some(step), Some(spacing_px)) = (reference_step, behavior.bar_spacing_px) {
+                let previous = self.time_scale.visible_range();
+                self.time_scale
+                    .set_visible_range_from_bar_spacing_and_right_offset(
+                        spacing_px,
+                        behavior.right_offset_bars,
+                        step,
+                        f64::from(self.viewport.width),
+                    )?;
+                let current = self.time_scale.visible_range();
+                let changed = (current.0 - previous.0).abs() > 1e-12
+                    || (current.1 - previous.1).abs() > 1e-12;
+                return Ok(changed);
+            }
+        }
+
         let target_span = match behavior.bar_spacing_px {
             Some(spacing_px) => {
                 if let Some(step) = reference_step {
@@ -559,8 +671,6 @@ impl<R: Renderer> ChartEngine<R> {
             }
             None => current_span,
         };
-
-        let (_, full_end) = self.time_scale.full_range();
         let target_end = resolve_navigation_target_end(
             full_end,
             behavior.right_offset_bars,
@@ -609,13 +719,27 @@ impl<R: Renderer> ChartEngine<R> {
         if (target_span - current_span).abs() <= 1e-12 {
             return Ok(false);
         }
+        if !target_span.is_finite() || target_span <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "time scale zoom-limit target span must be finite and > 0".to_owned(),
+            ));
+        }
 
         let navigation_active = self.time_scale_navigation_behavior.right_offset_bars != 0.0
             || self.time_scale_navigation_behavior.bar_spacing_px.is_some()
             || self.time_scale_right_offset_px.is_some();
         if navigation_active {
+            let (_, full_end) = self.time_scale.full_range();
+            let target_end = resolve_navigation_target_end(
+                full_end,
+                self.time_scale_navigation_behavior.right_offset_bars,
+                self.time_scale_right_offset_px,
+                Some(reference_step),
+                target_span,
+                viewport_width,
+            );
             self.time_scale
-                .set_visible_range(visible_end - target_span, visible_end)?;
+                .set_visible_range(target_end - target_span, target_end)?;
         } else {
             let center = (visible_start + visible_end) * 0.5;
             let half = target_span * 0.5;
@@ -658,13 +782,26 @@ impl<R: Renderer> ChartEngine<R> {
                 current_span
             };
 
-        let (target_start, target_end) = match behavior.anchor {
-            TimeScaleResizeAnchor::Left => (start, start + target_span),
-            TimeScaleResizeAnchor::Center => {
-                let half = target_span * 0.5;
-                (center - half, center + half)
+        let (target_start, target_end) = if self.time_scale_right_offset_px.is_some() {
+            let (_, full_end) = self.time_scale.full_range();
+            let target_end = resolve_navigation_target_end(
+                full_end,
+                self.time_scale_navigation_behavior.right_offset_bars,
+                self.time_scale_right_offset_px,
+                resolve_reference_time_step(&self.points, &self.candles),
+                target_span,
+                current_width,
+            );
+            (target_end - target_span, target_end)
+        } else {
+            match behavior.anchor {
+                TimeScaleResizeAnchor::Left => (start, start + target_span),
+                TimeScaleResizeAnchor::Center => {
+                    let half = target_span * 0.5;
+                    (center - half, center + half)
+                }
+                TimeScaleResizeAnchor::Right => (end - target_span, end),
             }
-            TimeScaleResizeAnchor::Right => (end - target_span, end),
         };
 
         let changed = (target_start - start).abs() > 1e-12 || (target_end - end).abs() > 1e-12;
@@ -745,6 +882,50 @@ impl<R: Renderer> ChartEngine<R> {
         }
 
         changed
+    }
+
+    pub(crate) fn resolve_right_margin_zoom_anchor_px(&self) -> Option<f64> {
+        let offset_px = self.time_scale_right_offset_px?;
+        let viewport_width = f64::from(self.viewport.width);
+        if !viewport_width.is_finite() || viewport_width <= 0.0 {
+            return None;
+        }
+        Some((viewport_width - offset_px).clamp(0.0, viewport_width))
+    }
+
+    pub(crate) fn resolve_time_index_coordinate_space(
+        &self,
+    ) -> Option<(TimeIndexCoordinateSpace, f64)> {
+        let viewport_width = f64::from(self.viewport.width);
+        if !viewport_width.is_finite() || viewport_width <= 0.0 {
+            return None;
+        }
+
+        let reference_step = resolve_reference_time_step(&self.points, &self.candles)?;
+        if !reference_step.is_finite() || reference_step <= 0.0 {
+            return None;
+        }
+
+        let (bar_spacing_px, right_offset_bars) = self
+            .time_scale
+            .derive_visible_bar_spacing_and_right_offset(reference_step, viewport_width)
+            .ok()?;
+        let (_, full_end) = self.time_scale.full_range();
+
+        let base_index = full_end / reference_step;
+        if !base_index.is_finite() {
+            return None;
+        }
+
+        Some((
+            TimeIndexCoordinateSpace {
+                base_index,
+                right_offset_bars,
+                bar_spacing_px,
+                width_px: viewport_width,
+            },
+            reference_step,
+        ))
     }
 }
 

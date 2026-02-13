@@ -10,6 +10,7 @@ For architecture and parity status, read:
 - `docs/architecture.md`
 - `docs/parity-v5.1-checklist.md`
 - `docs/gtk-relm4-crosshair-formatters.md`
+- `docs/axis-section-visual-fixtures.md`
 
 ## 1) Local Setup
 
@@ -37,13 +38,17 @@ Domain layer with deterministic math and model invariants.
   - `LinearScale` (generic domain/pixel mapper)
 - `time_scale.rs`
   - `TimeScale`
+  - `TimeIndexCoordinateSpace`
   - `TimeScaleTuning`
   - visible/full range logic
+  - Lightweight-style index/coordinate transforms (`index_to_coordinate`, `coordinate_to_logical_index`, ceil index conversion, right-offset pan/zoom helpers)
 - `price_scale.rs`
   - `PriceScale`
+  - `PriceCoordinateSpace`
   - `PriceScaleMode`
   - `PriceScaleTuning`
-  - autoscale tuning + inverted Y mapping (linear/log mode aware)
+  - autoscale tuning + inverted Y mapping (`Linear` / `Log` / `Percentage` / `IndexedTo100`)
+  - transformed-domain coordinate primitives (`transformed_to_pixel`, `pixel_to_transformed`) with explicit margin/internal-height semantics
 - `candlestick.rs`
   - `OhlcBar`
   - `CandleGeometry`
@@ -83,7 +88,7 @@ Pointer and interaction state machine.
 Interaction invariants:
 - pointer move enables crosshair visibility
 - pointer leave clears visibility and snap state
-- `CrosshairMode::Magnet` snaps to nearest mapped data/candle candidate
+- `CrosshairMode::Magnet` snaps to nearest mapped data/candle candidate, including sparse-index nearest-slot hints with correctness fallback for irregular windows
 - `CrosshairMode::Normal` follows pointer coordinates without snapping
 - `CrosshairMode::Hidden` keeps crosshair invisible regardless of pointer movement
 - wheel delta is normalized to 120-step notches for deterministic zoom factors
@@ -91,8 +96,9 @@ Interaction invariants:
 - kinetic pan uses deterministic step integration with explicit decay tuning
 - optional fixed-edge time-scale policy can constrain navigation to full-range bounds (`fix_left_edge` / `fix_right_edge`)
 - optional interaction input gates can disable scroll/scale families and granular input paths (`handle_scroll`, `handle_scale`, `scroll_mouse_wheel`, `scroll_pressed_mouse_move`, `scroll_horz_touch_drag`, `scroll_vert_touch_drag`, `scale_mouse_wheel`, `scale_pinch`, `scale_axis_pressed_mouse_move`, `scale_axis_double_click_reset`)
-- axis-scale interaction paths are available via `axis_drag_scale_price` and `axis_double_click_reset_price_scale`, both gated by `scale_axis_*` options
-- touch-style pan input is available through `touch_drag_pan_time_visible` and respects `scroll_horz_touch_drag` / `scroll_vert_touch_drag`
+- axis-scale interaction paths are available via `axis_drag_scale_price`, `axis_drag_scale_time`, `axis_double_click_reset_price_scale`, and `axis_double_click_reset_time_scale`, all gated by `scale_axis_*` options
+- price-axis vertical pan is available through `axis_drag_pan_price`, preserves anchor projection/span, and is gated by `scale_axis_pressed_mouse_move`
+- touch-style pan input is available through `touch_drag_pan_time_visible`, validates only enabled touch axes, and uses dominant-axis normalization (`width` for horizontal, `height` for vertical)
 - optional time-scale navigation policy can synthesize right-margin/spacing behavior from data step estimation (`right_offset_bars` / `bar_spacing_px`)
 - optional time-scale resize policy can lock visible range under viewport width changes using deterministic anchors (`lock_visible_range_on_resize` + `Left`/`Center`/`Right`)
 - optional realtime append policy can preserve right-edge follow semantics with bar-based tolerance (`preserve_right_edge_on_append` / `right_edge_tolerance_bars`)
@@ -150,16 +156,18 @@ Responsibilities:
 - bootstrap crosshair axis-label box style policy (`ChartEngineConfig::with_crosshair_axis_label_box_style_behavior`)
 - optional time-scale edge constraints for visible-range navigation (`TimeScaleEdgeBehavior`)
 - optional interaction input gating for host-controlled scroll/scale path enablement, including per-input wheel/drag/pinch and axis-scale option controls (`InteractionInputBehavior`)
-- optional price-axis drag-scale and axis-reset interaction paths (`axis_drag_scale_price`, `axis_double_click_reset_price_scale`)
+- optional axis drag-scale and axis-reset interaction paths for both price and time (`axis_drag_scale_price`, `axis_drag_scale_time`, `axis_double_click_reset_price_scale`, `axis_double_click_reset_time_scale`)
+- optional price-axis drag-pan interaction path (`axis_drag_pan_price`) with finite-input validation, anchor-preserving domain translation, and gate-aware no-op behavior
 - optional time-scale navigation behavior for right-offset and spacing synthesis (`TimeScaleNavigationBehavior`)
 - optional time-scale zoom-limit behavior for bar-spacing bounds (`TimeScaleZoomLimitBehavior`)
-- optional pixel-based right-margin override with priority over bar-based right offset (`time_scale_right_offset_px`)
+- optional pixel-based right-margin override with priority over bar-based right offset (`time_scale_right_offset_px`), with constrained zoom-limit/resize hardening that preserves margin semantics under extreme spans
 - optional scroll-zoom right-edge anchoring policy (`right_bar_stays_on_scroll`)
 - optional time-scale resize behavior for viewport resize anchoring policy (`TimeScaleResizeBehavior`)
 - optional realtime append behavior for continuous tail tracking during incremental updates (`TimeScaleRealtimeAppendBehavior`)
 - optional price-scale realtime autoscale behavior on incremental updates (`PriceScaleRealtimeBehavior`)
 - explicit scroll-to-realtime command for deterministic tail reattachment (`scroll_time_to_realtime`)
 - bar-based scroll position introspection and explicit positioning (`time_scroll_position_bars`, `scroll_time_to_position_bars`)
+- pixel-to-logical-index mapping policy with sparse-slot control (`map_pixel_to_logical_index` + `TimeCoordinateIndexPolicy::{AllowWhitespace, IgnoreWhitespace}`)
 - realtime update semantics for incremental feeds (`update_point` / `update_candle` append-or-replace with out-of-order rejection)
 - deterministic canonicalization for full-replacement datasets (`set_data` / `set_candles`) with invalid-sample filtering, time sorting, and duplicate-timestamp replacement
 - property-test coverage for canonicalization invariants under extreme/invalid input (`tests/property_data_set_canonicalization_tests.rs`)
@@ -168,8 +176,18 @@ Responsibilities:
 - optional autoscale refresh on full data replacement (`autoscale_on_data_set`)
 - optional inverted price-axis mapping (`set_price_scale_inverted`)
 - optional price-scale top/bottom whitespace margins (`set_price_scale_margin_behavior`)
+- optional transformed-base policy for percentage/indexed modes (`set_price_scale_transformed_base_behavior`) with explicit or dynamic sources, deterministic cross-series precedence, candle tie-break on equal timestamps, and visible-empty fallback to full-data candidates
 - crosshair snapping behavior
-- price scale mode switching (`Linear` / `Log`) with domain validation
+- price scale mode switching (`Linear` / `Log` / `Percentage` / `IndexedTo100`) with mode-safe domain/base validation
+- time-scale logical-index utilities for hosts (`map_pixel_to_logical_index`, `map_pixel_to_logical_index_ceil`, `map_logical_index_to_pixel`, `nearest_filled_logical_slot_at_pixel`, `next_filled_logical_index`, `prev_filled_logical_index`)
+- GTK adapter bridge for logical-index host tooling (`GtkChartAdapter::{map_*, nearest_filled_logical_slot_at_pixel, next_filled_logical_index, prev_filled_logical_index}`)
+- fixture-driven differential parity harness for time-scale zoom/pan/`rightOffsetPixels` traces (`tests/lightweight_time_scale_differential_trace_tests.rs`, `tests/fixtures/lightweight_differential/`)
+- fixture-driven differential parity harness for price-scale transformed/autoscale traces (`tests/lightweight_price_scale_differential_trace_tests.rs`, `tests/fixtures/lightweight_differential/price_scale_transformed_autoscale_trace.json`)
+- fixture-driven differential parity harness for advanced interaction traces (wheel/pinch zoom, kinetic pan, crosshair mode/snap transitions) (`tests/lightweight_interaction_differential_trace_tests.rs`, `tests/fixtures/lightweight_differential/interaction_zoom_pan_kinetic_crosshair_trace.json`)
+- interaction corpus includes advanced touch scenarios with multi-step pinch zoom, kinetic decay envelope assertions, and sparse-gap magnet snap checks (`touch-pinch-kinetic-gap-snap-advanced`)
+- direct raw Lightweight interaction-capture import coverage without manual normalization (`tests/lightweight_raw_capture_import_tests.rs`, `tests/fixtures/lightweight_differential/lightweight_real_capture_interaction.raw.json`)
+- direct raw Lightweight visual-capture import coverage without manual normalization (`tests/lightweight_visual_raw_capture_import_tests.rs`, `tests/fixtures/lightweight_differential/lightweight_real_capture_visual.raw.json`)
+- trace import/export tooling for Lightweight capture interoperability (`cargo run --bin differential_trace_tool -- <export-time|import-time|export-price|import-price|export-interaction|import-interaction|import-lwc-interaction|import-lwc-visual> ...`)
 - time-axis formatter policy + locale/custom formatter injection
 - price-axis formatter policy + display-mode + custom formatter injection
 - zoom-aware adaptive time-axis formatting and label-cache metrics
@@ -188,6 +206,31 @@ Responsibilities:
 - optional last-price axis label box (filled price-box) with configurable fill/text colors, border/radius, and contrast policy
 - configurable last-price label-box width policy (`FullAxis` / `FitText`) with deterministic text-width estimation, horizontal padding, and minimum width guardrails
 - configurable price-axis inset policy for right-side label padding and tick-mark extension length
+- adaptive axis-section sizing pass computes deterministic minimum panel dimensions from label/tick pressure and only expands configured axis sections when required
+- axis-section visual-fixture corpus validates deterministic layout signatures (plot/time/price section geometry + label counts) from JSON manifests to catch adaptive-sizing drift
+- fixture manifests can also export PNG references for manual visual review via `cargo run --features cairo-backend --bin generate_axis_section_fixture_pngs`
+- corpus includes extreme/sparse stress scenarios (tiny viewport clamps, narrow-domain high-precision labels, sparse wide-range data)
+- corpus includes mixed price display-mode stress (`Normal`, `Percentage`, `IndexedTo100`) under extreme value magnitudes
+- corpus includes display-mode fallback edge-case stress for explicit invalid bases (`base_price=0`, `NaN`, `+inf`, `-inf`) in `Percentage`/`IndexedTo100`; fixture JSON uses `price_axis_display_base_override` tokens for non-finite literals
+- manual visual baseline capture for GTK-host UI sanity checks is tracked in `reference_UI/Captura desde 2026-02-12 20-28-20.png` with review workflow documented in `docs/axis-section-visual-fixtures.md`
+- manual visual review workflow is standardized by change type (`layout`, `render`, `formatter`) in `docs/axis-section-visual-fixtures.md` to reduce PR ambiguity
+- criterion coverage includes display-mode fallback formatter/cache cost tracking with mixed fallback routes (`price_axis_display_mode_fallback_cache_hot_mixed`, `price_axis_display_mode_fallback_cache_cold_mixed`)
+- criterion coverage includes transformed-base dynamic refresh and sparse logical-index host lookup hot paths (`price_scale_transformed_base_dynamic_refresh_visible_window`, `time_scale_sparse_nearest_filled_slot_lookup`, `time_scale_sparse_next_prev_filled_lookup`)
+- CI guardrails validate fallback benchmark drift with ratio/latency budgets in scheduled and PR workflows (`scripts/check_fallback_bench_regressions.py`, `.github/workflows/bench.yml`, `.github/workflows/ci.yml`)
+- CI guardrails validate transformed-base/sparse-index benchmark drift with ratio/latency budgets in scheduled and PR workflows (`scripts/check_new_parity_bench_regressions.py`, `.github/workflows/bench.yml`, `.github/workflows/ci.yml`)
+- visual differential PNG harness compares rendered Cairo output against committed Lightweight-style baselines with explicit max/mean channel-diff budgets (`tests/lightweight_visual_differential_tests.rs`, `tests/fixtures/lightweight_visual_differential/visual_baseline_corpus.json`)
+- visual harness can emit per-fixture `actual`/`baseline`/`diff` PNG artifacts plus `summary.json` when `LIGHTWEIGHT_VISUAL_DIFF_ARTIFACT_DIR` is set (used by CI artifact upload workflow)
+- when intended render/style parity updates shift the visual output, refresh committed baselines via `cargo test --all-features -j 1 --test lightweight_visual_differential_tests -- --ignored --exact regenerate_lightweight_visual_baselines --test-threads=1` and re-run `cargo test-visual` to keep `max/mean=0` fixtures deterministic
+- visual corpus includes candlestick/log-axis drag-scale and session/timezone time-axis drag-scale fixtures to keep time/price interaction parity under image-diff guardrails (`tests/fixtures/lightweight_visual_differential/reference_png/lwc-style-candles-log-axis-scale-price.png`, `tests/fixtures/lightweight_visual_differential/reference_png/lwc-style-timescale-session-timezone-axis-scale.png`)
+- property/fuzz hardening includes extreme scale round-trip invariants for transformed price modes and constrained time-scale paths (`tests/property_extreme_scale_roundtrip_tests.rs`)
+- dedicated CI parity guard runs visual PNG diffs plus elevated property stress profile (`parity_visual_property_guard` job in `.github/workflows/ci.yml`)
+- criterion coverage includes zoom-adaptive axis-density render cost tracking for zoom-out/zoom-in paths (`axis_density_zoom_adaptive_out_render`, `axis_density_zoom_adaptive_in_render`)
+- CI guardrails validate axis-density benchmark drift with zoom-in/out ratio and per-path latency budgets in scheduled and PR workflows (`scripts/check_axis_density_bench_regressions.py`, `.github/workflows/bench.yml`, `.github/workflows/ci.yml`)
+- zoom-adaptive axis cadence uses an explicit non-linear zoom-ratio curve with neutral-band stabilization (`density_scale_from_zoom_ratio`) instead of direct square-root scaling, keeping intermediate zoom levels responsive while preserving min-spacing safeguards
+- time-label collision filtering uses prioritized major/minor selection so major labels are retained when spacing collisions occur (`select_positions_with_min_spacing_prioritized`)
+- directed Lightweight v5.1 cadence regression coverage includes intermediate time-axis zoom windows and multi-step price-axis scale-zoom windows (`tests/lightweight_axis_tick_cadence_reference_tests.rs`)
+- fixture schema supports deterministic price-axis cadence stress setup through `disable_autoscale_on_data_set` and optional `price_axis_scale_steps` (`axis_drag_scale_price` replay)
+- corpus includes dedicated price-axis zoom-extreme cadence fixtures (`zoom-extreme-axis-density-price-out`, `zoom-extreme-axis-density-price-in`)
 - configurable price-axis tick-mark style policy (dedicated color/width separate from axis border)
 - configurable price-axis label typography policy (font size and vertical offset from tick position)
 - configurable last-price label vertical offset policy (independent from last-price font-size)
@@ -271,12 +314,12 @@ Renderer trait boundary and backend implementations.
 Render invariants:
 - frame construction is deterministic for fixed engine state
 - axis labels use spacing-aware collision filtering
-- label density scales with viewport size within fixed min/max bounds
+- label density scales with zoom level (time visible/full span and price domain/series span) with deterministic min-spacing caps
 - time-axis labels support built-in policy+locale and explicit custom formatter injection
 - time-axis UTC policies can align to fixed-offset local timezones and optional session windows
 - session/day boundary ticks can render with dedicated major grid/label styling
 - price-axis labels support fixed/adaptive precision, min-move rounding, and normal/percent/indexed display modes
-- price-axis ticks are generated in transformed scale space, then mapped back to raw prices (linear/log-safe)
+- price-axis ticks are generated in transformed scale space, then mapped back to raw prices (linear/log/percentage/indexed-safe)
 - log-mode price-axis ticks prefer deterministic 1/2/5 decade ladders with endpoint-preserving downsampling
 - repeated redraws reuse deterministic time-label cache entries (`time_label_cache_stats`)
 - repeated redraws reuse deterministic price-label cache entries (`price_label_cache_stats`)
@@ -398,7 +441,13 @@ Where to add tests:
 - `tests/core_scale_tests.rs`
   - deterministic scale behavior and edge cases
 - `tests/price_scale_mode_tests.rs`
-  - linear/log mode switching behavior and log-autoscale invariants
+  - price-scale mode switching behavior and autoscale invariants
+- `tests/price_scale_mode_display_transform_tests.rs`
+  - transformed-domain behavior for `Percentage` / `IndexedTo100` plus axis-pan parity against linear mode
+- `tests/price_scale_transformed_base_behavior_tests.rs`
+  - explicit/dynamic transformed-base behavior for percentage/indexed scale modes
+- `tests/time_scale_coordinate_policy_api_tests.rs`
+  - public coordinate->logical-index policy plus ceil/index utility coverage on sparse ranges
 - `tests/property_scale_tests.rs`
   - invariant properties for tuned/round-trip mapping
 - `tests/candlestick_tests.rs`
@@ -438,11 +487,27 @@ Where to add tests:
 - `tests/property_render_frame_tests.rs`
   - render-frame determinism and finite-geometry invariants
 - `tests/render_axis_layout_tests.rs`
-  - axis label density/collision behavior for narrow vs wide viewports
+  - axis label density/collision behavior for narrow/wide viewports, zoom-adaptive cadence, and zoom/pan/price-scale-drag spacing robustness (including minimum zoom-in gain envelope for time-axis density progression)
+- `tests/lightweight_axis_tick_cadence_reference_tests.rs`
+  - directed Lightweight v5.1 cadence comparisons for time/price axis zoom scenarios, locking intermediate progression (`out < mid <= in`) and non-flat zoom-in gains
+- `tests/interaction_touch_pan_tests.rs`
+  - touch-pan gate validation and vertical-path normalization behavior (`width` vs `height` axis normalization)
+- `tests/visual_fixture_axis_section_sizing_tests.rs`
+  - manifest-driven axis-section layout signatures to detect drift in adaptive section sizing, including price-axis zoom-extreme density fixtures
+- `tests/visual_fixture_axis_section_png_artifacts_tests.rs`
+  - validates that fixture-declared PNG reference artifact paths exist on disk
 - `tests/time_axis_formatter_tests.rs`
   - time-axis policy/locale formatting, adaptive zoom behavior, and label-cache hit behavior
 - `tests/price_axis_formatter_tests.rs`
-  - price-axis formatting policies, display modes, formatter override behavior, and cache-hit validation
+  - price-axis formatting policies, display modes, formatter override behavior, and cache-hit/cache-cold validation (including mixed fallback route cache stats behavior)
+- `tests/property_price_axis_display_mode_fallback_tests.rs`
+  - property invariants for explicit invalid display-mode bases (`0`, `NaN`, `+/-inf`) falling back to deterministic `base_price=1` output
+- `tests/property_price_axis_display_mode_none_fallback_tests.rs`
+  - property invariants for `base_price=None` equivalence against resolved explicit base and fallback-to-1 behavior when resolved base is zero
+- `tests/property_price_axis_display_mode_domain_fallback_tests.rs`
+  - property invariants for `base_price=None` domain-based resolution with no series data loaded (`domain_min` path + zero-domain fallback-to-1 path)
+- `tests/property_price_axis_display_mode_locale_suffix_fallback_tests.rs`
+  - property invariants for mixed fallback routes asserting `%` suffix coherence (`Percentage` vs `IndexedTo100`) and locale decimal separator coherence (`EnUs` `.` vs `EsEs` `,`)
 - `tests/render_style_tests.rs`
   - render-style validation and grid/axis visual contract behavior
 - `tests/decimal_time_tests.rs`
