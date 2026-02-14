@@ -60,4 +60,9 @@ impl RenderFrame {
 
         Ok(())
     }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.lines.is_empty() && self.rects.is_empty() && self.texts.is_empty()
+    }
 }

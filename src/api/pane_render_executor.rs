@@ -1,13 +1,9 @@
-use crate::render::{LayeredRenderFrame, RenderFrame, Renderer};
+use crate::render::{LayeredRenderFrame, Renderer};
 
 use super::ChartEngine;
 use super::render_partial_scheduler::PartialCairoRenderPlan;
-
-pub(super) struct PanePartialRenderTask {
-    pub(super) frame: RenderFrame,
-    pub(super) clip_rect: Option<(f64, f64, f64, f64)>,
-    pub(super) clear_region: bool,
-}
+use super::render_partial_task::PanePartialRenderTask;
+use super::render_partial_task_collectors::{collect_main_axis_task, collect_plot_tasks};
 
 pub(super) struct PaneRenderExecutor;
 
@@ -19,41 +15,9 @@ impl PaneRenderExecutor {
         plan: &PartialCairoRenderPlan,
     ) -> Vec<PanePartialRenderTask> {
         let viewport_width = f64::from(engine.core.model.viewport.width);
-        let mut tasks = Vec::new();
-
-        for pane in &layered.panes {
-            if !plan.targets_pane(pane.pane_id) {
-                continue;
-            }
-            let pane_height = (pane.plot_bottom - pane.plot_top).max(0.0);
-            if pane_height <= 0.0 {
-                continue;
-            }
-            if let Some(frame) = layered.flatten_pane_layers(pane.pane_id, plan.plot_layers()) {
-                if frame.lines.is_empty() && frame.rects.is_empty() && frame.texts.is_empty() {
-                    continue;
-                }
-                tasks.push(PanePartialRenderTask {
-                    frame,
-                    clip_rect: Some((0.0, pane.plot_top, viewport_width, pane_height)),
-                    clear_region: true,
-                });
-            }
-        }
-
-        let axis_layers = [crate::render::CanvasLayerKind::Axis];
-        if let Some(axis_frame) = layered.flatten_pane_layers(engine.main_pane_id(), &axis_layers) {
-            if axis_frame.lines.is_empty()
-                && axis_frame.rects.is_empty()
-                && axis_frame.texts.is_empty()
-            {
-                return tasks;
-            }
-            tasks.push(PanePartialRenderTask {
-                frame: axis_frame,
-                clip_rect: None,
-                clear_region: false,
-            });
+        let mut tasks = collect_plot_tasks(layered, plan, viewport_width);
+        if let Some(axis_task) = collect_main_axis_task(engine.main_pane_id(), layered) {
+            tasks.push(axis_task);
         }
 
         tasks

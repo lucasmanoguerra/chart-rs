@@ -4,9 +4,9 @@ use crate::render::Renderer;
 
 use super::ChartEngine;
 #[cfg(feature = "cairo-backend")]
-use super::pane_render_executor::PaneRenderExecutor;
+use super::render_cairo_execution_path_resolver::CairoRenderExecutionPath;
 #[cfg(feature = "cairo-backend")]
-use super::render_partial_scheduler::PartialCairoRenderPlan;
+use super::render_cairo_partial_pass_executor::render_partial_on_cairo_context;
 
 #[cfg(feature = "cairo-backend")]
 use crate::render::CairoContextRenderer;
@@ -26,44 +26,19 @@ impl RenderCoordinator {
         engine: &mut ChartEngine<R>,
         context: &cairo::Context,
     ) -> ChartResult<()> {
-        let pending_invalidation = engine.pending_invalidation();
-        let api_pane_targets = engine.pending_invalidation_pane_targets();
-        let lwc_pending_invalidation = engine.lwc_pending_invalidation();
-        let lwc_pane_ids = engine
-            .core
-            .lwc_model
-            .panes()
-            .iter()
-            .map(|pane| pane.id())
-            .collect::<Vec<_>>();
-        if engine.panes().len() > 1 {
-            let layered = engine.build_layered_render_frame()?;
-            if let Some(plan) = PartialCairoRenderPlan::build_from_masks(
-                pending_invalidation,
-                &api_pane_targets,
-                lwc_pending_invalidation,
-                &lwc_pane_ids,
-                &layered,
-            ) {
-                let tasks = PaneRenderExecutor::collect_partial_tasks(engine, &layered, &plan);
-                for task in tasks {
-                    engine.renderer.render_on_cairo_context_partial(
-                        context,
-                        &task.frame,
-                        task.clip_rect,
-                        task.clear_region,
-                    )?;
-                }
-
+        match CairoRenderExecutionPath::resolve(engine)? {
+            CairoRenderExecutionPath::Partial { layered, plan } => {
+                render_partial_on_cairo_context(engine, context, &layered, &plan)?;
                 Self::finalize_render(engine);
-                return Ok(());
+                Ok(())
+            }
+            CairoRenderExecutionPath::Full => {
+                let frame = engine.build_render_frame()?;
+                engine.renderer.render_on_cairo_context(context, &frame)?;
+                Self::finalize_render(engine);
+                Ok(())
             }
         }
-
-        let frame = engine.build_render_frame()?;
-        engine.renderer.render_on_cairo_context(context, &frame)?;
-        Self::finalize_render(engine);
-        Ok(())
     }
 
     fn finalize_render<R: Renderer>(engine: &mut ChartEngine<R>) {

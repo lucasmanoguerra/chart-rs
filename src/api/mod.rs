@@ -131,10 +131,34 @@ mod price_scale_access;
 mod price_scale_coordinator;
 mod price_scale_interaction_controller;
 mod price_scale_validation;
+#[cfg(feature = "cairo-backend")]
+mod render_cairo_execution_path_resolver;
+#[cfg(feature = "cairo-backend")]
+mod render_cairo_partial_input_resolver;
+#[cfg(feature = "cairo-backend")]
+mod render_cairo_partial_pass_executor;
+#[cfg(feature = "cairo-backend")]
+mod render_cairo_partial_plan_resolver;
 mod render_coordinator;
 mod render_frame_builder;
 #[cfg(feature = "cairo-backend")]
+mod render_partial_lwc_policy_resolver;
+#[cfg(feature = "cairo-backend")]
+mod render_partial_pane_targets_resolver;
+#[cfg(feature = "cairo-backend")]
+mod render_partial_plan;
+#[cfg(feature = "cairo-backend")]
+mod render_partial_plan_pane_targets_resolver;
+#[cfg(feature = "cairo-backend")]
+mod render_partial_plot_layers_resolver;
+#[cfg(feature = "cairo-backend")]
 mod render_partial_scheduler;
+#[cfg(feature = "cairo-backend")]
+mod render_partial_task;
+#[cfg(feature = "cairo-backend")]
+mod render_partial_task_collectors;
+#[cfg(test)]
+pub(crate) mod render_partial_test_support;
 mod render_style_invalidation_resolver;
 mod scale_access;
 mod scale_coordinator;
