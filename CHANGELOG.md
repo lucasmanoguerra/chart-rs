@@ -90,6 +90,13 @@ and this project adheres to Semantic Versioning.
 - Internal API modularization: extracted Cairo partial-pass draw loop into `src/api/render_cairo_partial_pass_executor.rs`, keeping `render_coordinator` focused on path routing/finalization while preserving partial-task execution semantics.
 - Internal API modularization: extracted Cairo partial-render input collection (`pending/api-targets/lwc-pane-ids`) into `src/api/render_cairo_partial_input_resolver.rs`, keeping `render_cairo_execution_path_resolver` focused on `Full` vs `Partial` plan selection.
 - Internal API modularization: extracted Cairo partial-plan assembly (`build_layered` + `build_from_masks`) into `src/api/render_cairo_partial_plan_resolver.rs`, keeping `render_cairo_execution_path_resolver` focused on high-level path guards and enum mapping.
+- Internal API modularization: extracted Cairo full-pass draw loop into `src/api/render_cairo_full_pass_executor.rs`, keeping `render_coordinator` symmetric (`partial executor` vs `full executor`) and focused on route/finalize orchestration.
+- Internal API modularization: extracted generic full-pass executor (`src/api/render_full_pass_executor.rs`) and shared render-cycle finalizer (`src/api/render_cycle_finalizer.rs`), keeping `render_coordinator` focused on execution-path routing only.
+- Internal API modularization: extracted Cairo-specific route orchestration into `src/api/render_cairo_coordinator.rs`, leaving `render_coordinator` backend-agnostic (`render_full_pass` + Cairo delegation).
+- Internal API modularization: extracted invalidation-gated render helpers into `src/api/invalidation_render_gate.rs`, keeping `invalidation` focused on mask/topic/state orchestration.
+- Added a new runnable examples corpus under `examples/` focused on interactive GTK host usage with real market data flows.
+- Replaced examples corpus with GTK4 interactive scenarios backed by real Binance market data (REST klines), including pan/zoom/crosshair interactions, axis drag/double-click reset, live polling updates, multi-pane candle+volume layouts, symbol switching, and logical-index inspection.
+- Internal API modularization: extracted shared time-scale scroll-zoom anchor policy into `TimeScaleCoordinator::zoom_with_scroll_anchor_policy`, removing duplicate right-edge anchoring branches from wheel and pinch zoom flows.
 
 ## [Unreleased]
 

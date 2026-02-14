@@ -1,12 +1,42 @@
-use crate::core::{DataPoint, OhlcBar, TimeIndexCoordinateSpace, TimeScaleTuning};
+use crate::core::{TimeIndexCoordinateSpace, TimeScaleTuning};
 use crate::error::{ChartError, ChartResult};
 use crate::render::Renderer;
 
-use super::{ChartEngine, TimeScaleResizeAnchor};
+use super::{
+    ChartEngine, TimeScaleResizeAnchor, time_scale_input_validation,
+    time_scale_navigation_target_resolver, time_scale_pan_delta_resolver,
+    time_scale_zoom_factor_resolver,
+};
 
 pub(super) struct TimeScaleCoordinator;
 
 impl TimeScaleCoordinator {
+    fn zoom_with_scroll_anchor_policy<R: Renderer>(
+        engine: &mut ChartEngine<R>,
+        factor: f64,
+        anchor_px: f64,
+        min_span_absolute: f64,
+    ) -> ChartResult<()> {
+        time_scale_input_validation::validate_zoom_inputs(factor, anchor_px, min_span_absolute)?;
+
+        if engine
+            .core
+            .behavior
+            .time_scale_scroll_zoom_behavior
+            .right_bar_stays_on_scroll
+        {
+            if let Some(anchor_px) = engine.resolve_right_margin_zoom_anchor_px() {
+                engine.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
+            } else {
+                let (_, right_edge) = engine.core.model.time_scale.visible_range();
+                engine.zoom_time_visible_around_time(factor, right_edge, min_span_absolute)?;
+            }
+        } else {
+            engine.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
+        }
+        Ok(())
+    }
+
     fn mark_scroll_invalidation_intent<R: Renderer>(
         engine: &mut ChartEngine<R>,
         before: (f64, f64),
@@ -115,23 +145,24 @@ impl TimeScaleCoordinator {
         } else {
             let (start, end) = engine.core.model.time_scale.visible_range();
             let (_, full_end) = engine.core.model.time_scale.full_range();
-            let reference_step = Self::resolve_reference_time_step(
+            let reference_step = time_scale_navigation_target_resolver::resolve_reference_time_step(
                 &engine.core.model.points,
                 &engine.core.model.candles,
             );
             let visible_span = (end - start).max(1e-9);
-            let target_end = Self::resolve_navigation_target_end(
-                full_end,
-                engine
-                    .core
-                    .behavior
-                    .time_scale_navigation_behavior
-                    .right_offset_bars,
-                engine.core.behavior.time_scale_right_offset_px,
-                reference_step,
-                visible_span,
-                f64::from(engine.core.model.viewport.width),
-            );
+            let (_, target_end) =
+                time_scale_navigation_target_resolver::resolve_navigation_target_range(
+                    full_end,
+                    engine
+                        .core
+                        .behavior
+                        .time_scale_navigation_behavior
+                        .right_offset_bars,
+                    engine.core.behavior.time_scale_right_offset_px,
+                    reference_step,
+                    visible_span,
+                    f64::from(engine.core.model.viewport.width),
+                );
             let delta = target_end - end;
             if delta.abs() > 1e-12 {
                 engine
@@ -161,7 +192,7 @@ impl TimeScaleCoordinator {
         let (_, visible_end) = engine.core.model.time_scale.visible_range();
         let distance = visible_end - full_end;
 
-        let step = Self::resolve_reference_time_step(
+        let step = time_scale_navigation_target_resolver::resolve_reference_time_step(
             &engine.core.model.points,
             &engine.core.model.candles,
         )?;
@@ -188,7 +219,7 @@ impl TimeScaleCoordinator {
         let target_end = if position_bars == 0.0 {
             full_end
         } else {
-            let Some(step) = Self::resolve_reference_time_step(
+            let Some(step) = time_scale_navigation_target_resolver::resolve_reference_time_step(
                 &engine.core.model.points,
                 &engine.core.model.candles,
             ) else {
@@ -227,21 +258,7 @@ impl TimeScaleCoordinator {
         anchor_px: f64,
         min_span_absolute: f64,
     ) -> ChartResult<()> {
-        if !factor.is_finite() || factor <= 0.0 {
-            return Err(ChartError::InvalidData(
-                "zoom factor must be finite and > 0".to_owned(),
-            ));
-        }
-        if !anchor_px.is_finite() {
-            return Err(ChartError::InvalidData(
-                "zoom anchor px must be finite".to_owned(),
-            ));
-        }
-        if !min_span_absolute.is_finite() || min_span_absolute <= 0.0 {
-            return Err(ChartError::InvalidData(
-                "zoom min span must be finite and > 0".to_owned(),
-            ));
-        }
+        time_scale_input_validation::validate_zoom_inputs(factor, anchor_px, min_span_absolute)?;
 
         if let Some((space, reference_step)) = engine.resolve_time_index_coordinate_space() {
             let (start, end) = engine.core.model.time_scale.visible_range();
@@ -326,11 +343,7 @@ impl TimeScaleCoordinator {
             return Ok(());
         }
 
-        if !delta_px.is_finite() {
-            return Err(ChartError::InvalidData(
-                "pan pixel delta must be finite".to_owned(),
-            ));
-        }
+        time_scale_input_validation::validate_pan_pixel_delta(delta_px)?;
 
         if let Some((space, reference_step)) = engine.resolve_time_index_coordinate_space() {
             let visible_before = engine.core.model.time_scale.visible_range();
@@ -354,7 +367,11 @@ impl TimeScaleCoordinator {
 
         let (start, end) = engine.core.model.time_scale.visible_range();
         let span = end - start;
-        let delta_time = -(delta_px / f64::from(engine.core.model.viewport.width)) * span;
+        let delta_time = time_scale_pan_delta_resolver::resolve_pixel_pan_delta_time(
+            delta_px,
+            f64::from(engine.core.model.viewport.width),
+            span,
+        )?;
         engine.pan_time_visible_by(delta_time)
     }
 
@@ -370,47 +387,22 @@ impl TimeScaleCoordinator {
             return Ok(0.0);
         }
 
-        if behavior.scroll_horz_touch_drag && !delta_x_px.is_finite() {
-            return Err(ChartError::InvalidData(
-                "touch drag horizontal delta must be finite when horizontal touch pan is enabled"
-                    .to_owned(),
-            ));
-        }
-        if behavior.scroll_vert_touch_drag && !delta_y_px.is_finite() {
-            return Err(ChartError::InvalidData(
-                "touch drag vertical delta must be finite when vertical touch pan is enabled"
-                    .to_owned(),
-            ));
-        }
-
-        let (driving_px, driving_axis_span_px) = match (
-            behavior.scroll_horz_touch_drag,
-            behavior.scroll_vert_touch_drag,
-        ) {
-            (true, false) => (delta_x_px, f64::from(engine.core.model.viewport.width)),
-            (false, true) => (delta_y_px, f64::from(engine.core.model.viewport.height)),
-            (true, true) => {
-                if delta_x_px.abs() >= delta_y_px.abs() {
-                    (delta_x_px, f64::from(engine.core.model.viewport.width))
-                } else {
-                    (delta_y_px, f64::from(engine.core.model.viewport.height))
-                }
-            }
-            (false, false) => (0.0, f64::from(engine.core.model.viewport.width)),
-        };
-
-        if driving_px == 0.0 {
-            return Ok(0.0);
-        }
-        if !driving_axis_span_px.is_finite() || driving_axis_span_px <= 0.0 {
-            return Err(ChartError::InvalidData(
-                "touch drag driving axis span must be finite and > 0".to_owned(),
-            ));
-        }
+        time_scale_input_validation::validate_touch_drag_deltas(behavior, delta_x_px, delta_y_px)?;
 
         let (start, end) = engine.core.model.time_scale.visible_range();
         let span = end - start;
-        let delta_time = -(driving_px / driving_axis_span_px) * span;
+        let Some(delta_time) = time_scale_pan_delta_resolver::resolve_touch_drag_pan_delta_time(
+            delta_x_px,
+            delta_y_px,
+            f64::from(engine.core.model.viewport.width),
+            f64::from(engine.core.model.viewport.height),
+            span,
+            behavior.scroll_horz_touch_drag,
+            behavior.scroll_vert_touch_drag,
+        )?
+        else {
+            return Ok(0.0);
+        };
         engine.pan_time_visible_by(delta_time)?;
         Ok(delta_time)
     }
@@ -429,24 +421,21 @@ impl TimeScaleCoordinator {
             return Ok(0.0);
         }
 
-        if !wheel_delta_x.is_finite() {
-            return Err(ChartError::InvalidData(
-                "wheel pan delta must be finite".to_owned(),
-            ));
-        }
-        if !pan_step_ratio.is_finite() || pan_step_ratio <= 0.0 {
-            return Err(ChartError::InvalidData(
-                "wheel pan step ratio must be finite and > 0".to_owned(),
-            ));
-        }
+        time_scale_input_validation::validate_wheel_pan_inputs(wheel_delta_x, pan_step_ratio)?;
         if wheel_delta_x == 0.0 {
             return Ok(0.0);
         }
 
         let (start, end) = engine.core.model.time_scale.visible_range();
         let span = end - start;
-        let normalized_steps = wheel_delta_x / 120.0;
-        let delta_time = normalized_steps * span * pan_step_ratio;
+        let Some(delta_time) = time_scale_pan_delta_resolver::resolve_wheel_pan_delta_time(
+            wheel_delta_x,
+            span,
+            pan_step_ratio,
+        )?
+        else {
+            return Ok(0.0);
+        };
         engine.pan_time_visible_by(delta_time)?;
         Ok(delta_time)
     }
@@ -467,50 +456,22 @@ impl TimeScaleCoordinator {
             return Ok(1.0);
         }
 
-        if !wheel_delta_y.is_finite() {
-            return Err(ChartError::InvalidData(
-                "wheel delta must be finite".to_owned(),
-            ));
-        }
-        if !zoom_step_ratio.is_finite() || zoom_step_ratio <= 0.0 {
-            return Err(ChartError::InvalidData(
-                "wheel zoom step ratio must be finite and > 0".to_owned(),
-            ));
-        }
-        if wheel_delta_y == 0.0 {
+        time_scale_input_validation::validate_wheel_zoom_inputs(wheel_delta_y, zoom_step_ratio)?;
+        let Some(factor) = time_scale_zoom_factor_resolver::resolve_wheel_zoom_factor(
+            wheel_delta_y,
+            zoom_step_ratio,
+        )?
+        else {
             return Ok(1.0);
-        }
+        };
 
-        let normalized_steps = wheel_delta_y / 120.0;
-        let base = 1.0 + zoom_step_ratio;
-        let factor = base.powf(-normalized_steps);
-        if !factor.is_finite() || factor <= 0.0 {
-            return Err(ChartError::InvalidData(
-                "computed wheel zoom factor must be finite and > 0".to_owned(),
-            ));
-        }
-
-        if engine
-            .core
-            .behavior
-            .time_scale_scroll_zoom_behavior
-            .right_bar_stays_on_scroll
-        {
-            if let Some(anchor_px) = engine.resolve_right_margin_zoom_anchor_px() {
-                engine.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
-            } else {
-                let (_, right_edge) = engine.core.model.time_scale.visible_range();
-                engine.zoom_time_visible_around_time(factor, right_edge, min_span_absolute)?;
-            }
-        } else {
-            engine.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
-        }
+        Self::zoom_with_scroll_anchor_policy(engine, factor, anchor_px, min_span_absolute)?;
         Ok(factor)
     }
 
     pub(super) fn pinch_zoom_time_visible<R: Renderer>(
         engine: &mut ChartEngine<R>,
-        factor: f64,
+        pinch_scale_factor: f64,
         anchor_px: f64,
         min_span_absolute: f64,
     ) -> ChartResult<f64> {
@@ -522,21 +483,12 @@ impl TimeScaleCoordinator {
         {
             return Ok(1.0);
         }
-        if engine
-            .core
-            .behavior
-            .time_scale_scroll_zoom_behavior
-            .right_bar_stays_on_scroll
-        {
-            if let Some(anchor_px) = engine.resolve_right_margin_zoom_anchor_px() {
-                engine.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
-            } else {
-                let (_, right_edge) = engine.core.model.time_scale.visible_range();
-                engine.zoom_time_visible_around_time(factor, right_edge, min_span_absolute)?;
-            }
-        } else {
-            engine.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
-        }
+        let Some(factor) =
+            time_scale_zoom_factor_resolver::resolve_pinch_zoom_factor(pinch_scale_factor)?
+        else {
+            return Ok(1.0);
+        };
+        Self::zoom_with_scroll_anchor_policy(engine, factor, anchor_px, min_span_absolute)?;
         Ok(factor)
     }
 
@@ -572,10 +524,12 @@ impl TimeScaleCoordinator {
             return Ok(false);
         }
 
-        let Some(reference_step) = Self::resolve_reference_time_step(
-            &engine.core.model.points,
-            &engine.core.model.candles,
-        ) else {
+        let Some(reference_step) =
+            time_scale_navigation_target_resolver::resolve_reference_time_step(
+                &engine.core.model.points,
+                &engine.core.model.candles,
+            )
+        else {
             return Ok(false);
         };
         if !reference_step.is_finite() || reference_step <= 0.0 {
@@ -618,18 +572,19 @@ impl TimeScaleCoordinator {
             || engine.core.behavior.time_scale_right_offset_px.is_some();
         if navigation_active {
             let (_, full_end) = engine.core.model.time_scale.full_range();
-            let target_end = Self::resolve_navigation_target_end(
-                full_end,
-                engine
-                    .core
-                    .behavior
-                    .time_scale_navigation_behavior
-                    .right_offset_bars,
-                engine.core.behavior.time_scale_right_offset_px,
-                Some(reference_step),
-                target_span,
-                viewport_width,
-            );
+            let (_, target_end) =
+                time_scale_navigation_target_resolver::resolve_navigation_target_range(
+                    full_end,
+                    engine
+                        .core
+                        .behavior
+                        .time_scale_navigation_behavior
+                        .right_offset_bars,
+                    engine.core.behavior.time_scale_right_offset_px,
+                    Some(reference_step),
+                    target_span,
+                    viewport_width,
+                );
             engine
                 .core
                 .model
@@ -677,7 +632,7 @@ impl TimeScaleCoordinator {
             .time_scale_navigation_behavior
             .bar_spacing_px
         {
-            let Some(step) = Self::resolve_reference_time_step(
+            let Some(step) = time_scale_navigation_target_resolver::resolve_reference_time_step(
                 &engine.core.model.points,
                 &engine.core.model.candles,
             ) else {
@@ -692,7 +647,7 @@ impl TimeScaleCoordinator {
         let (target_start, target_end) =
             if engine.core.behavior.time_scale_right_offset_px.is_some() {
                 let (_, full_end) = engine.core.model.time_scale.full_range();
-                let target_end = Self::resolve_navigation_target_end(
+                time_scale_navigation_target_resolver::resolve_navigation_target_range(
                     full_end,
                     engine
                         .core
@@ -700,14 +655,13 @@ impl TimeScaleCoordinator {
                         .time_scale_navigation_behavior
                         .right_offset_bars,
                     engine.core.behavior.time_scale_right_offset_px,
-                    Self::resolve_reference_time_step(
+                    time_scale_navigation_target_resolver::resolve_reference_time_step(
                         &engine.core.model.points,
                         &engine.core.model.candles,
                     ),
                     target_span,
                     current_width,
-                );
-                (target_end - target_span, target_end)
+                )
             } else {
                 match behavior.anchor {
                     TimeScaleResizeAnchor::Left => (start, start + target_span),
@@ -743,23 +697,25 @@ impl TimeScaleCoordinator {
         let (visible_start_before, visible_end_before) =
             engine.core.model.time_scale.visible_range();
         let (_, full_end_before) = engine.core.model.time_scale.full_range();
-        let reference_step_before = Self::resolve_reference_time_step(
-            &engine.core.model.points,
-            &engine.core.model.candles,
-        );
+        let reference_step_before =
+            time_scale_navigation_target_resolver::resolve_reference_time_step(
+                &engine.core.model.points,
+                &engine.core.model.candles,
+            );
 
-        let right_edge_before = Self::resolve_navigation_target_end(
-            full_end_before,
-            engine
-                .core
-                .behavior
-                .time_scale_navigation_behavior
-                .right_offset_bars,
-            engine.core.behavior.time_scale_right_offset_px,
-            reference_step_before,
-            (visible_end_before - visible_start_before).max(1e-9),
-            f64::from(engine.core.model.viewport.width),
-        );
+        let right_edge_before =
+            time_scale_navigation_target_resolver::resolve_navigation_target_end(
+                full_end_before,
+                engine
+                    .core
+                    .behavior
+                    .time_scale_navigation_behavior
+                    .right_offset_bars,
+                engine.core.behavior.time_scale_right_offset_px,
+                reference_step_before,
+                (visible_end_before - visible_start_before).max(1e-9),
+                f64::from(engine.core.model.viewport.width),
+            );
         let tolerance = Self::resolve_right_edge_tolerance(
             reference_step_before,
             behavior.right_edge_tolerance_bars,
@@ -812,23 +768,25 @@ impl TimeScaleCoordinator {
         }
 
         let (_, full_end_after) = engine.core.model.time_scale.full_range();
-        let reference_step_after = Self::resolve_reference_time_step(
-            &engine.core.model.points,
-            &engine.core.model.candles,
-        )
-        .or(reference_step_before);
-        let right_edge_after = Self::resolve_navigation_target_end(
-            full_end_after,
-            engine
-                .core
-                .behavior
-                .time_scale_navigation_behavior
-                .right_offset_bars,
-            engine.core.behavior.time_scale_right_offset_px,
-            reference_step_after,
-            (visible_end_before - visible_start_before).max(1e-9),
-            f64::from(engine.core.model.viewport.width),
-        );
+        let reference_step_after =
+            time_scale_navigation_target_resolver::resolve_reference_time_step(
+                &engine.core.model.points,
+                &engine.core.model.candles,
+            )
+            .or(reference_step_before);
+        let (_, right_edge_after) =
+            time_scale_navigation_target_resolver::resolve_navigation_target_range(
+                full_end_after,
+                engine
+                    .core
+                    .behavior
+                    .time_scale_navigation_behavior
+                    .right_offset_bars,
+                engine.core.behavior.time_scale_right_offset_px,
+                reference_step_after,
+                (visible_end_before - visible_start_before).max(1e-9),
+                f64::from(engine.core.model.viewport.width),
+            );
         let delta = right_edge_after - right_edge_before;
 
         let mut changed = false;
@@ -876,7 +834,7 @@ impl TimeScaleCoordinator {
             return None;
         }
 
-        let reference_step = Self::resolve_reference_time_step(
+        let reference_step = time_scale_navigation_target_resolver::resolve_reference_time_step(
             &engine.core.model.points,
             &engine.core.model.candles,
         )?;
@@ -908,40 +866,6 @@ impl TimeScaleCoordinator {
         ))
     }
 
-    pub(super) fn resolve_navigation_target_end(
-        full_end: f64,
-        right_offset_bars: f64,
-        right_offset_px: Option<f64>,
-        reference_step: Option<f64>,
-        visible_span: f64,
-        viewport_width: f64,
-    ) -> f64 {
-        if let Some(px) = right_offset_px {
-            if viewport_width > 0.0 {
-                return full_end + (visible_span.max(1e-9) / viewport_width) * px;
-            }
-            return full_end;
-        }
-
-        if right_offset_bars == 0.0 {
-            return full_end;
-        }
-        match reference_step {
-            Some(step) if step.is_finite() && step > 0.0 => full_end + right_offset_bars * step,
-            _ => full_end,
-        }
-    }
-
-    pub(super) fn resolve_reference_time_step(
-        points: &[DataPoint],
-        candles: &[OhlcBar],
-    ) -> Option<f64> {
-        if let Some(step) = Self::estimate_positive_time_step(candles.iter().map(|bar| bar.time)) {
-            return Some(step);
-        }
-        Self::estimate_positive_time_step(points.iter().map(|point| point.x))
-    }
-
     fn apply_time_scale_navigation_behavior<R: Renderer>(
         engine: &mut ChartEngine<R>,
     ) -> ChartResult<bool> {
@@ -953,7 +877,7 @@ impl TimeScaleCoordinator {
         {
             return Ok(false);
         }
-        let reference_step = Self::resolve_reference_time_step(
+        let reference_step = time_scale_navigation_target_resolver::resolve_reference_time_step(
             &engine.core.model.points,
             &engine.core.model.candles,
         );
@@ -997,15 +921,15 @@ impl TimeScaleCoordinator {
             }
             None => current_span,
         };
-        let target_end = Self::resolve_navigation_target_end(
-            full_end,
-            behavior.right_offset_bars,
-            engine.core.behavior.time_scale_right_offset_px,
-            reference_step,
-            target_span,
-            viewport_width,
-        );
-        let target_start = target_end - target_span;
+        let (target_start, target_end) =
+            time_scale_navigation_target_resolver::resolve_navigation_target_range(
+                full_end,
+                behavior.right_offset_bars,
+                engine.core.behavior.time_scale_right_offset_px,
+                reference_step,
+                target_span,
+                viewport_width,
+            );
 
         let changed = (target_start - visible_start).abs() > 1e-12
             || (target_end - visible_end).abs() > 1e-12;
@@ -1029,45 +953,6 @@ impl TimeScaleCoordinator {
             Some(step) if step.is_finite() && step > 0.0 => epsilon + step * tolerance_bars,
             _ => epsilon,
         }
-    }
-
-    fn estimate_positive_time_step<I>(times: I) -> Option<f64>
-    where
-        I: IntoIterator<Item = f64>,
-    {
-        let mut ordered = times
-            .into_iter()
-            .filter(|value| value.is_finite())
-            .collect::<Vec<_>>();
-        if ordered.len() < 2 {
-            return None;
-        }
-
-        ordered.sort_by(|left, right| left.total_cmp(right));
-
-        let mut deltas = Vec::with_capacity(ordered.len().saturating_sub(1));
-        for window in ordered.windows(2) {
-            let delta = window[1] - window[0];
-            if delta.is_finite() && delta > 0.0 {
-                deltas.push(delta);
-            }
-        }
-
-        if !deltas.is_empty() {
-            deltas.sort_by(|left, right| left.total_cmp(right));
-            let mid = deltas.len() / 2;
-            if deltas.len() % 2 == 1 {
-                return Some(deltas[mid]);
-            }
-            return Some((deltas[mid - 1] + deltas[mid]) * 0.5);
-        }
-
-        let span = ordered.last().copied().unwrap_or(0.0) - ordered.first().copied().unwrap_or(0.0);
-        if span > 0.0 {
-            let count = ordered.len().saturating_sub(1) as f64;
-            return Some(span / count.max(1.0));
-        }
-        None
     }
 
     fn mark_zoom_invalidation_intent<R: Renderer>(engine: &mut ChartEngine<R>, before: (f64, f64)) {

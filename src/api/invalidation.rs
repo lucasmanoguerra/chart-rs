@@ -5,7 +5,7 @@ use crate::core::PaneId;
 use crate::error::ChartResult;
 use crate::render::{RenderFrame, Renderer};
 
-use super::ChartEngine;
+use super::{ChartEngine, invalidation_render_gate};
 
 /// Ordered invalidation levels aligned with Lightweight Charts repaint classes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
@@ -430,18 +430,11 @@ impl<R: Renderer> ChartEngine<R> {
     }
 
     pub fn build_render_frame_if_invalidated(&mut self) -> ChartResult<Option<RenderFrame>> {
-        if !self.has_pending_invalidation() {
-            return Ok(None);
-        }
-        self.build_render_frame().map(Some)
+        invalidation_render_gate::build_render_frame_if_invalidated(self)
     }
 
     pub fn render_if_invalidated(&mut self) -> ChartResult<bool> {
-        if !self.has_pending_invalidation() {
-            return Ok(false);
-        }
-        self.render()?;
-        Ok(true)
+        invalidation_render_gate::render_if_invalidated(self)
     }
 
     pub(super) fn invalidate_with_detail(

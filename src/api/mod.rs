@@ -61,6 +61,7 @@ mod engine_init;
 mod engine_snapshot;
 mod interaction_validation;
 mod invalidation;
+mod invalidation_render_gate;
 mod layout_helpers;
 mod lwc_model_sync;
 
@@ -132,7 +133,11 @@ mod price_scale_coordinator;
 mod price_scale_interaction_controller;
 mod price_scale_validation;
 #[cfg(feature = "cairo-backend")]
+mod render_cairo_coordinator;
+#[cfg(feature = "cairo-backend")]
 mod render_cairo_execution_path_resolver;
+#[cfg(feature = "cairo-backend")]
+mod render_cairo_full_pass_executor;
 #[cfg(feature = "cairo-backend")]
 mod render_cairo_partial_input_resolver;
 #[cfg(feature = "cairo-backend")]
@@ -140,7 +145,9 @@ mod render_cairo_partial_pass_executor;
 #[cfg(feature = "cairo-backend")]
 mod render_cairo_partial_plan_resolver;
 mod render_coordinator;
+mod render_cycle_finalizer;
 mod render_frame_builder;
+mod render_full_pass_executor;
 #[cfg(feature = "cairo-backend")]
 mod render_partial_lwc_policy_resolver;
 #[cfg(feature = "cairo-backend")]
@@ -168,8 +175,12 @@ mod snap_resolver;
 mod snapshot_controller;
 mod time_scale_controller;
 mod time_scale_coordinator;
+mod time_scale_input_validation;
 mod time_scale_interaction_controller;
+mod time_scale_navigation_target_resolver;
+mod time_scale_pan_delta_resolver;
 mod time_scale_validation;
+mod time_scale_zoom_factor_resolver;
 mod visible_window_access;
 
 mod engine;
