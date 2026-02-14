@@ -2,7 +2,14 @@ use crate::error::ChartResult;
 use crate::render::Renderer;
 
 use super::validation::validate_render_style;
-use super::{RenderStyle, engine_core::EngineCore, render_coordinator::RenderCoordinator};
+use super::{
+    RenderStyle,
+    engine_core::EngineCore,
+    render_coordinator::RenderCoordinator,
+    render_style_invalidation_resolver::{
+        RenderStyleInvalidationDecision, resolve_render_style_invalidation,
+    },
+};
 
 #[cfg(feature = "cairo-backend")]
 use crate::render::CairoContextRenderer;
@@ -23,9 +30,21 @@ impl<R: Renderer> ChartEngine<R> {
     }
 
     pub fn set_render_style(&mut self, style: RenderStyle) -> ChartResult<()> {
+        if self.core.presentation.render_style == style {
+            return Ok(());
+        }
         validate_render_style(style)?;
+        let previous = self.core.presentation.render_style;
         self.core.presentation.render_style = style;
-        self.invalidate_full();
+        match resolve_render_style_invalidation(previous, style) {
+            RenderStyleInvalidationDecision::None => {}
+            RenderStyleInvalidationDecision::Full => {
+                self.invalidate_full();
+            }
+            RenderStyleInvalidationDecision::Light(topics) => {
+                self.invalidate_with_detail(super::InvalidationLevel::Light, topics, None);
+            }
+        }
         Ok(())
     }
 

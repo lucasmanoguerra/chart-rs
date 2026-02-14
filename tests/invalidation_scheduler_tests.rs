@@ -1,11 +1,11 @@
 use chart_rs::api::{
-    ChartEngine, ChartEngineConfig, InvalidationLevel, InvalidationTopic,
+    ChartEngine, ChartEngineConfig, InvalidationLevel, InvalidationTopic, RenderStyle,
     TimeScaleNavigationBehavior, TimeScaleResizeAnchor, TimeScaleResizeBehavior,
     TimeScaleZoomLimitBehavior,
 };
 use chart_rs::core::{DataPoint, TimeScaleTuning, Viewport};
 use chart_rs::lwc::model::TimeScaleInvalidationType;
-use chart_rs::render::NullRenderer;
+use chart_rs::render::{Color, NullRenderer};
 
 fn build_engine() -> ChartEngine<NullRenderer> {
     let renderer = NullRenderer::default();
@@ -136,6 +136,61 @@ fn clear_pending_invalidation_clears_both_api_and_lwc_queues() {
     assert!(!engine.has_pending_invalidation());
     assert_eq!(engine.pending_invalidation_level(), InvalidationLevel::None);
     assert!(engine.lwc_pending_invalidation().is_none());
+}
+
+#[test]
+fn set_render_style_noop_when_style_is_identical() {
+    let mut engine = build_engine();
+    engine.clear_pending_invalidation();
+
+    let same_style = engine.render_style();
+    engine
+        .set_render_style(same_style)
+        .expect("setting identical style should succeed");
+
+    assert_eq!(engine.pending_invalidation_level(), InvalidationLevel::None);
+    assert!(!engine.has_pending_invalidation());
+}
+
+#[test]
+fn set_render_style_non_layout_change_triggers_light_invalidation() {
+    let mut engine = build_engine();
+    engine.clear_pending_invalidation();
+
+    let changed_style = RenderStyle {
+        grid_line_color: Color::rgb(0.13, 0.2, 0.27),
+        ..engine.render_style()
+    };
+    engine
+        .set_render_style(changed_style)
+        .expect("setting changed style should succeed");
+
+    assert_eq!(
+        engine.pending_invalidation_level(),
+        InvalidationLevel::Light
+    );
+    assert!(engine.has_pending_invalidation());
+    assert!(engine.has_pending_invalidation_topic(InvalidationTopic::Style));
+    assert!(engine.has_pending_invalidation_topic(InvalidationTopic::Axis));
+    assert!(engine.has_pending_invalidation_topic(InvalidationTopic::Series));
+}
+
+#[test]
+fn set_render_style_layout_change_triggers_full_invalidation() {
+    let mut engine = build_engine();
+    engine.clear_pending_invalidation();
+
+    let style = engine.render_style();
+    let changed_style = RenderStyle {
+        price_axis_width_px: style.price_axis_width_px + 10.0,
+        ..style
+    };
+    engine
+        .set_render_style(changed_style)
+        .expect("setting layout-changing style should succeed");
+
+    assert_eq!(engine.pending_invalidation_level(), InvalidationLevel::Full);
+    assert!(engine.has_pending_invalidation());
 }
 
 #[test]

@@ -75,6 +75,10 @@ and this project adheres to Semantic Versioning.
 - Visual baseline sync maintenance for `C-110` refreshing committed PNG references for `lwc-style-line-basic`, `lwc-style-percentage-window`, and `lwc-style-candles-log-axis-scale-price` after default-style parity alignment; `cargo test-visual` is green again with zero-diff tolerances.
 - Invalidation pane-target API consolidation: removed deprecated `pending_invalidation_pane_hint()` and completed migration to `pending_invalidation_pane_targets()` for multi-pane-aware partial redraw scheduling.
 - Zoom/right-margin stability hardening for `rightOffsetPixels` parity (`C-102`): zoom paths now reapply navigation constraints when pixel right-margin policy is active, and the previously ignored randomized stress property test `right_offset_px_constraints_remain_stable_under_zoom_limit_resize_and_edges` is enabled in normal CI flow.
+- Partial multi-pane scheduler hardening for unknown explicit LWC pane invalidations: when explicit pane indexes do not map to runtime panes, partial planning now falls back to API pane targets (or `All`) instead of forcing full redraw, with dedicated regression coverage in `api::render_partial_scheduler` tests.
+- Partial scheduler layer-selection tuning for mixed `Axis + Cursor` invalidations: lightweight axis/cursor-only topic combinations now reuse cursor-only plot layers (series/grid skipped) while axis repaint remains in its dedicated task path.
+- API invalidation optimization: `set_render_style` now applies a deterministic three-way policy: identical style => no-op (no invalidation), non-layout style change => `Light` invalidation (`Style` + `Axis` + `Series` + `Cursor` topics), layout section change (`price_axis_width_px`/`time_axis_height_px`) => `Full` invalidation.
+- Internal API modularization: extracted render-style invalidation policy into `src/api/render_style_invalidation_resolver.rs`, keeping `ChartEngine::set_render_style` focused on validation/state apply/orchestration.
 
 ## [Unreleased]
 

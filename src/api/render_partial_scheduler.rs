@@ -136,9 +136,10 @@ impl PartialCairoRenderPlan {
             targets.sort_by_key(|pane_id| pane_id.raw());
             targets.dedup();
             if targets.is_empty() {
-                return None;
+                resolve_api_pane_targets(api_pane_targets, layered).unwrap_or(PaneTargets::All)
+            } else {
+                PaneTargets::Some(targets)
             }
-            PaneTargets::Some(targets)
         };
 
         let plot_layers: &'static [CanvasLayerKind] =
@@ -180,6 +181,9 @@ fn select_plot_layers_for_pending(pending: InvalidationMask) -> &'static [Canvas
     if PartialCairoRenderPlan::is_cursor_only_invalidation(pending) {
         return &CURSOR_ONLY_PLOT_LAYERS;
     }
+    if is_axis_cursor_only_invalidation(pending) {
+        return &CURSOR_ONLY_PLOT_LAYERS;
+    }
     if is_axis_only_invalidation(pending) {
         return &AXIS_ONLY_PLOT_LAYERS;
     }
@@ -190,6 +194,18 @@ fn is_axis_only_invalidation(pending: InvalidationMask) -> bool {
     pending.has_topic(InvalidationTopic::Axis)
         && !pending.has_topic(InvalidationTopic::General)
         && !pending.has_topic(InvalidationTopic::Cursor)
+        && !pending.has_topic(InvalidationTopic::TimeScale)
+        && !pending.has_topic(InvalidationTopic::PriceScale)
+        && !pending.has_topic(InvalidationTopic::Series)
+        && !pending.has_topic(InvalidationTopic::PaneLayout)
+        && !pending.has_topic(InvalidationTopic::Style)
+        && !pending.has_topic(InvalidationTopic::Plugin)
+}
+
+fn is_axis_cursor_only_invalidation(pending: InvalidationMask) -> bool {
+    pending.has_topic(InvalidationTopic::Axis)
+        && pending.has_topic(InvalidationTopic::Cursor)
+        && !pending.has_topic(InvalidationTopic::General)
         && !pending.has_topic(InvalidationTopic::TimeScale)
         && !pending.has_topic(InvalidationTopic::PriceScale)
         && !pending.has_topic(InvalidationTopic::Series)
@@ -281,6 +297,16 @@ mod tests {
         );
         let plan = PartialCairoRenderPlan::build(pending, &[], &multi_pane).expect("plan");
         assert_eq!(plan.plot_layers(), &LIGHT_PLOT_LAYERS);
+    }
+
+    #[test]
+    fn partial_plan_uses_cursor_plot_layers_for_axis_cursor_light_invalidations() {
+        let multi_pane = layered_with_panes(&[PaneId::new(0), PaneId::new(1)]);
+        let topics = InvalidationTopics::from_topic(InvalidationTopic::Axis)
+            .with_topic(InvalidationTopic::Cursor);
+        let pending = InvalidationMask::with_level_and_topics(InvalidationLevel::Light, topics);
+        let plan = PartialCairoRenderPlan::build(pending, &[], &multi_pane).expect("plan");
+        assert_eq!(plan.plot_layers(), &CURSOR_ONLY_PLOT_LAYERS);
     }
 
     #[test]
@@ -496,6 +522,38 @@ mod tests {
             PartialCairoRenderPlan::build(pending, &[pane_a, pane_b], &multi_pane).expect("plan");
         assert!(!plan.targets_pane(main));
         assert!(plan.targets_pane(pane_a));
+        assert!(plan.targets_pane(pane_b));
+    }
+
+    #[test]
+    fn partial_plan_uses_api_targets_when_lwc_explicit_panes_are_unknown() {
+        let main = PaneId::new(0);
+        let pane_a = PaneId::new(1);
+        let pane_b = PaneId::new(2);
+        let multi_pane = layered_with_panes(&[main, pane_a, pane_b]);
+        let legacy_pending = InvalidationMask::light();
+        let lwc_pane_ids = vec![main, pane_a];
+
+        let mut lwc_pending =
+            crate::lwc::model::InvalidateMask::new(crate::lwc::model::InvalidationLevel::Light);
+        lwc_pending.invalidate_pane(
+            99,
+            crate::lwc::model::PaneInvalidation {
+                level: crate::lwc::model::InvalidationLevel::Light,
+                auto_scale: false,
+            },
+        );
+
+        let plan = PartialCairoRenderPlan::build_from_masks(
+            legacy_pending,
+            &[pane_b],
+            Some(&lwc_pending),
+            &lwc_pane_ids,
+            &multi_pane,
+        )
+        .expect("plan");
+        assert!(!plan.targets_pane(main));
+        assert!(!plan.targets_pane(pane_a));
         assert!(plan.targets_pane(pane_b));
     }
 }

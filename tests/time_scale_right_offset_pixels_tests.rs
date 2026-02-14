@@ -36,6 +36,17 @@ fn prepare_fitted_engine() -> ChartEngine<NullRenderer> {
     engine
 }
 
+fn assert_right_offset_px_relation(engine: &ChartEngine<NullRenderer>, right_offset_px: f64) {
+    let (start, end) = engine.time_visible_range();
+    let (_, full_end) = engine.time_full_range();
+    let width = f64::from(engine.viewport().width).max(1.0);
+    let span = end - start;
+    let expected_offset = span * (right_offset_px / width);
+    let observed_offset = end - full_end;
+    let tolerance = span.abs() * 1e-6 + 1e-6;
+    assert!((observed_offset - expected_offset).abs() <= tolerance);
+}
+
 #[test]
 fn default_right_offset_px_is_none() {
     let engine = prepare_fitted_engine();
@@ -113,4 +124,44 @@ fn invalid_right_offset_px_is_rejected() {
         .set_time_scale_right_offset_px(Some(f64::NAN))
         .expect_err("nan must fail");
     assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn zoom_around_pixel_preserves_right_offset_px_relation() {
+    let mut engine = prepare_fitted_engine();
+    engine
+        .set_time_scale_navigation_behavior(TimeScaleNavigationBehavior {
+            right_offset_bars: 1.0,
+            bar_spacing_px: Some(6.0),
+        })
+        .expect("set navigation behavior");
+    engine
+        .set_time_scale_right_offset_px(Some(0.0))
+        .expect("set right offset px");
+
+    assert_right_offset_px_relation(&engine, 0.0);
+    engine
+        .zoom_time_visible_around_pixel(0.2, 0.0, 1e-6)
+        .expect("zoom around pixel");
+    assert_right_offset_px_relation(&engine, 0.0);
+}
+
+#[test]
+fn zoom_around_time_preserves_right_offset_px_relation() {
+    let mut engine = prepare_fitted_engine();
+    engine
+        .set_time_scale_navigation_behavior(TimeScaleNavigationBehavior {
+            right_offset_bars: 1.0,
+            bar_spacing_px: Some(6.0),
+        })
+        .expect("set navigation behavior");
+    engine
+        .set_time_scale_right_offset_px(Some(0.0))
+        .expect("set right offset px");
+
+    assert_right_offset_px_relation(&engine, 0.0);
+    engine
+        .zoom_time_visible_around_time(0.2, 0.0, 1e-6)
+        .expect("zoom around time");
+    assert_right_offset_px_relation(&engine, 0.0);
 }

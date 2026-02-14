@@ -135,6 +135,7 @@ mod render_coordinator;
 mod render_frame_builder;
 #[cfg(feature = "cairo-backend")]
 mod render_partial_scheduler;
+mod render_style_invalidation_resolver;
 mod scale_access;
 mod scale_coordinator;
 mod series_projection;
