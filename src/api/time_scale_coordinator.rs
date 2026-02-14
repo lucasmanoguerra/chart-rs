@@ -58,6 +58,9 @@ impl TimeScaleCoordinator {
             min_span_absolute,
         )?;
         let _ = Self::apply_time_scale_zoom_limit_behavior(engine)?;
+        if engine.core.behavior.time_scale_right_offset_px.is_some() {
+            let _ = Self::apply_time_scale_navigation_behavior(engine)?;
+        }
         let _ = Self::apply_time_scale_edge_behavior(engine)?;
         engine.set_lwc_time_scale_invalidation_intent(
             super::chart_runtime::LwcTimeScaleInvalidationIntent::ApplyBarSpacingAndRightOffset,
@@ -280,6 +283,9 @@ impl TimeScaleCoordinator {
                         space.width_px,
                     )?;
                 let _ = Self::apply_time_scale_zoom_limit_behavior(engine)?;
+                if engine.core.behavior.time_scale_right_offset_px.is_some() {
+                    let _ = Self::apply_time_scale_navigation_behavior(engine)?;
+                }
                 let _ = Self::apply_time_scale_edge_behavior(engine)?;
                 engine.set_lwc_time_scale_invalidation_intent(
                     super::chart_runtime::LwcTimeScaleInvalidationIntent::ApplyBarSpacingAndRightOffset,
@@ -296,6 +302,9 @@ impl TimeScaleCoordinator {
             min_span_absolute,
         )?;
         let _ = Self::apply_time_scale_zoom_limit_behavior(engine)?;
+        if engine.core.behavior.time_scale_right_offset_px.is_some() {
+            let _ = Self::apply_time_scale_navigation_behavior(engine)?;
+        }
         let _ = Self::apply_time_scale_edge_behavior(engine)?;
         engine.set_lwc_time_scale_invalidation_intent(
             super::chart_runtime::LwcTimeScaleInvalidationIntent::ApplyBarSpacingAndRightOffset,

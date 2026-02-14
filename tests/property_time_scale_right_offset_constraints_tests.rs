@@ -81,7 +81,6 @@ fn is_close(left: f64, right: f64, scale: f64) -> bool {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(48))]
 
-    #[ignore] // TODO: fix - failing after merge, needs investigation
     #[test]
     fn right_offset_px_constraints_remain_stable_under_zoom_limit_resize_and_edges(
         right_offset_px in 0.0f64..320.0,

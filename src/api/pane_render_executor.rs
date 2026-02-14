@@ -30,6 +30,9 @@ impl PaneRenderExecutor {
                 continue;
             }
             if let Some(frame) = layered.flatten_pane_layers(pane.pane_id, plan.plot_layers()) {
+                if frame.lines.is_empty() && frame.rects.is_empty() && frame.texts.is_empty() {
+                    continue;
+                }
                 tasks.push(PanePartialRenderTask {
                     frame,
                     clip_rect: Some((0.0, pane.plot_top, viewport_width, pane_height)),
@@ -40,6 +43,12 @@ impl PaneRenderExecutor {
 
         let axis_layers = [crate::render::CanvasLayerKind::Axis];
         if let Some(axis_frame) = layered.flatten_pane_layers(engine.main_pane_id(), &axis_layers) {
+            if axis_frame.lines.is_empty()
+                && axis_frame.rects.is_empty()
+                && axis_frame.texts.is_empty()
+            {
+                return tasks;
+            }
             tasks.push(PanePartialRenderTask {
                 frame: axis_frame,
                 clip_rect: None,
@@ -245,5 +254,21 @@ mod tests {
         assert_eq!(tasks.len(), 3);
         assert_eq!(tasks.iter().filter(|task| task.clear_region).count(), 2);
         assert_eq!(tasks.iter().filter(|task| !task.clear_region).count(), 1);
+    }
+
+    #[test]
+    fn collect_partial_tasks_axis_only_plan_produces_axis_task_only() {
+        let engine = build_engine();
+        let layered = build_layered(&engine);
+        let pending = InvalidationMask::with_level_and_topics(
+            InvalidationLevel::Light,
+            InvalidationTopics::from_topic(InvalidationTopic::Axis),
+        );
+        let plan = PartialCairoRenderPlan::build(pending, &[], &layered).expect("plan");
+
+        let tasks = PaneRenderExecutor::collect_partial_tasks(&engine, &layered, &plan);
+        assert_eq!(tasks.len(), 1);
+        assert!(!tasks[0].clear_region);
+        assert!(tasks[0].clip_rect.is_none());
     }
 }

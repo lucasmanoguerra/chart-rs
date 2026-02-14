@@ -16,6 +16,7 @@ const LIGHT_PLOT_LAYERS: [CanvasLayerKind; 5] = [
     CanvasLayerKind::Overlay,
     CanvasLayerKind::Crosshair,
 ];
+const AXIS_ONLY_PLOT_LAYERS: [CanvasLayerKind; 0] = [];
 
 pub(super) struct PartialCairoRenderPlan {
     plot_layers: &'static [CanvasLayerKind],
@@ -46,12 +47,7 @@ impl PartialCairoRenderPlan {
 
         let pane_targets =
             resolve_api_pane_targets(api_pane_targets, layered).unwrap_or(PaneTargets::All);
-        let plot_layers: &'static [CanvasLayerKind] = if Self::is_cursor_only_invalidation(pending)
-        {
-            &CURSOR_ONLY_PLOT_LAYERS
-        } else {
-            &LIGHT_PLOT_LAYERS
-        };
+        let plot_layers: &'static [CanvasLayerKind] = select_plot_layers_for_pending(pending);
 
         Some(Self {
             plot_layers,
@@ -149,7 +145,7 @@ impl PartialCairoRenderPlan {
             if Self::is_cursor_only_lwc_invalidation(pending) {
                 &CURSOR_ONLY_PLOT_LAYERS
             } else {
-                &LIGHT_PLOT_LAYERS
+                select_plot_layers_for_pending(api_pending)
             };
 
         Some(Self {
@@ -178,6 +174,28 @@ impl PartialCairoRenderPlan {
 
 fn pending_has_time_scale_topic(pending: InvalidationMask) -> bool {
     pending.has_topic(InvalidationTopic::TimeScale)
+}
+
+fn select_plot_layers_for_pending(pending: InvalidationMask) -> &'static [CanvasLayerKind] {
+    if PartialCairoRenderPlan::is_cursor_only_invalidation(pending) {
+        return &CURSOR_ONLY_PLOT_LAYERS;
+    }
+    if is_axis_only_invalidation(pending) {
+        return &AXIS_ONLY_PLOT_LAYERS;
+    }
+    &LIGHT_PLOT_LAYERS
+}
+
+fn is_axis_only_invalidation(pending: InvalidationMask) -> bool {
+    pending.has_topic(InvalidationTopic::Axis)
+        && !pending.has_topic(InvalidationTopic::General)
+        && !pending.has_topic(InvalidationTopic::Cursor)
+        && !pending.has_topic(InvalidationTopic::TimeScale)
+        && !pending.has_topic(InvalidationTopic::PriceScale)
+        && !pending.has_topic(InvalidationTopic::Series)
+        && !pending.has_topic(InvalidationTopic::PaneLayout)
+        && !pending.has_topic(InvalidationTopic::Style)
+        && !pending.has_topic(InvalidationTopic::Plugin)
 }
 
 fn resolve_api_pane_targets(
@@ -213,7 +231,9 @@ impl PaneTargets {
 
 #[cfg(test)]
 mod tests {
-    use super::{CURSOR_ONLY_PLOT_LAYERS, LIGHT_PLOT_LAYERS, PartialCairoRenderPlan};
+    use super::{
+        AXIS_ONLY_PLOT_LAYERS, CURSOR_ONLY_PLOT_LAYERS, LIGHT_PLOT_LAYERS, PartialCairoRenderPlan,
+    };
     use crate::api::{InvalidationLevel, InvalidationMask, InvalidationTopic, InvalidationTopics};
     use crate::core::{PaneId, Viewport};
     use crate::render::{LayeredRenderFrame, PaneLayerStack};
@@ -261,6 +281,17 @@ mod tests {
         );
         let plan = PartialCairoRenderPlan::build(pending, &[], &multi_pane).expect("plan");
         assert_eq!(plan.plot_layers(), &LIGHT_PLOT_LAYERS);
+    }
+
+    #[test]
+    fn partial_plan_uses_axis_only_layers_for_axis_topic_invalidations() {
+        let multi_pane = layered_with_panes(&[PaneId::new(0), PaneId::new(1)]);
+        let pending = InvalidationMask::with_level_and_topics(
+            InvalidationLevel::Light,
+            InvalidationTopics::from_topic(InvalidationTopic::Axis),
+        );
+        let plan = PartialCairoRenderPlan::build(pending, &[], &multi_pane).expect("plan");
+        assert_eq!(plan.plot_layers(), &AXIS_ONLY_PLOT_LAYERS);
     }
 
     #[test]

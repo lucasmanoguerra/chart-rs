@@ -54,46 +54,6 @@ tungstenite = { version = "0.24", default-features = false, features = ["handsha
 name = "core_math_bench"
 harness = false
 
-[[example]]
-name = "gtk_interaction_lab"
-required-features = ["desktop"]
-
-[[example]]
-name = "gtk_projection_gallery"
-required-features = ["desktop"]
-
-[[example]]
-name = "gtk_live_data_workbench"
-required-features = ["desktop"]
-
-[[example]]
-name = "gtk_tradingview_binance"
-required-features = ["desktop"]
-
-[[example]]
-name = "gtk_binance_axis_lab"
-required-features = ["desktop"]
-
-[[example]]
-name = "gtk_binance_projection_probe"
-required-features = ["desktop"]
-
-[[example]]
-name = "gtk_binance_contracts_lab"
-required-features = ["desktop"]
-
-[[example]]
-name = "gtk_binance_replay_workbench"
-required-features = ["desktop"]
-
-[[example]]
-name = "gtk_binance_scale_window_lab"
-required-features = ["desktop"]
-
-[[example]]
-name = "gtk_binance_defaults_normal_live"
-required-features = ["desktop"]
-
 [profile.test]
 # Reduce memory pressure during `cargo test` compilation in large integration suites.
 debug = 0

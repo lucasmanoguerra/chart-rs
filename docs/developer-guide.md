@@ -271,7 +271,6 @@ Responsibilities:
 - property-based lifecycle coverage for crosshair formatter transitions (legacy/context set/clear, context invalidation triggers, snapshot parity)
 - GTK4/Relm4 integration reference for context-aware crosshair formatter lifecycle wiring (`docs/gtk-relm4-crosshair-formatters.md`)
 - GTK4 adapter diagnostics bridge hooks for host observability pipelines (`set_crosshair_diagnostics_hook`, `set_snapshot_json_hook`)
-- local manual examples for API/interaction parity checks (`examples/README.md`)
 - configurable crosshair axis-label box policy (deterministic fit-text boxes with dedicated fill, padding, and independent time/price visibility toggles)
 - configurable crosshair axis-label box border/radius policy (deterministic border width/color and corner-radius styling)
 - configurable crosshair axis-label box text policy (manual text color or automatic contrast from box fill luminance)

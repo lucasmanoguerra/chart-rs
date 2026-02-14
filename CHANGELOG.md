@@ -74,6 +74,7 @@ and this project adheres to Semantic Versioning.
 - CI visual artifact workflow parity (`C-117`) adding per-fixture visual artifact emission (`actual`/`baseline`/`diff` + `summary.json`) and upload via `actions/upload-artifact` in the dedicated parity guard job.
 - Visual baseline sync maintenance for `C-110` refreshing committed PNG references for `lwc-style-line-basic`, `lwc-style-percentage-window`, and `lwc-style-candles-log-axis-scale-price` after default-style parity alignment; `cargo test-visual` is green again with zero-diff tolerances.
 - Invalidation pane-target API consolidation: removed deprecated `pending_invalidation_pane_hint()` and completed migration to `pending_invalidation_pane_targets()` for multi-pane-aware partial redraw scheduling.
+- Zoom/right-margin stability hardening for `rightOffsetPixels` parity (`C-102`): zoom paths now reapply navigation constraints when pixel right-margin policy is active, and the previously ignored randomized stress property test `right_offset_px_constraints_remain_stable_under_zoom_limit_resize_and_edges` is enabled in normal CI flow.
 
 ## [Unreleased]
 
