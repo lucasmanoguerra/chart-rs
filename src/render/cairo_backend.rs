@@ -20,6 +20,18 @@ pub trait CairoContextRenderer {
         context: &Context,
         frame: &RenderFrame,
     ) -> ChartResult<()>;
+
+    fn render_on_cairo_context_partial(
+        &mut self,
+        context: &Context,
+        frame: &RenderFrame,
+        clip_rect: Option<(f64, f64, f64, f64)>,
+        clear: bool,
+    ) -> ChartResult<()> {
+        let _ = clip_rect;
+        let _ = clear;
+        self.render_on_cairo_context(context, frame)
+    }
 }
 
 /// Cairo + Pango + PangoCairo renderer backend.
@@ -78,14 +90,45 @@ impl CairoRenderer {
         self.last_stats
     }
 
-    fn render_with_context(&mut self, context: &Context, frame: &RenderFrame) -> ChartResult<()> {
+    fn render_with_context(
+        &mut self,
+        context: &Context,
+        frame: &RenderFrame,
+        clip_rect: Option<(f64, f64, f64, f64)>,
+        clear: bool,
+    ) -> ChartResult<()> {
         frame.validate()?;
         self.clear_color.validate()?;
 
-        apply_color(context, self.clear_color);
-        context
-            .paint()
-            .map_err(|err| map_backend_error("failed to clear surface", err))?;
+        if let Some((x, y, width, height)) = clip_rect {
+            if width > 0.0 && height > 0.0 {
+                context
+                    .save()
+                    .map_err(|err| map_backend_error("failed to save context", err))?;
+                context.rectangle(x, y, width, height);
+                context.clip();
+            }
+        }
+
+        if clear {
+            apply_color(context, self.clear_color);
+            if let Some((x, y, width, height)) = clip_rect {
+                if width > 0.0 && height > 0.0 {
+                    context.rectangle(x, y, width, height);
+                    context
+                        .fill()
+                        .map_err(|err| map_backend_error("failed to clear clipped region", err))?;
+                } else {
+                    context
+                        .paint()
+                        .map_err(|err| map_backend_error("failed to clear surface", err))?;
+                }
+            } else {
+                context
+                    .paint()
+                    .map_err(|err| map_backend_error("failed to clear surface", err))?;
+            }
+        }
 
         let mut stats = CairoRenderStats::default();
 
@@ -141,6 +184,12 @@ impl CairoRenderer {
             stats.texts_drawn += 1;
         }
 
+        if clip_rect.is_some() {
+            context
+                .restore()
+                .map_err(|err| map_backend_error("failed to restore context", err))?;
+        }
+
         self.last_stats = stats;
         Ok(())
     }
@@ -150,7 +199,7 @@ impl Renderer for CairoRenderer {
     fn render(&mut self, frame: &RenderFrame) -> ChartResult<()> {
         let context = Context::new(&self.surface)
             .map_err(|err| map_backend_error("failed to create cairo context", err))?;
-        self.render_with_context(&context, frame)
+        self.render_with_context(&context, frame, None, true)
     }
 }
 
@@ -160,7 +209,17 @@ impl CairoContextRenderer for CairoRenderer {
         context: &Context,
         frame: &RenderFrame,
     ) -> ChartResult<()> {
-        self.render_with_context(context, frame)
+        self.render_with_context(context, frame, None, true)
+    }
+
+    fn render_on_cairo_context_partial(
+        &mut self,
+        context: &Context,
+        frame: &RenderFrame,
+        clip_rect: Option<(f64, f64, f64, f64)>,
+        clear: bool,
+    ) -> ChartResult<()> {
+        self.render_with_context(context, frame, clip_rect, clear)
     }
 }
 

@@ -7,14 +7,14 @@ impl<R: Renderer> ChartEngine<R> {
     /// Builds a deterministic snapshot useful for regression tests.
     pub fn snapshot(&self, body_width_px: f64) -> ChartResult<EngineSnapshot> {
         Ok(EngineSnapshot {
-            viewport: self.viewport,
-            time_full_range: self.time_scale.full_range(),
-            time_visible_range: self.time_scale.visible_range(),
-            price_domain: self.price_scale.domain(),
-            crosshair: self.interaction.crosshair(),
-            points: self.points.clone(),
+            viewport: self.core.model.viewport,
+            time_full_range: self.core.model.time_scale.full_range(),
+            time_visible_range: self.core.model.time_scale.visible_range(),
+            price_domain: self.core.model.price_scale.domain(),
+            crosshair: self.core.model.interaction.crosshair(),
+            points: self.core.model.points.clone(),
             candle_geometry: self.project_candles(body_width_px)?,
-            series_metadata: self.series_metadata.clone(),
+            series_metadata: self.core.model.series_metadata.clone(),
             crosshair_formatter: {
                 let (time_gen, price_gen) = self.crosshair_label_formatter_generations();
                 CrosshairFormatterSnapshot {

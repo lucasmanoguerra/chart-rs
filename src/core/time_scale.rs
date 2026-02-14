@@ -35,8 +35,11 @@ impl TimeIndexCoordinateSpace {
 
     /// Maps canvas X coordinate to floating logical bar index.
     ///
-    /// Inverse formula:
-    /// `index = base + rightOffset + 0.5 - (width - x - 1) / barSpacing`
+    /// This intentionally mirrors Lightweight Charts `coordinateToFloatIndex`:
+    /// `index = base + rightOffset - (width - 1 - x) / barSpacing`
+    ///
+    /// Note that this is not the exact inverse of `index_to_coordinate` because
+    /// `index_to_coordinate` uses center-of-bar `+0.5`.
     pub fn coordinate_to_logical_index(self, coordinate_px: f64) -> ChartResult<f64> {
         self.validate()?;
         if !coordinate_px.is_finite() {
@@ -44,8 +47,10 @@ impl TimeIndexCoordinateSpace {
                 "time coordinate must be finite".to_owned(),
             ));
         }
-        Ok(self.base_index + self.right_offset_bars + 0.5
-            - (self.width_px - coordinate_px - 1.0) / self.bar_spacing_px)
+        let delta_from_right = self.right_offset_for_coordinate(coordinate_px)?;
+        let logical_index = self.base_index + self.right_offset_bars - delta_from_right;
+        // Keep parity with Lightweight's 1e-6 rounding in _coordinateToFloatIndex.
+        Ok((logical_index * 1_000_000.0).round() / 1_000_000.0)
     }
 
     /// Maps canvas X coordinate to discrete logical index using ceil semantics.
@@ -143,9 +148,11 @@ impl TimeIndexCoordinateSpace {
 
     /// Solves new right offset for anchor-preserving zoom.
     ///
-    /// Given `old_bar_spacing_px`, this computes the right offset that keeps
-    /// `anchor_logical_index` at the same screen X after switching to
-    /// `self.bar_spacing_px`.
+    /// This mirrors Lightweight's `zoom` flow:
+    /// - get float index at zoom point (before spacing change)
+    /// - change bar spacing
+    /// - recompute float index at same zoom point
+    /// - correct right offset by the difference
     pub fn solve_right_offset_for_anchor_preserving_zoom(
         self,
         old_bar_spacing_px: f64,
@@ -169,13 +176,27 @@ impl TimeIndexCoordinateSpace {
             ));
         }
 
-        let old_distance_bars =
-            self.base_index + old_right_offset_bars - anchor_logical_index + 0.5;
-        Ok(
-            old_distance_bars * (old_bar_spacing_px / self.bar_spacing_px) - self.base_index
-                + anchor_logical_index
-                - 0.5,
-        )
+        let old_space = TimeIndexCoordinateSpace {
+            bar_spacing_px: old_bar_spacing_px,
+            right_offset_bars: old_right_offset_bars,
+            ..self
+        };
+
+        let anchor_x = old_space.index_to_coordinate(anchor_logical_index)?;
+        let float_index_before_zoom = old_space.coordinate_to_logical_index(anchor_x)?;
+        let float_index_after_spacing = self.coordinate_to_logical_index(anchor_x)?;
+
+        Ok(old_right_offset_bars + (float_index_before_zoom - float_index_after_spacing))
+    }
+
+    fn right_offset_for_coordinate(self, x: f64) -> ChartResult<f64> {
+        self.validate()?;
+        if !x.is_finite() {
+            return Err(ChartError::InvalidData(
+                "time coordinate must be finite".to_owned(),
+            ));
+        }
+        Ok((self.width_px - 1.0 - x) / self.bar_spacing_px)
     }
 
     fn validate(self) -> ChartResult<()> {

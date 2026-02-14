@@ -37,12 +37,12 @@ fn line_projection_is_deterministic() {
     assert_eq!(segments.len(), 2);
 
     assert!((segments[0].x1 - 0.0).abs() <= 1e-9);
-    assert!((segments[0].y1 - 500.0).abs() <= 1e-9);
+    assert!((segments[0].y1 - 499.0).abs() <= 1e-9);
     assert!((segments[0].x2 - 500.0).abs() <= 1e-9);
-    assert!((segments[0].y2 - 250.0).abs() <= 1e-9);
+    assert!((segments[0].y2 - 249.5).abs() <= 1e-9);
 
     assert!((segments[1].x1 - 500.0).abs() <= 1e-9);
-    assert!((segments[1].y1 - 250.0).abs() <= 1e-9);
+    assert!((segments[1].y1 - 249.5).abs() <= 1e-9);
     assert!((segments[1].x2 - 1000.0).abs() <= 1e-9);
     assert!((segments[1].y2 - 0.0).abs() <= 1e-9);
 }

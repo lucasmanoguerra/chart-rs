@@ -11,27 +11,30 @@ impl<R: Renderer> ChartEngine<R> {
     ///
     /// `IndexMap` is used to preserve insertion order for stable snapshots.
     pub fn set_series_metadata(&mut self, key: impl Into<String>, value: impl Into<String>) {
-        self.series_metadata.insert(key.into(), value.into());
+        self.core
+            .model
+            .series_metadata
+            .insert(key.into(), value.into());
     }
 
     #[must_use]
     pub fn series_metadata(&self) -> &IndexMap<String, String> {
-        &self.series_metadata
+        &self.core.model.series_metadata
     }
 
     #[must_use]
     pub fn points(&self) -> &[DataPoint] {
-        &self.points
+        &self.core.model.points
     }
 
     #[must_use]
     pub fn candles(&self) -> &[OhlcBar] {
-        &self.candles
+        &self.core.model.candles
     }
 
     #[must_use]
     pub fn viewport(&self) -> Viewport {
-        self.viewport
+        self.core.model.viewport
     }
 
     /// Updates viewport dimensions used by scale mapping and render layout.
@@ -42,8 +45,9 @@ impl<R: Renderer> ChartEngine<R> {
                 height: viewport.height,
             });
         }
-        let previous_width = self.viewport.width;
-        self.viewport = viewport;
+        let previous_width = self.core.model.viewport.width;
+        self.core.model.viewport = viewport;
+        self.invalidate_full();
 
         let mut changed = self.apply_time_scale_resize_behavior(previous_width)?;
         changed |= self.apply_time_scale_zoom_limit_behavior()?;

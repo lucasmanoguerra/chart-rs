@@ -30,7 +30,7 @@ fn setting_margins_adds_top_bottom_whitespace() {
     let top_price_y = engine.map_price_to_pixel(100.0).expect("map top price");
     let bottom_price_y = engine.map_price_to_pixel(0.0).expect("map bottom price");
     assert!((top_price_y - 50.0).abs() <= 1e-9);
-    assert!((bottom_price_y - 400.0).abs() <= 1e-9);
+    assert!((bottom_price_y - 399.0).abs() <= 1e-9);
 }
 
 #[test]

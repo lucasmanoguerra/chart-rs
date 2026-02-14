@@ -1,8 +1,10 @@
 use chart_rs::ChartError;
 use chart_rs::api::{
-    ChartEngine, ChartEngineConfig, TimeScaleNavigationBehavior, TimeScaleRealtimeAppendBehavior,
+    ChartEngine, ChartEngineConfig, InvalidationTopic, TimeScaleNavigationBehavior,
+    TimeScaleRealtimeAppendBehavior,
 };
 use chart_rs::core::{DataPoint, OhlcBar, Viewport};
+use chart_rs::lwc::model::TimeScaleInvalidationType;
 use chart_rs::render::NullRenderer;
 
 fn build_engine() -> ChartEngine<NullRenderer> {
@@ -160,4 +162,53 @@ fn invalid_realtime_tolerance_is_rejected() {
         })
         .expect_err("negative tolerance must fail");
     assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn realtime_append_with_right_edge_tracking_registers_apply_right_offset_invalidation() {
+    let mut engine = build_engine();
+    engine.set_data(seed_points());
+    engine.clear_pending_invalidation();
+
+    engine.append_point(DataPoint::new(110.0, 1.0));
+
+    let pending = engine
+        .lwc_pending_invalidation()
+        .expect("lwc pending invalidation");
+    let kinds = pending
+        .time_scale_invalidations()
+        .iter()
+        .map(|invalidation| invalidation.kind())
+        .collect::<Vec<_>>();
+    assert!(
+        kinds.contains(&TimeScaleInvalidationType::ApplyRightOffset)
+            || kinds.contains(&TimeScaleInvalidationType::ApplyRange)
+    );
+}
+
+#[test]
+fn realtime_append_without_right_edge_tracking_does_not_emit_time_scale_invalidation() {
+    let mut engine = build_engine();
+    engine
+        .set_time_scale_realtime_append_behavior(TimeScaleRealtimeAppendBehavior {
+            preserve_right_edge_on_append: false,
+            right_edge_tolerance_bars: 0.75,
+        })
+        .expect("set realtime append behavior");
+    engine.set_data(seed_points());
+    engine.clear_pending_invalidation();
+
+    engine.append_point(DataPoint::new(110.0, 1.0));
+
+    let pending = engine
+        .lwc_pending_invalidation()
+        .expect("lwc pending invalidation");
+    let kinds = pending
+        .time_scale_invalidations()
+        .iter()
+        .map(|invalidation| invalidation.kind())
+        .collect::<Vec<_>>();
+    assert!(kinds.is_empty());
+    assert!(!kinds.contains(&TimeScaleInvalidationType::ApplyRightOffset));
+    assert!(!engine.has_pending_invalidation_topic(InvalidationTopic::TimeScale));
 }

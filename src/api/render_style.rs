@@ -74,6 +74,16 @@ pub enum CrosshairLabelBoxZOrderPolicy {
     TimeAbovePrice,
 }
 
+/// Body fill policy for candlestick rendering.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum CandlestickBodyMode {
+    /// Both bullish and bearish candles use configured fill colors.
+    #[default]
+    Solid,
+    /// Bullish candles are hollow (transparent body fill); bearish remain filled.
+    HollowUp,
+}
+
 /// Style contract for the current render frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RenderStyle {
@@ -134,6 +144,20 @@ pub struct RenderStyle {
     pub last_price_down_color: Color,
     /// Applied when trend coloring is enabled and no direction can be inferred.
     pub last_price_neutral_color: Color,
+    /// Candlestick body fill color when `close >= open`.
+    pub candlestick_up_color: Color,
+    /// Candlestick body fill color when `close < open`.
+    pub candlestick_down_color: Color,
+    /// Candlestick wick color when `close >= open`.
+    pub candlestick_wick_up_color: Color,
+    /// Candlestick wick color when `close < open`.
+    pub candlestick_wick_down_color: Color,
+    /// Candlestick body border color when `close >= open`.
+    pub candlestick_border_up_color: Color,
+    /// Candlestick body border color when `close < open`.
+    pub candlestick_border_down_color: Color,
+    /// Fill policy used by candlestick bodies.
+    pub candlestick_body_mode: CandlestickBodyMode,
     pub grid_line_width: f64,
     pub price_axis_grid_line_width: f64,
     pub major_grid_line_width: f64,
@@ -144,6 +168,14 @@ pub struct RenderStyle {
     pub crosshair_line_width: f64,
     pub crosshair_horizontal_line_width: Option<f64>,
     pub crosshair_vertical_line_width: Option<f64>,
+    /// Stroke width used by candlestick wicks.
+    pub candlestick_wick_width_px: f64,
+    /// Border stroke width used by candlestick bodies.
+    pub candlestick_border_width_px: f64,
+    /// Controls visibility of candlestick wick strokes.
+    pub show_candlestick_wicks: bool,
+    /// Controls visibility of candlestick body border strokes.
+    pub show_candlestick_borders: bool,
     pub crosshair_line_style: LineStrokeStyle,
     pub crosshair_horizontal_line_style: Option<LineStrokeStyle>,
     pub crosshair_vertical_line_style: Option<LineStrokeStyle>,
@@ -338,6 +370,15 @@ impl Default for RenderStyle {
             last_price_up_color: Color::rgb(0.06, 0.62, 0.35),
             last_price_down_color: Color::rgb(0.86, 0.22, 0.19),
             last_price_neutral_color: Color::rgb(0.16, 0.38, 1.0),
+            // Lightweight Charts candlestick defaults:
+            // up=#26a69a, down=#ef5350, matching wick/border colors.
+            candlestick_up_color: Color::rgb(0.149, 0.651, 0.604),
+            candlestick_down_color: Color::rgb(0.937, 0.325, 0.314),
+            candlestick_wick_up_color: Color::rgb(0.149, 0.651, 0.604),
+            candlestick_wick_down_color: Color::rgb(0.937, 0.325, 0.314),
+            candlestick_border_up_color: Color::rgb(0.149, 0.651, 0.604),
+            candlestick_border_down_color: Color::rgb(0.937, 0.325, 0.314),
+            candlestick_body_mode: CandlestickBodyMode::Solid,
             grid_line_width: 1.0,
             price_axis_grid_line_width: 1.0,
             major_grid_line_width: 1.0,
@@ -348,6 +389,10 @@ impl Default for RenderStyle {
             crosshair_line_width: 1.0,
             crosshair_horizontal_line_width: None,
             crosshair_vertical_line_width: None,
+            candlestick_wick_width_px: 1.0,
+            candlestick_border_width_px: 1.0,
+            show_candlestick_wicks: true,
+            show_candlestick_borders: true,
             crosshair_line_style: LineStrokeStyle::LargeDashed,
             crosshair_horizontal_line_style: None,
             crosshair_vertical_line_style: None,

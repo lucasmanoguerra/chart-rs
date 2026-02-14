@@ -7,11 +7,17 @@ use super::{
 
 impl<R: Renderer> ChartEngine<R> {
     pub fn map_x_to_pixel(&self, x: f64) -> ChartResult<f64> {
-        self.time_scale.time_to_pixel(x, self.viewport)
+        self.core
+            .model
+            .time_scale
+            .time_to_pixel(x, self.core.model.viewport)
     }
 
     pub fn map_pixel_to_x(&self, pixel: f64) -> ChartResult<f64> {
-        self.time_scale.pixel_to_time(pixel, self.viewport)
+        self.core
+            .model
+            .time_scale
+            .pixel_to_time(pixel, self.core.model.viewport)
     }
 
     /// Maps pixel X to a floating logical bar index.
@@ -40,23 +46,23 @@ impl<R: Renderer> ChartEngine<R> {
             TimeCoordinateIndexPolicy::IgnoreWhitespace => {
                 let mut best: Option<(f64, f64)> = None;
 
-                if let Some(slot) =
-                    space.coordinate_to_nearest_filled_slot(pixel, self.points.len(), |idx| {
-                        self.points[idx].x / reference_step
-                    })?
-                {
-                    let logical = self.points[slot].x / reference_step;
+                if let Some(slot) = space.coordinate_to_nearest_filled_slot(
+                    pixel,
+                    self.core.model.points.len(),
+                    |idx| self.core.model.points[idx].x / reference_step,
+                )? {
+                    let logical = self.core.model.points[slot].x / reference_step;
                     let candidate_x = space.index_to_coordinate(logical)?;
                     let distance = (candidate_x - pixel).abs();
                     best = Some((distance, logical));
                 }
 
-                if let Some(slot) =
-                    space.coordinate_to_nearest_filled_slot(pixel, self.candles.len(), |idx| {
-                        self.candles[idx].time / reference_step
-                    })?
-                {
-                    let logical = self.candles[slot].time / reference_step;
+                if let Some(slot) = space.coordinate_to_nearest_filled_slot(
+                    pixel,
+                    self.core.model.candles.len(),
+                    |idx| self.core.model.candles[idx].time / reference_step,
+                )? {
+                    let logical = self.core.model.candles[slot].time / reference_step;
                     let candidate_x = space.index_to_coordinate(logical)?;
                     let distance = (candidate_x - pixel).abs();
                     match best {
@@ -139,11 +145,11 @@ impl<R: Renderer> ChartEngine<R> {
         let mut best: Option<(f64, TimeFilledLogicalSlot)> = None;
 
         if let Some(slot) =
-            space.coordinate_to_nearest_filled_slot(pixel, self.points.len(), |idx| {
-                self.points[idx].x / reference_step
+            space.coordinate_to_nearest_filled_slot(pixel, self.core.model.points.len(), |idx| {
+                self.core.model.points[idx].x / reference_step
             })?
         {
-            let logical_index = self.points[slot].x / reference_step;
+            let logical_index = self.core.model.points[slot].x / reference_step;
             let candidate_x = space.index_to_coordinate(logical_index)?;
             let distance = (candidate_x - pixel).abs();
             best = Some((
@@ -152,24 +158,24 @@ impl<R: Renderer> ChartEngine<R> {
                     source: TimeFilledLogicalSource::Points,
                     slot,
                     logical_index,
-                    time: self.points[slot].x,
+                    time: self.core.model.points[slot].x,
                 },
             ));
         }
 
-        if let Some(slot) =
-            space.coordinate_to_nearest_filled_slot(pixel, self.candles.len(), |idx| {
-                self.candles[idx].time / reference_step
-            })?
-        {
-            let logical_index = self.candles[slot].time / reference_step;
+        if let Some(slot) = space.coordinate_to_nearest_filled_slot(
+            pixel,
+            self.core.model.candles.len(),
+            |idx| self.core.model.candles[idx].time / reference_step,
+        )? {
+            let logical_index = self.core.model.candles[slot].time / reference_step;
             let candidate_x = space.index_to_coordinate(logical_index)?;
             let distance = (candidate_x - pixel).abs();
             let candidate = TimeFilledLogicalSlot {
                 source: TimeFilledLogicalSource::Candles,
                 slot,
                 logical_index,
-                time: self.candles[slot].time,
+                time: self.core.model.candles[slot].time,
             };
             best = match best {
                 Some((best_distance, best_slot))
@@ -221,24 +227,29 @@ impl<R: Renderer> ChartEngine<R> {
 
     #[must_use]
     pub fn time_visible_range(&self) -> (f64, f64) {
-        self.time_scale.visible_range()
+        self.core.model.time_scale.visible_range()
     }
 
     #[must_use]
     pub fn time_full_range(&self) -> (f64, f64) {
-        self.time_scale.full_range()
+        self.core.model.time_scale.full_range()
     }
 
     fn collect_unique_filled_logical_indices(&self, reference_step: f64) -> Vec<f64> {
-        let mut indices = Vec::with_capacity(self.points.len() + self.candles.len());
+        let mut indices =
+            Vec::with_capacity(self.core.model.points.len() + self.core.model.candles.len());
         indices.extend(
-            self.points
+            self.core
+                .model
+                .points
                 .iter()
                 .map(|point| point.x / reference_step)
                 .filter(|value| value.is_finite()),
         );
         indices.extend(
-            self.candles
+            self.core
+                .model
+                .candles
                 .iter()
                 .map(|candle| candle.time / reference_step)
                 .filter(|value| value.is_finite()),

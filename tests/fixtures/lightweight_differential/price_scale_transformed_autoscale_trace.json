@@ -53,8 +53,8 @@
             "price_domain_start": 96.0,
             "price_domain_end": 144.0,
             "price_domain_span": 48.0,
-            "probe_price_pixel": 202.0833333333333,
-            "probe_pixel_price": 123.42857142857142
+            "probe_price_pixel": 201.79166666666663,
+            "probe_pixel_price": 123.36962750716333
           }
         },
         {
@@ -68,8 +68,8 @@
             "price_domain_start": 96.0,
             "price_domain_end": 144.0,
             "price_domain_span": 48.0,
-            "probe_price_pixel": 202.0833333333333,
-            "probe_pixel_price": 123.42857142857142
+            "probe_price_pixel": 201.79166666666663,
+            "probe_pixel_price": 123.36962750716332
           }
         },
         {
@@ -83,8 +83,8 @@
             "price_domain_start": 98.0,
             "price_domain_end": 122.0,
             "price_domain_span": 24.0,
-            "probe_price_pixel": -16.6666666666668,
-            "probe_pixel_price": 111.71428571428572
+            "probe_price_pixel": -16.333333333333485,
+            "probe_pixel_price": 111.68481375358166
           }
         },
         {
@@ -96,8 +96,8 @@
             "price_domain_start": 98.0,
             "price_domain_end": 122.0,
             "price_domain_span": 24.0,
-            "probe_price_pixel": -16.6666666666668,
-            "probe_pixel_price": 111.71428571428572
+            "probe_price_pixel": -16.333333333333485,
+            "probe_pixel_price": 111.68481375358166
           }
         },
         {
@@ -111,8 +111,8 @@
             "price_domain_start": 118.0,
             "price_domain_end": 142.0,
             "price_domain_span": 24.0,
-            "probe_price_pixel": 274.9999999999999,
-            "probe_pixel_price": 131.71428571428572
+            "probe_price_pixel": 274.4999999999999,
+            "probe_pixel_price": 131.68481375358166
           }
         },
         {
@@ -124,8 +124,8 @@
             "price_domain_start": 118.0,
             "price_domain_end": 142.0,
             "price_domain_span": 24.0,
-            "probe_price_pixel": 274.9999999999999,
-            "probe_pixel_price": 131.71428571428572
+            "probe_price_pixel": 274.4999999999999,
+            "probe_pixel_price": 131.68481375358166
           }
         }
       ]
@@ -167,8 +167,8 @@
             "price_domain_start": 93.5,
             "price_domain_end": 111.5,
             "price_domain_span": 18.0,
-            "probe_price_pixel": 31.944444444444628,
-            "probe_pixel_price": 103.27142857142859
+            "probe_price_pixel": 32.138888888889085,
+            "probe_pixel_price": 103.24785100286533
           }
         },
         {
@@ -182,8 +182,8 @@
             "price_domain_start": 93.5,
             "price_domain_end": 111.5,
             "price_domain_span": 18.0,
-            "probe_price_pixel": 31.944444444444287,
-            "probe_pixel_price": 103.27142857142859
+            "probe_price_pixel": 32.1388888888888,
+            "probe_pixel_price": 103.24785100286533
           }
         },
         {
@@ -197,8 +197,8 @@
             "price_domain_start": 94.5,
             "price_domain_end": 100.5,
             "price_domain_span": 6.0,
-            "probe_price_pixel": -745.8333333333346,
-            "probe_pixel_price": 97.75714285714285
+            "probe_price_pixel": -743.4166666666679,
+            "probe_pixel_price": 97.74928366762177
           }
         },
         {
@@ -210,8 +210,8 @@
             "price_domain_start": 94.5,
             "price_domain_end": 100.5,
             "price_domain_span": 6.0,
-            "probe_price_pixel": -745.8333333333346,
-            "probe_pixel_price": 97.75714285714285
+            "probe_price_pixel": -743.4166666666679,
+            "probe_pixel_price": 97.74928366762177
           }
         },
         {
@@ -225,8 +225,8 @@
             "price_domain_start": 89.5,
             "price_domain_end": 155.5,
             "price_domain_span": 66.0,
-            "probe_price_pixel": 314.77272727272725,
-            "probe_pixel_price": 125.32857142857142
+            "probe_price_pixel": 314.1590909090909,
+            "probe_pixel_price": 125.24212034383953
           }
         },
         {
@@ -240,8 +240,8 @@
             "price_domain_start": 103.8,
             "price_domain_end": 154.2,
             "price_domain_span": 50.39999999999999,
-            "probe_price_pixel": 372.22222222222206,
-            "probe_pixel_price": 131.16
+            "probe_price_pixel": 371.4444444444443,
+            "probe_pixel_price": 131.0939828080229
           }
         },
         {
@@ -253,8 +253,8 @@
             "price_domain_start": 103.8,
             "price_domain_end": 154.2,
             "price_domain_span": 50.39999999999999,
-            "probe_price_pixel": 372.22222222222206,
-            "probe_pixel_price": 131.16
+            "probe_price_pixel": 371.4444444444443,
+            "probe_pixel_price": 131.0939828080229
           }
         }
       ]

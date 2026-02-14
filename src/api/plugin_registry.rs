@@ -13,23 +13,31 @@ impl<R: Renderer> ChartEngine<R> {
                 "plugin id must not be empty".to_owned(),
             ));
         }
-        if self.plugins.iter().any(|entry| entry.id() == plugin_id) {
+        if self
+            .core
+            .runtime
+            .plugins
+            .iter()
+            .any(|entry| entry.id() == plugin_id)
+        {
             return Err(ChartError::InvalidData(format!(
                 "plugin with id `{plugin_id}` is already registered"
             )));
         }
-        self.plugins.push(plugin);
+        self.core.runtime.plugins.push(plugin);
         Ok(())
     }
 
     /// Unregisters a plugin by id. Returns `true` when removed.
     pub fn unregister_plugin(&mut self, plugin_id: &str) -> bool {
         if let Some(position) = self
+            .core
+            .runtime
             .plugins
             .iter()
             .position(|entry| entry.id() == plugin_id)
         {
-            self.plugins.remove(position);
+            self.core.runtime.plugins.remove(position);
             return true;
         }
         false
@@ -37,11 +45,15 @@ impl<R: Renderer> ChartEngine<R> {
 
     #[must_use]
     pub fn plugin_count(&self) -> usize {
-        self.plugins.len()
+        self.core.runtime.plugins.len()
     }
 
     #[must_use]
     pub fn has_plugin(&self, plugin_id: &str) -> bool {
-        self.plugins.iter().any(|plugin| plugin.id() == plugin_id)
+        self.core
+            .runtime
+            .plugins
+            .iter()
+            .any(|plugin| plugin.id() == plugin_id)
     }
 }

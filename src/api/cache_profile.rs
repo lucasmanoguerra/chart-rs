@@ -9,42 +9,45 @@ impl<R: Renderer> ChartEngine<R> {
         &self,
         visible_span_abs: f64,
     ) -> TimeLabelCacheProfile {
-        if self.time_label_formatter.is_some() {
+        if self.core.presentation.time_label_formatter.is_some() {
             return TimeLabelCacheProfile::Custom {
-                formatter_generation: self.time_label_formatter_generation,
+                formatter_generation: self.core.presentation.time_label_formatter_generation,
                 source_mode_tag: 0,
                 visible_span_millis: 0,
             };
         }
 
-        match resolve_time_label_pattern(self.time_axis_label_config.policy, visible_span_abs) {
+        match resolve_time_label_pattern(
+            self.core.behavior.time_axis_label_config.policy,
+            visible_span_abs,
+        ) {
             ResolvedTimeLabelPattern::LogicalDecimal { precision } => {
                 TimeLabelCacheProfile::LogicalDecimal {
                     precision,
-                    locale: self.time_axis_label_config.locale,
+                    locale: self.core.behavior.time_axis_label_config.locale,
                 }
             }
             ResolvedTimeLabelPattern::Utc { pattern } => TimeLabelCacheProfile::Utc {
-                locale: self.time_axis_label_config.locale,
+                locale: self.core.behavior.time_axis_label_config.locale,
                 pattern,
-                timezone: self.time_axis_label_config.timezone,
-                session: self.time_axis_label_config.session,
+                timezone: self.core.behavior.time_axis_label_config.timezone,
+                session: self.core.behavior.time_axis_label_config.session,
             },
         }
     }
 
     pub(super) fn resolve_price_label_cache_profile(&self) -> PriceLabelCacheProfile {
-        if self.price_label_formatter.is_some() {
+        if self.core.presentation.price_label_formatter.is_some() {
             return PriceLabelCacheProfile::Custom {
-                formatter_generation: self.price_label_formatter_generation,
+                formatter_generation: self.core.presentation.price_label_formatter_generation,
                 source_mode_tag: 0,
                 visible_span_millis: 0,
             };
         }
 
         PriceLabelCacheProfile::BuiltIn {
-            locale: self.price_axis_label_config.locale,
-            policy: price_policy_profile(self.price_axis_label_config.policy),
+            locale: self.core.behavior.price_axis_label_config.locale,
+            policy: price_policy_profile(self.core.behavior.price_axis_label_config.policy),
         }
     }
 }

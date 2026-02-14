@@ -40,10 +40,10 @@ fn bar_projection_is_deterministic() {
     assert!((b.center_x - 500.0).abs() <= 1e-9);
     assert!((b.open_x - 494.0).abs() <= 1e-9);
     assert!((b.close_x - 506.0).abs() <= 1e-9);
-    assert!((b.high_y - 200.0).abs() <= 1e-9);
-    assert!((b.low_y - 350.0).abs() <= 1e-9);
-    assert!((b.open_y - 300.0).abs() <= 1e-9);
-    assert!((b.close_y - 250.0).abs() <= 1e-9);
+    assert!((b.high_y - 199.6).abs() <= 1e-9);
+    assert!((b.low_y - 349.3).abs() <= 1e-9);
+    assert!((b.open_y - 299.4).abs() <= 1e-9);
+    assert!((b.close_y - 249.5).abs() <= 1e-9);
 }
 
 #[test]

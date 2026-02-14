@@ -119,6 +119,229 @@
       }
     },
     {
+      "id": "lwc-style-candles-hollow-up-custom",
+      "description": "Candlestick hollow-up body policy with custom up/down fill, wick and border colors",
+      "input": {
+        "viewport": { "width": 920, "height": 460 },
+        "time_range": [0.0, 100.0],
+        "price_range": [60.0, 320.0],
+        "candles": [
+          { "time": 0.0, "open": 70.0, "high": 86.0, "low": 64.0, "close": 82.0 },
+          { "time": 10.0, "open": 82.0, "high": 95.0, "low": 75.0, "close": 90.0 },
+          { "time": 20.0, "open": 90.0, "high": 108.0, "low": 84.0, "close": 101.0 },
+          { "time": 30.0, "open": 101.0, "high": 122.0, "low": 95.0, "close": 115.0 },
+          { "time": 40.0, "open": 115.0, "high": 136.0, "low": 108.0, "close": 128.0 },
+          { "time": 50.0, "open": 128.0, "high": 156.0, "low": 121.0, "close": 145.0 },
+          { "time": 60.0, "open": 145.0, "high": 178.0, "low": 138.0, "close": 168.0 },
+          { "time": 70.0, "open": 168.0, "high": 206.0, "low": 160.0, "close": 194.0 },
+          { "time": 80.0, "open": 194.0, "high": 238.0, "low": 185.0, "close": 225.0 },
+          { "time": 90.0, "open": 225.0, "high": 272.0, "low": 214.0, "close": 258.0 },
+          { "time": 100.0, "open": 258.0, "high": 306.0, "low": 246.0, "close": 292.0 }
+        ],
+        "render_style_overrides": {
+          "candlestick_body_mode": "hollow_up",
+          "candlestick_up_color": { "red": 0.11, "green": 0.71, "blue": 0.43, "alpha": 1.0 },
+          "candlestick_down_color": { "red": 0.81, "green": 0.18, "blue": 0.21, "alpha": 1.0 },
+          "candlestick_wick_up_color": { "red": 0.06, "green": 0.52, "blue": 0.30, "alpha": 1.0 },
+          "candlestick_wick_down_color": { "red": 0.58, "green": 0.11, "blue": 0.15, "alpha": 1.0 },
+          "candlestick_border_up_color": { "red": 0.03, "green": 0.40, "blue": 0.24, "alpha": 1.0 },
+          "candlestick_border_down_color": { "red": 0.43, "green": 0.08, "blue": 0.11, "alpha": 1.0 },
+          "candlestick_wick_width_px": 2.0,
+          "candlestick_border_width_px": 2.0,
+          "show_candlestick_wicks": true,
+          "show_candlestick_borders": true
+        },
+        "actions": [
+          { "type": "set_time_visible_range", "start": 10.0, "end": 95.0 },
+          { "type": "set_crosshair_mode", "mode": "magnet" },
+          { "type": "pointer_move", "x": 540.0, "y": 180.0 }
+        ]
+      },
+      "baseline_png_relpath": "tests/fixtures/lightweight_visual_differential/reference_png/lwc-style-candles-hollow-up-custom.png",
+      "tolerance": {
+        "max_channel_abs_diff": 0,
+        "mean_channel_abs_diff": 0.0
+      }
+    },
+    {
+      "id": "lwc-style-candles-no-wicks-no-borders",
+      "description": "Candlestick path with wick and border visibility disabled, body fill only",
+      "input": {
+        "viewport": { "width": 920, "height": 460 },
+        "time_range": [0.0, 100.0],
+        "price_range": [60.0, 320.0],
+        "candles": [
+          { "time": 0.0, "open": 70.0, "high": 86.0, "low": 64.0, "close": 82.0 },
+          { "time": 10.0, "open": 82.0, "high": 95.0, "low": 75.0, "close": 90.0 },
+          { "time": 20.0, "open": 90.0, "high": 108.0, "low": 84.0, "close": 101.0 },
+          { "time": 30.0, "open": 101.0, "high": 122.0, "low": 95.0, "close": 115.0 },
+          { "time": 40.0, "open": 115.0, "high": 136.0, "low": 108.0, "close": 128.0 },
+          { "time": 50.0, "open": 128.0, "high": 156.0, "low": 121.0, "close": 145.0 },
+          { "time": 60.0, "open": 145.0, "high": 178.0, "low": 138.0, "close": 168.0 },
+          { "time": 70.0, "open": 168.0, "high": 206.0, "low": 160.0, "close": 194.0 },
+          { "time": 80.0, "open": 194.0, "high": 238.0, "low": 185.0, "close": 225.0 },
+          { "time": 90.0, "open": 225.0, "high": 272.0, "low": 214.0, "close": 258.0 },
+          { "time": 100.0, "open": 258.0, "high": 306.0, "low": 246.0, "close": 292.0 }
+        ],
+        "render_style_overrides": {
+          "candlestick_up_color": { "red": 0.17, "green": 0.68, "blue": 0.57, "alpha": 1.0 },
+          "candlestick_down_color": { "red": 0.90, "green": 0.31, "blue": 0.27, "alpha": 1.0 },
+          "show_candlestick_wicks": false,
+          "show_candlestick_borders": false
+        },
+        "actions": [
+          { "type": "set_time_visible_range", "start": 5.0, "end": 100.0 }
+        ]
+      },
+      "baseline_png_relpath": "tests/fixtures/lightweight_visual_differential/reference_png/lwc-style-candles-no-wicks-no-borders.png",
+      "tolerance": {
+        "max_channel_abs_diff": 0,
+        "mean_channel_abs_diff": 0.0
+      }
+    },
+    {
+      "id": "lwc-style-candles-config-behavior-hollow",
+      "description": "Candlestick style set through ChartEngineConfig behavior path with hollow-up and hidden borders",
+      "input": {
+        "viewport": { "width": 920, "height": 460 },
+        "time_range": [0.0, 100.0],
+        "price_range": [60.0, 320.0],
+        "candlestick_style_behavior": {
+          "up_color": { "red": 0.12, "green": 0.69, "blue": 0.46, "alpha": 1.0 },
+          "down_color": { "red": 0.83, "green": 0.22, "blue": 0.24, "alpha": 1.0 },
+          "wick_up_color": { "red": 0.08, "green": 0.53, "blue": 0.35, "alpha": 1.0 },
+          "wick_down_color": { "red": 0.60, "green": 0.13, "blue": 0.15, "alpha": 1.0 },
+          "border_up_color": { "red": 0.04, "green": 0.41, "blue": 0.26, "alpha": 1.0 },
+          "border_down_color": { "red": 0.44, "green": 0.10, "blue": 0.12, "alpha": 1.0 },
+          "body_mode": "HollowUp",
+          "wick_width_px": 2.0,
+          "border_width_px": 2.0,
+          "show_wicks": true,
+          "show_borders": false
+        },
+        "candles": [
+          { "time": 0.0, "open": 70.0, "high": 86.0, "low": 64.0, "close": 82.0 },
+          { "time": 10.0, "open": 82.0, "high": 95.0, "low": 75.0, "close": 90.0 },
+          { "time": 20.0, "open": 90.0, "high": 108.0, "low": 84.0, "close": 101.0 },
+          { "time": 30.0, "open": 101.0, "high": 122.0, "low": 95.0, "close": 115.0 },
+          { "time": 40.0, "open": 115.0, "high": 136.0, "low": 108.0, "close": 128.0 },
+          { "time": 50.0, "open": 128.0, "high": 156.0, "low": 121.0, "close": 145.0 },
+          { "time": 60.0, "open": 145.0, "high": 178.0, "low": 138.0, "close": 168.0 },
+          { "time": 70.0, "open": 168.0, "high": 206.0, "low": 160.0, "close": 194.0 },
+          { "time": 80.0, "open": 194.0, "high": 238.0, "low": 185.0, "close": 225.0 },
+          { "time": 90.0, "open": 225.0, "high": 272.0, "low": 214.0, "close": 258.0 },
+          { "time": 100.0, "open": 258.0, "high": 306.0, "low": 246.0, "close": 292.0 }
+        ],
+        "actions": [
+          { "type": "set_time_visible_range", "start": 8.0, "end": 98.0 },
+          { "type": "set_crosshair_mode", "mode": "magnet" },
+          { "type": "pointer_move", "x": 500.0, "y": 190.0 }
+        ]
+      },
+      "baseline_png_relpath": "tests/fixtures/lightweight_visual_differential/reference_png/lwc-style-candles-config-behavior-hollow.png",
+      "tolerance": {
+        "max_channel_abs_diff": 0,
+        "mean_channel_abs_diff": 0.0
+      }
+    },
+    {
+      "id": "lwc-style-candles-config-behavior-solid",
+      "description": "Candlestick style set through ChartEngineConfig behavior path with solid bodies and visible borders",
+      "input": {
+        "viewport": { "width": 920, "height": 460 },
+        "time_range": [0.0, 100.0],
+        "price_range": [60.0, 320.0],
+        "candlestick_style_behavior": {
+          "up_color": { "red": 0.15, "green": 0.66, "blue": 0.55, "alpha": 1.0 },
+          "down_color": { "red": 0.89, "green": 0.31, "blue": 0.28, "alpha": 1.0 },
+          "wick_up_color": { "red": 0.10, "green": 0.51, "blue": 0.41, "alpha": 1.0 },
+          "wick_down_color": { "red": 0.66, "green": 0.18, "blue": 0.16, "alpha": 1.0 },
+          "border_up_color": { "red": 0.08, "green": 0.39, "blue": 0.31, "alpha": 1.0 },
+          "border_down_color": { "red": 0.50, "green": 0.12, "blue": 0.11, "alpha": 1.0 },
+          "body_mode": "Solid",
+          "wick_width_px": 1.5,
+          "border_width_px": 1.5,
+          "show_wicks": true,
+          "show_borders": true
+        },
+        "candles": [
+          { "time": 0.0, "open": 70.0, "high": 86.0, "low": 64.0, "close": 82.0 },
+          { "time": 10.0, "open": 82.0, "high": 95.0, "low": 75.0, "close": 90.0 },
+          { "time": 20.0, "open": 90.0, "high": 108.0, "low": 84.0, "close": 101.0 },
+          { "time": 30.0, "open": 101.0, "high": 122.0, "low": 95.0, "close": 115.0 },
+          { "time": 40.0, "open": 115.0, "high": 136.0, "low": 108.0, "close": 128.0 },
+          { "time": 50.0, "open": 128.0, "high": 156.0, "low": 121.0, "close": 145.0 },
+          { "time": 60.0, "open": 145.0, "high": 178.0, "low": 138.0, "close": 168.0 },
+          { "time": 70.0, "open": 168.0, "high": 206.0, "low": 160.0, "close": 194.0 },
+          { "time": 80.0, "open": 194.0, "high": 238.0, "low": 185.0, "close": 225.0 },
+          { "time": 90.0, "open": 225.0, "high": 272.0, "low": 214.0, "close": 258.0 },
+          { "time": 100.0, "open": 258.0, "high": 306.0, "low": 246.0, "close": 292.0 }
+        ],
+        "actions": [
+          { "type": "set_time_visible_range", "start": 12.0, "end": 96.0 },
+          { "type": "set_crosshair_mode", "mode": "magnet" },
+          { "type": "pointer_move", "x": 520.0, "y": 175.0 }
+        ]
+      },
+      "baseline_png_relpath": "tests/fixtures/lightweight_visual_differential/reference_png/lwc-style-candles-config-behavior-solid.png",
+      "tolerance": {
+        "max_channel_abs_diff": 0,
+        "mean_channel_abs_diff": 0.0
+      }
+    },
+    {
+      "id": "lwc-style-candles-config-style-override-precedence",
+      "description": "Fixture with config candlestick behavior plus render style overrides; style overrides are applied last",
+      "input": {
+        "viewport": { "width": 920, "height": 460 },
+        "time_range": [0.0, 100.0],
+        "price_range": [60.0, 320.0],
+        "candlestick_style_behavior": {
+          "up_color": { "red": 0.12, "green": 0.64, "blue": 0.49, "alpha": 1.0 },
+          "down_color": { "red": 0.84, "green": 0.24, "blue": 0.25, "alpha": 1.0 },
+          "wick_up_color": { "red": 0.08, "green": 0.50, "blue": 0.37, "alpha": 1.0 },
+          "wick_down_color": { "red": 0.62, "green": 0.15, "blue": 0.16, "alpha": 1.0 },
+          "border_up_color": { "red": 0.05, "green": 0.40, "blue": 0.28, "alpha": 1.0 },
+          "border_down_color": { "red": 0.46, "green": 0.11, "blue": 0.12, "alpha": 1.0 },
+          "body_mode": "HollowUp",
+          "wick_width_px": 2.0,
+          "border_width_px": 2.0,
+          "show_wicks": true,
+          "show_borders": true
+        },
+        "render_style_overrides": {
+          "candlestick_up_color": { "red": 0.21, "green": 0.73, "blue": 0.58, "alpha": 1.0 },
+          "candlestick_down_color": { "red": 0.93, "green": 0.33, "blue": 0.30, "alpha": 1.0 },
+          "candlestick_body_mode": "solid",
+          "show_candlestick_wicks": false,
+          "show_candlestick_borders": false
+        },
+        "candles": [
+          { "time": 0.0, "open": 70.0, "high": 86.0, "low": 64.0, "close": 82.0 },
+          { "time": 10.0, "open": 82.0, "high": 95.0, "low": 75.0, "close": 90.0 },
+          { "time": 20.0, "open": 90.0, "high": 108.0, "low": 84.0, "close": 101.0 },
+          { "time": 30.0, "open": 101.0, "high": 122.0, "low": 95.0, "close": 115.0 },
+          { "time": 40.0, "open": 115.0, "high": 136.0, "low": 108.0, "close": 128.0 },
+          { "time": 50.0, "open": 128.0, "high": 156.0, "low": 121.0, "close": 145.0 },
+          { "time": 60.0, "open": 145.0, "high": 178.0, "low": 138.0, "close": 168.0 },
+          { "time": 70.0, "open": 168.0, "high": 206.0, "low": 160.0, "close": 194.0 },
+          { "time": 80.0, "open": 194.0, "high": 238.0, "low": 185.0, "close": 225.0 },
+          { "time": 90.0, "open": 225.0, "high": 272.0, "low": 214.0, "close": 258.0 },
+          { "time": 100.0, "open": 258.0, "high": 306.0, "low": 246.0, "close": 292.0 }
+        ],
+        "actions": [
+          { "type": "set_time_visible_range", "start": 6.0, "end": 99.0 },
+          { "type": "set_crosshair_mode", "mode": "magnet" },
+          { "type": "pointer_move", "x": 540.0, "y": 165.0 }
+        ]
+      },
+      "baseline_png_relpath": "tests/fixtures/lightweight_visual_differential/reference_png/lwc-style-candles-config-style-override-precedence.png",
+      "tolerance": {
+        "max_channel_abs_diff": 0,
+        "mean_channel_abs_diff": 0.0
+      }
+    },
+    {
       "id": "lwc-style-timescale-session-timezone-axis-scale",
       "description": "TimeScale visual parity with timezone/session labels and time-axis drag scaling",
       "input": {

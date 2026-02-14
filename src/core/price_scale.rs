@@ -93,6 +93,11 @@ impl PriceCoordinateSpace {
         self.height_px - self.top_margin_px - self.bottom_margin_px
     }
 
+    #[must_use]
+    fn internal_height_units(self) -> f64 {
+        self.internal_height_px() - 1.0
+    }
+
     /// Maps transformed-domain value (`linear` or `log`) to pixel Y.
     pub fn transformed_to_pixel(self, transformed_value: f64) -> ChartResult<f64> {
         self.validate()?;
@@ -103,12 +108,12 @@ impl PriceCoordinateSpace {
         }
 
         let span = self.transformed_max - self.transformed_min;
-        let normalized = (transformed_value - self.transformed_min) / span;
-        let y_from_bottom = normalized * self.internal_height_px();
+        let inv_coordinate = self.bottom_margin_px
+            + self.internal_height_units() * (transformed_value - self.transformed_min) / span;
         if self.inverted {
-            Ok(self.top_margin_px + y_from_bottom)
+            Ok(inv_coordinate)
         } else {
-            Ok(self.height_px - self.bottom_margin_px - y_from_bottom)
+            Ok(self.height_px - 1.0 - inv_coordinate)
         }
     }
 
@@ -119,12 +124,12 @@ impl PriceCoordinateSpace {
             return Err(ChartError::InvalidData("pixel must be finite".to_owned()));
         }
 
-        let y_from_bottom = if self.inverted {
-            pixel - self.top_margin_px
+        let inv_coordinate = if self.inverted {
+            pixel
         } else {
-            (self.height_px - self.bottom_margin_px) - pixel
+            self.height_px - 1.0 - pixel
         };
-        let normalized = y_from_bottom / self.internal_height_px();
+        let normalized = (inv_coordinate - self.bottom_margin_px) / self.internal_height_units();
         Ok(self.transformed_min + normalized * (self.transformed_max - self.transformed_min))
     }
 
@@ -150,6 +155,11 @@ impl PriceCoordinateSpace {
         if self.internal_height_px() <= 0.0 {
             return Err(ChartError::InvalidData(
                 "price coordinate internal height must be > 0".to_owned(),
+            ));
+        }
+        if self.internal_height_units() <= 0.0 {
+            return Err(ChartError::InvalidData(
+                "price coordinate internal height units must be > 0".to_owned(),
             ));
         }
         Ok(())
@@ -417,6 +427,13 @@ impl PriceScale {
             self.top_margin_ratio,
             self.bottom_margin_ratio,
         )?;
+        // Lightweight swaps effective top/bottom margin accessors when
+        // price scale is inverted.
+        let (top_px, bottom_px) = if self.inverted {
+            (bottom_px, top_px)
+        } else {
+            (top_px, bottom_px)
+        };
         let (transformed_min, transformed_max) = self.linear.domain();
         Ok(PriceCoordinateSpace {
             transformed_min,

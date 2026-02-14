@@ -8,6 +8,7 @@ pub mod core;
 pub mod error;
 pub mod extensions;
 pub mod interaction;
+pub mod lwc;
 pub mod render;
 pub mod telemetry;
 

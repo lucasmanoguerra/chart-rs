@@ -30,9 +30,9 @@ fn area_projection_is_deterministic() {
     assert_eq!(geometry.fill_polygon.len(), 6);
 
     assert!((geometry.line_points[0].x - 0.0).abs() <= 1e-9);
-    assert!((geometry.line_points[0].y - 500.0).abs() <= 1e-9);
+    assert!((geometry.line_points[0].y - 499.0).abs() <= 1e-9);
     assert!((geometry.line_points[1].x - 500.0).abs() <= 1e-9);
-    assert!((geometry.line_points[1].y - 250.0).abs() <= 1e-9);
+    assert!((geometry.line_points[1].y - 249.5).abs() <= 1e-9);
     assert!((geometry.line_points[2].x - 1000.0).abs() <= 1e-9);
     assert!((geometry.line_points[2].y - 0.0).abs() <= 1e-9);
 

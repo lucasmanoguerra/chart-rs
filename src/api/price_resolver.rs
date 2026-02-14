@@ -6,7 +6,7 @@ impl<R: Renderer> ChartEngine<R> {
     pub(super) fn resolve_price_display_base_price(&self) -> f64 {
         let mut candidate: Option<(f64, f64)> = None;
 
-        for point in &self.points {
+        for point in &self.core.model.points {
             if !point.x.is_finite() || !point.y.is_finite() {
                 continue;
             }
@@ -18,7 +18,7 @@ impl<R: Renderer> ChartEngine<R> {
             };
         }
 
-        for candle in &self.candles {
+        for candle in &self.core.model.candles {
             if !candle.time.is_finite() || !candle.close.is_finite() {
                 continue;
             }
@@ -34,7 +34,7 @@ impl<R: Renderer> ChartEngine<R> {
             return base_price;
         }
 
-        let domain = self.price_scale.domain();
+        let domain = self.core.model.price_scale.domain();
         if domain.0.is_finite() { domain.0 } else { 1.0 }
     }
 
@@ -51,7 +51,7 @@ impl<R: Renderer> ChartEngine<R> {
         });
         let mut candidate: Option<(f64, f64)> = None;
 
-        for point in &self.points {
+        for point in &self.core.model.points {
             if !point.x.is_finite() || !point.y.is_finite() {
                 continue;
             }
@@ -68,7 +68,7 @@ impl<R: Renderer> ChartEngine<R> {
             };
         }
 
-        for candle in &self.candles {
+        for candle in &self.core.model.candles {
             if !candle.time.is_finite() || !candle.close.is_finite() {
                 continue;
             }
@@ -102,7 +102,7 @@ impl<R: Renderer> ChartEngine<R> {
         });
         let mut candidate: Option<(f64, f64)> = None;
 
-        for point in &self.points {
+        for point in &self.core.model.points {
             if !point.x.is_finite() || !point.y.is_finite() || point.x >= latest_time {
                 continue;
             }
@@ -120,7 +120,7 @@ impl<R: Renderer> ChartEngine<R> {
             };
         }
 
-        for candle in &self.candles {
+        for candle in &self.core.model.candles {
             if !candle.time.is_finite() || !candle.close.is_finite() || candle.time >= latest_time {
                 continue;
             }
@@ -161,7 +161,7 @@ impl<R: Renderer> ChartEngine<R> {
         latest_price: f64,
         previous_price: Option<f64>,
     ) -> (Color, Color) {
-        let style = self.render_style;
+        let style = self.core.presentation.render_style;
         if !style.last_price_use_trend_color {
             return (style.last_price_line_color, style.last_price_label_color);
         }
@@ -178,7 +178,7 @@ impl<R: Renderer> ChartEngine<R> {
         &self,
         marker_label_color: Color,
     ) -> Color {
-        let style = self.render_style;
+        let style = self.core.presentation.render_style;
         if style.last_price_label_box_use_marker_color {
             marker_label_color
         } else {
@@ -191,7 +191,7 @@ impl<R: Renderer> ChartEngine<R> {
         box_fill_color: Color,
         marker_label_color: Color,
     ) -> Color {
-        let style = self.render_style;
+        let style = self.core.presentation.render_style;
         if !style.show_last_price_label_box {
             return marker_label_color;
         }
@@ -209,7 +209,7 @@ impl<R: Renderer> ChartEngine<R> {
         per_axis_text_color: Option<Color>,
         per_axis_auto_contrast: Option<bool>,
     ) -> Color {
-        let style = self.render_style;
+        let style = self.core.presentation.render_style;
         let auto_contrast =
             per_axis_auto_contrast.unwrap_or(style.crosshair_label_box_auto_text_contrast);
         if !auto_contrast {

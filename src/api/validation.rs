@@ -153,6 +153,12 @@ pub(super) fn validate_render_style(style: RenderStyle) -> ChartResult<RenderSty
     style.last_price_up_color.validate()?;
     style.last_price_down_color.validate()?;
     style.last_price_neutral_color.validate()?;
+    style.candlestick_up_color.validate()?;
+    style.candlestick_down_color.validate()?;
+    style.candlestick_wick_up_color.validate()?;
+    style.candlestick_wick_down_color.validate()?;
+    style.candlestick_border_up_color.validate()?;
+    style.candlestick_border_down_color.validate()?;
     style.last_price_label_box_color.validate()?;
     style.last_price_label_box_text_color.validate()?;
     style.last_price_label_box_border_color.validate()?;
@@ -175,6 +181,7 @@ pub(super) fn validate_render_style(style: RenderStyle) -> ChartResult<RenderSty
             style.major_time_tick_mark_width,
         ),
         ("crosshair_line_width", style.crosshair_line_width),
+        ("candlestick_wick_width_px", style.candlestick_wick_width_px),
         (
             "crosshair_time_label_font_size_px",
             style.crosshair_time_label_font_size_px,
@@ -514,6 +521,11 @@ pub(super) fn validate_render_style(style: RenderStyle) -> ChartResult<RenderSty
         return Err(ChartError::InvalidData(
             "render style `last_price_label_box_border_width_px` must be finite and >= 0"
                 .to_owned(),
+        ));
+    }
+    if !style.candlestick_border_width_px.is_finite() || style.candlestick_border_width_px < 0.0 {
+        return Err(ChartError::InvalidData(
+            "render style `candlestick_border_width_px` must be finite and >= 0".to_owned(),
         ));
     }
     if !style.last_price_label_box_corner_radius_px.is_finite()

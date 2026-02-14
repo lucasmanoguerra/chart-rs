@@ -40,15 +40,22 @@ impl<R: Renderer> ChartEngine<R> {
     ) -> Option<(OrderedFloat<f64>, CrosshairSnap)> {
         let (space, reference_step) = self.resolve_time_index_coordinate_space()?;
         let slot = space
-            .coordinate_to_nearest_filled_slot(pointer_x, self.points.len(), |idx| {
-                self.points[idx].x / reference_step
+            .coordinate_to_nearest_filled_slot(pointer_x, self.core.model.points.len(), |idx| {
+                self.core.model.points[idx].x / reference_step
             })
             .ok()??;
-        let point = self.points.get(slot)?;
-        let x_px = self.time_scale.time_to_pixel(point.x, self.viewport).ok()?;
+        let point = self.core.model.points.get(slot)?;
+        let x_px = self
+            .core
+            .model
+            .time_scale
+            .time_to_pixel(point.x, self.core.model.viewport)
+            .ok()?;
         let y_px = self
+            .core
+            .model
             .price_scale
-            .price_to_pixel(point.y, self.viewport)
+            .price_to_pixel(point.y, self.core.model.viewport)
             .ok()?;
         let dist = OrderedFloat((x_px - pointer_x).abs());
         Some((
@@ -67,12 +74,22 @@ impl<R: Renderer> ChartEngine<R> {
         pointer_x: f64,
     ) -> Option<(OrderedFloat<f64>, CrosshairSnap)> {
         let mut best: Option<(OrderedFloat<f64>, CrosshairSnap)> = None;
-        for point in &self.points {
-            let x_px = match self.time_scale.time_to_pixel(point.x, self.viewport) {
+        for point in &self.core.model.points {
+            let x_px = match self
+                .core
+                .model
+                .time_scale
+                .time_to_pixel(point.x, self.core.model.viewport)
+            {
                 Ok(v) => v,
                 Err(_) => continue,
             };
-            let y_px = match self.price_scale.price_to_pixel(point.y, self.viewport) {
+            let y_px = match self
+                .core
+                .model
+                .price_scale
+                .price_to_pixel(point.y, self.core.model.viewport)
+            {
                 Ok(v) => v,
                 Err(_) => continue,
             };
@@ -113,18 +130,22 @@ impl<R: Renderer> ChartEngine<R> {
     ) -> Option<(OrderedFloat<f64>, CrosshairSnap)> {
         let (space, reference_step) = self.resolve_time_index_coordinate_space()?;
         let slot = space
-            .coordinate_to_nearest_filled_slot(pointer_x, self.candles.len(), |idx| {
-                self.candles[idx].time / reference_step
+            .coordinate_to_nearest_filled_slot(pointer_x, self.core.model.candles.len(), |idx| {
+                self.core.model.candles[idx].time / reference_step
             })
             .ok()??;
-        let candle = self.candles.get(slot)?;
+        let candle = self.core.model.candles.get(slot)?;
         let x_px = self
+            .core
+            .model
             .time_scale
-            .time_to_pixel(candle.time, self.viewport)
+            .time_to_pixel(candle.time, self.core.model.viewport)
             .ok()?;
         let y_px = self
+            .core
+            .model
             .price_scale
-            .price_to_pixel(candle.close, self.viewport)
+            .price_to_pixel(candle.close, self.core.model.viewport)
             .ok()?;
         let dist = OrderedFloat((x_px - pointer_x).abs());
         Some((
@@ -143,12 +164,22 @@ impl<R: Renderer> ChartEngine<R> {
         pointer_x: f64,
     ) -> Option<(OrderedFloat<f64>, CrosshairSnap)> {
         let mut best: Option<(OrderedFloat<f64>, CrosshairSnap)> = None;
-        for candle in &self.candles {
-            let x_px = match self.time_scale.time_to_pixel(candle.time, self.viewport) {
+        for candle in &self.core.model.candles {
+            let x_px = match self
+                .core
+                .model
+                .time_scale
+                .time_to_pixel(candle.time, self.core.model.viewport)
+            {
                 Ok(v) => v,
                 Err(_) => continue,
             };
-            let y_px = match self.price_scale.price_to_pixel(candle.close, self.viewport) {
+            let y_px = match self
+                .core
+                .model
+                .price_scale
+                .price_to_pixel(candle.close, self.core.model.viewport)
+            {
                 Ok(v) => v,
                 Err(_) => continue,
             };

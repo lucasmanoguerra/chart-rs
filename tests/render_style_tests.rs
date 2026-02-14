@@ -85,6 +85,13 @@ fn custom_render_style_is_applied_to_frame() {
         last_price_up_color: Color::rgb(0.1, 0.7, 0.3),
         last_price_down_color: Color::rgb(0.9, 0.2, 0.2),
         last_price_neutral_color: Color::rgb(0.2, 0.2, 0.8),
+        candlestick_up_color: Color::rgb(0.22, 0.70, 0.62),
+        candlestick_down_color: Color::rgb(0.88, 0.28, 0.26),
+        candlestick_wick_up_color: Color::rgb(0.08, 0.55, 0.47),
+        candlestick_wick_down_color: Color::rgb(0.70, 0.17, 0.14),
+        candlestick_border_up_color: Color::rgb(0.06, 0.45, 0.39),
+        candlestick_border_down_color: Color::rgb(0.58, 0.12, 0.10),
+        candlestick_body_mode: chart_rs::api::CandlestickBodyMode::Solid,
         grid_line_width: 2.0,
         price_axis_grid_line_width: 1.75,
         major_grid_line_width: 3.0,
@@ -95,6 +102,10 @@ fn custom_render_style_is_applied_to_frame() {
         crosshair_line_width: 1.35,
         crosshair_horizontal_line_width: None,
         crosshair_vertical_line_width: None,
+        candlestick_wick_width_px: 2.1,
+        candlestick_border_width_px: 1.4,
+        show_candlestick_wicks: true,
+        show_candlestick_borders: true,
         crosshair_line_style: LineStrokeStyle::Dashed,
         crosshair_horizontal_line_style: Some(LineStrokeStyle::Dotted),
         crosshair_vertical_line_style: Some(LineStrokeStyle::Solid),
@@ -316,6 +327,38 @@ fn invalid_last_price_style_is_rejected() {
 
     let mut style = engine.render_style();
     style.last_price_line_width = 0.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_candlestick_wick_width_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.candlestick_wick_width_px = 0.0;
+
+    let err = engine
+        .set_render_style(style)
+        .expect_err("invalid style should fail");
+    assert!(matches!(err, ChartError::InvalidData(_)));
+}
+
+#[test]
+fn invalid_candlestick_border_width_is_rejected() {
+    let renderer = NullRenderer::default();
+    let config =
+        ChartEngineConfig::new(Viewport::new(800, 420), 0.0, 100.0).with_price_domain(0.0, 50.0);
+    let mut engine = ChartEngine::new(renderer, config).expect("engine init");
+
+    let mut style = engine.render_style();
+    style.candlestick_border_width_px = -0.1;
 
     let err = engine
         .set_render_style(style)

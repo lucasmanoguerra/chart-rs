@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
-## [Unreleased]
+## [0.1.0-beta.0.1] - 2026-02-14
 
 ### Added
 - Price-scale visible-window autoscale parity baseline (`C-058`) with deterministic opt-in autoscale refresh on time-range navigation changes.
@@ -73,6 +73,9 @@ and this project adheres to Semantic Versioning.
 - Advanced touch interaction corpus parity (`C-116`) extending interaction differential traces with multi-step pinch zoom, multi-step kinetic decay envelope checks, and sparse-gap magnet crosshair snapping coverage.
 - CI visual artifact workflow parity (`C-117`) adding per-fixture visual artifact emission (`actual`/`baseline`/`diff` + `summary.json`) and upload via `actions/upload-artifact` in the dedicated parity guard job.
 - Visual baseline sync maintenance for `C-110` refreshing committed PNG references for `lwc-style-line-basic`, `lwc-style-percentage-window`, and `lwc-style-candles-log-axis-scale-price` after default-style parity alignment; `cargo test-visual` is green again with zero-diff tolerances.
+- Invalidation pane-target API consolidation: removed deprecated `pending_invalidation_pane_hint()` and completed migration to `pending_invalidation_pane_targets()` for multi-pane-aware partial redraw scheduling.
+
+## [Unreleased]
 
 ## [0.0.34-alpha.0] - 2026-02-12
 

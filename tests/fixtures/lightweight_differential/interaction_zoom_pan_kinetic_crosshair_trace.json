@@ -279,7 +279,7 @@
             "crosshair_x": 333.0,
             "crosshair_y": 111.0,
             "crosshair_snapped_x": 286.86064653561255,
-            "crosshair_snapped_y": 310.2011494252873,
+            "crosshair_snapped_y": 309.6005747126437,
             "crosshair_snapped_time": 60.0,
             "crosshair_snapped_price": 39.0
           }
@@ -455,7 +455,7 @@
             "crosshair_x": 480.0,
             "crosshair_y": 200.0,
             "crosshair_snapped_x": 500.0,
-            "crosshair_snapped_y": 275.0,
+            "crosshair_snapped_y": 274.5,
             "crosshair_snapped_time": 50.0,
             "crosshair_snapped_price": 30.0
           }
@@ -726,7 +726,7 @@
             "crosshair_x": 500.0,
             "crosshair_y": 210.0,
             "crosshair_snapped_x": 559.4685681065033,
-            "crosshair_snapped_y": 181.66666666666663,
+            "crosshair_snapped_y": 181.43333333333334,
             "crosshair_snapped_time": 78.0,
             "crosshair_snapped_price": 66.0
           }

@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use gtk4 as gtk;
@@ -24,6 +24,7 @@ pub struct GtkChartAdapter<R: Renderer + CairoContextRenderer + 'static> {
     diagnostics_hook: Rc<RefCell<Option<CrosshairDiagnosticsHook>>>,
     snapshot_hook: Rc<RefCell<Option<SnapshotJsonHook>>>,
     snapshot_hook_body_width_px: Rc<RefCell<f64>>,
+    frame_request_pending: Rc<Cell<bool>>,
 }
 
 impl<R: Renderer + CairoContextRenderer + 'static> GtkChartAdapter<R> {
@@ -40,6 +41,48 @@ impl<R: Renderer + CairoContextRenderer + 'static> GtkChartAdapter<R> {
         f(&engine)
     }
 
+    fn with_engine_mut<T>(
+        &self,
+        f: impl FnOnce(&mut ChartEngine<R>) -> ChartResult<T>,
+        context: &str,
+    ) -> ChartResult<T> {
+        let mut engine = self.engine.try_borrow_mut().map_err(|_| {
+            crate::error::ChartError::InvalidData(format!(
+                "failed to mutably borrow chart engine for {context}"
+            ))
+        })?;
+        f(&mut engine)
+    }
+
+    fn schedule_draw_request(
+        drawing_area: &gtk::DrawingArea,
+        engine: &Rc<RefCell<ChartEngine<R>>>,
+        frame_request_pending: &Rc<Cell<bool>>,
+        force: bool,
+    ) {
+        if frame_request_pending.replace(true) {
+            return;
+        }
+
+        let drawing_area = drawing_area.clone();
+        let engine = Rc::clone(engine);
+        let frame_request_pending = Rc::clone(frame_request_pending);
+        gtk::glib::idle_add_local_once(move || {
+            frame_request_pending.set(false);
+            let should_draw = if force {
+                true
+            } else {
+                engine
+                    .try_borrow()
+                    .map(|engine| engine.has_pending_invalidation())
+                    .unwrap_or(true)
+            };
+            if should_draw {
+                drawing_area.queue_draw();
+            }
+        });
+    }
+
     #[must_use]
     pub fn new(engine: ChartEngine<R>) -> Self {
         let drawing_area = gtk::DrawingArea::new();
@@ -51,10 +94,12 @@ impl<R: Renderer + CairoContextRenderer + 'static> GtkChartAdapter<R> {
             Rc::new(RefCell::new(None));
         let snapshot_hook: Rc<RefCell<Option<SnapshotJsonHook>>> = Rc::new(RefCell::new(None));
         let snapshot_hook_body_width_px = Rc::new(RefCell::new(7.0));
+        let frame_request_pending = Rc::new(Cell::new(false));
         let engine_for_draw = Rc::clone(&engine);
         let diagnostics_hook_for_draw = Rc::clone(&diagnostics_hook);
         let snapshot_hook_for_draw = Rc::clone(&snapshot_hook);
         let snapshot_hook_body_width_px_for_draw = Rc::clone(&snapshot_hook_body_width_px);
+        let frame_request_pending_for_draw = Rc::clone(&frame_request_pending);
         drawing_area.set_draw_func(move |_widget, context, width, height| {
             if width <= 0 || height <= 0 {
                 return;
@@ -82,7 +127,18 @@ impl<R: Renderer + CairoContextRenderer + 'static> GtkChartAdapter<R> {
                     hook(json);
                 }
             }
+
+            if engine.has_pending_invalidation() {
+                Self::schedule_draw_request(
+                    _widget,
+                    &engine_for_draw,
+                    &frame_request_pending_for_draw,
+                    false,
+                );
+            }
         });
+
+        Self::schedule_draw_request(&drawing_area, &engine, &frame_request_pending, false);
 
         Self {
             drawing_area,
@@ -90,6 +146,7 @@ impl<R: Renderer + CairoContextRenderer + 'static> GtkChartAdapter<R> {
             diagnostics_hook,
             snapshot_hook,
             snapshot_hook_body_width_px,
+            frame_request_pending,
         }
     }
 
@@ -104,7 +161,46 @@ impl<R: Renderer + CairoContextRenderer + 'static> GtkChartAdapter<R> {
     }
 
     pub fn queue_draw(&self) {
-        self.drawing_area.queue_draw();
+        self.queue_draw_force();
+    }
+
+    /// Schedules one draw request on the next main-loop turn.
+    ///
+    /// Multiple calls before the main-loop callback are coalesced.
+    pub fn queue_draw_force(&self) {
+        Self::schedule_draw_request(
+            &self.drawing_area,
+            &self.engine,
+            &self.frame_request_pending,
+            true,
+        );
+    }
+
+    /// Schedules a draw request only when chart invalidation is pending.
+    ///
+    /// Calls are coalesced similarly to a requestAnimationFrame workflow.
+    pub fn queue_draw_if_invalidated(&self) {
+        Self::schedule_draw_request(
+            &self.drawing_area,
+            &self.engine,
+            &self.frame_request_pending,
+            false,
+        );
+    }
+
+    /// Mutates engine state and schedules a coalesced redraw when required.
+    pub fn update_engine<T>(
+        &self,
+        f: impl FnOnce(&mut ChartEngine<R>) -> ChartResult<T>,
+    ) -> ChartResult<T> {
+        let output = self.with_engine_mut(f, "update engine")?;
+        self.queue_draw_if_invalidated();
+        Ok(output)
+    }
+
+    #[must_use]
+    pub fn frame_request_pending(&self) -> bool {
+        self.frame_request_pending.get()
     }
 
     pub fn set_crosshair_diagnostics_hook<F>(&self, hook: F)
@@ -212,6 +308,16 @@ mod tests {
     use crate::core::{DataPoint, Viewport};
     use crate::render::CairoRenderer;
 
+    fn drain_pending_frame_requests(adapter: &GtkChartAdapter<CairoRenderer>) {
+        let context = gtk::glib::MainContext::default();
+        for _ in 0..12 {
+            if !adapter.frame_request_pending() {
+                break;
+            }
+            let _ = context.iteration(true);
+        }
+    }
+
     fn build_adapter() -> Option<GtkChartAdapter<CairoRenderer>> {
         if gtk::is_initialized() && !gtk::is_initialized_main_thread() {
             return None;
@@ -259,8 +365,9 @@ mod tests {
         assert_eq!(next, Some(5.0));
         assert_eq!(prev, Some(2.0));
 
+        // LWC parity: project +0.5 index offset so ceil conversion hits 2.2.
         let x_policy = adapter
-            .map_logical_index_to_pixel(2.2)
+            .map_logical_index_to_pixel(2.7)
             .expect("logical->pixel")
             .expect("space");
         let allow = adapter
@@ -273,5 +380,47 @@ mod tests {
             .expect("index");
         assert_eq!(allow, 3);
         assert_eq!(ignore, 2);
+    }
+
+    #[test]
+    fn gtk_adapter_queue_draw_if_invalidated_is_coalesced_per_mainloop_turn() {
+        let Some(adapter) = build_adapter() else {
+            return;
+        };
+        drain_pending_frame_requests(&adapter);
+
+        adapter
+            .update_engine(|engine| {
+                engine.clear_pending_invalidation();
+                engine.pointer_move(120.0, 60.0);
+                Ok(())
+            })
+            .expect("update engine");
+        assert!(adapter.frame_request_pending());
+
+        adapter.queue_draw_if_invalidated();
+        assert!(adapter.frame_request_pending());
+
+        drain_pending_frame_requests(&adapter);
+        assert!(!adapter.frame_request_pending());
+    }
+
+    #[test]
+    fn gtk_adapter_queue_draw_if_invalidated_noops_without_pending_invalidation() {
+        let Some(adapter) = build_adapter() else {
+            return;
+        };
+        drain_pending_frame_requests(&adapter);
+
+        adapter
+            .update_engine(|engine| {
+                engine.clear_pending_invalidation();
+                Ok(())
+            })
+            .expect("update engine");
+        assert!(!adapter.frame_request_pending());
+
+        adapter.queue_draw_if_invalidated();
+        assert!(!adapter.frame_request_pending());
     }
 }

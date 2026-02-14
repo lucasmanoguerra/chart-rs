@@ -43,16 +43,16 @@ fn histogram_projection_is_deterministic() {
     assert!((bars[0].x_center - 0.0).abs() <= 1e-9);
     assert!((bars[0].x_left + 5.0).abs() <= 1e-9);
     assert!((bars[0].x_right - 5.0).abs() <= 1e-9);
-    assert!((bars[0].y_top - 250.0).abs() <= 1e-9);
-    assert!((bars[0].y_bottom - 500.0).abs() <= 1e-9);
+    assert!((bars[0].y_top - 249.5).abs() <= 1e-9);
+    assert!((bars[0].y_bottom - 499.0).abs() <= 1e-9);
 
     assert!((bars[1].x_center - 500.0).abs() <= 1e-9);
-    assert!((bars[1].y_top - 250.0).abs() <= 1e-9);
-    assert!((bars[1].y_bottom - 250.0).abs() <= 1e-9);
+    assert!((bars[1].y_top - 249.5).abs() <= 1e-9);
+    assert!((bars[1].y_bottom - 249.5).abs() <= 1e-9);
 
     assert!((bars[2].x_center - 1000.0).abs() <= 1e-9);
     assert!((bars[2].y_top - 0.0).abs() <= 1e-9);
-    assert!((bars[2].y_bottom - 250.0).abs() <= 1e-9);
+    assert!((bars[2].y_bottom - 249.5).abs() <= 1e-9);
 }
 
 #[test]

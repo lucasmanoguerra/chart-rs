@@ -24,10 +24,10 @@ fn candlestick_projection_is_deterministic() {
     assert!((c.center_x - 500.0).abs() <= 1e-9);
     assert!((c.body_left - 494.0).abs() <= 1e-9);
     assert!((c.body_right - 506.0).abs() <= 1e-9);
-    assert!((c.wick_top - 200.0).abs() <= 1e-9);
-    assert!((c.wick_bottom - 350.0).abs() <= 1e-9);
-    assert!((c.body_top - 250.0).abs() <= 1e-9);
-    assert!((c.body_bottom - 300.0).abs() <= 1e-9);
+    assert!((c.wick_top - 199.6).abs() <= 1e-9);
+    assert!((c.wick_bottom - 349.3).abs() <= 1e-9);
+    assert!((c.body_top - 249.5).abs() <= 1e-9);
+    assert!((c.body_bottom - 299.4).abs() <= 1e-9);
     assert!(c.is_bullish);
 }
 

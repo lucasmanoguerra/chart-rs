@@ -1,22 +1,31 @@
+#[cfg(feature = "cairo-backend")]
 use chart_rs::api::{
     ChartEngine, ChartEngineConfig, PriceAxisDisplayMode, PriceAxisLabelConfig,
     PriceScaleRealtimeBehavior, RenderStyle, TimeAxisLabelConfig,
 };
+#[cfg(feature = "cairo-backend")]
 use chart_rs::core::{DataPoint, Viewport};
+#[cfg(feature = "cairo-backend")]
 use serde::Deserialize;
+#[cfg(feature = "cairo-backend")]
 use std::fs::{self, File};
+#[cfg(feature = "cairo-backend")]
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "cairo-backend")]
 const DEFAULT_MANIFEST_PATH: &str =
     "tests/fixtures/axis_section_sizing/axis_section_sizing_corpus.json";
+#[cfg(feature = "cairo-backend")]
 const DEFAULT_OUTPUT_ROOT: &str = "tests/fixtures/axis_section_sizing/reference_png";
 
+#[cfg(feature = "cairo-backend")]
 #[derive(Debug, Deserialize)]
 struct FixtureCorpus {
     schema_version: u32,
     fixtures: Vec<AxisSectionSizingFixture>,
 }
 
+#[cfg(feature = "cairo-backend")]
 #[derive(Debug, Deserialize)]
 struct AxisSectionSizingFixture {
     id: String,
@@ -26,11 +35,13 @@ struct AxisSectionSizingFixture {
     artifacts: FixtureArtifacts,
 }
 
+#[cfg(feature = "cairo-backend")]
 #[derive(Debug, Deserialize, Default)]
 struct FixtureArtifacts {
     reference_png_relpath: Option<String>,
 }
 
+#[cfg(feature = "cairo-backend")]
 #[derive(Debug, Deserialize)]
 struct FixtureInput {
     viewport: Viewport,
@@ -53,6 +64,7 @@ struct FixtureInput {
     price_axis_display_base_override: Option<FixtureDisplayBaseOverride>,
 }
 
+#[cfg(feature = "cairo-backend")]
 #[derive(Debug, Clone, Copy, Deserialize)]
 struct FixturePriceAxisScaleStep {
     delta_y_px: f64,
@@ -63,14 +75,17 @@ struct FixturePriceAxisScaleStep {
     min_span: f64,
 }
 
+#[cfg(feature = "cairo-backend")]
 fn default_scale_strength() -> f64 {
     0.2
 }
 
+#[cfg(feature = "cairo-backend")]
 fn default_min_span() -> f64 {
     1e-6
 }
 
+#[cfg(feature = "cairo-backend")]
 #[derive(Debug, Clone, Copy, Deserialize)]
 enum FixtureDisplayBaseOverride {
     #[serde(rename = "zero")]
@@ -83,6 +98,7 @@ enum FixtureDisplayBaseOverride {
     NegInf,
 }
 
+#[cfg(feature = "cairo-backend")]
 impl FixtureDisplayBaseOverride {
     #[must_use]
     fn to_f64(self) -> f64 {
@@ -95,6 +111,7 @@ impl FixtureDisplayBaseOverride {
     }
 }
 
+#[cfg(feature = "cairo-backend")]
 #[derive(Debug, Deserialize, Default)]
 #[serde(default)]
 struct RenderStyleOverrides {
@@ -114,6 +131,7 @@ struct RenderStyleOverrides {
     show_last_price_line: Option<bool>,
 }
 
+#[cfg(feature = "cairo-backend")]
 #[derive(Debug)]
 struct CliArgs {
     manifest_path: PathBuf,
@@ -210,6 +228,7 @@ fn run() -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(feature = "cairo-backend")]
 fn parse_args() -> Result<CliArgs, String> {
     let mut manifest_path = PathBuf::from(DEFAULT_MANIFEST_PATH);
     let mut output_root = PathBuf::from(DEFAULT_OUTPUT_ROOT);
@@ -253,16 +272,19 @@ fn parse_args() -> Result<CliArgs, String> {
     })
 }
 
+#[cfg(feature = "cairo-backend")]
 fn print_usage() {
     println!("{}", usage_message());
 }
 
+#[cfg(feature = "cairo-backend")]
 fn usage_message() -> String {
     format!(
         "Usage: cargo run --features cairo-backend --bin generate_axis_section_fixture_pngs -- [options]\n\nOptions:\n  --manifest <path>      Fixture manifest path (default: {DEFAULT_MANIFEST_PATH})\n  --output-root <path>   Output root when fixture has no artifact path (default: {DEFAULT_OUTPUT_ROOT})\n  --only <fixture-id>    Generate a single fixture by id\n  -h, --help             Show this message"
     )
 }
 
+#[cfg(feature = "cairo-backend")]
 fn resolve_output_path(fixture: &AxisSectionSizingFixture, output_root: &Path) -> PathBuf {
     if let Some(relpath) = &fixture.artifacts.reference_png_relpath {
         PathBuf::from(relpath)
@@ -271,6 +293,7 @@ fn resolve_output_path(fixture: &AxisSectionSizingFixture, output_root: &Path) -
     }
 }
 
+#[cfg(feature = "cairo-backend")]
 fn build_frame_from_fixture(
     fixture: &AxisSectionSizingFixture,
 ) -> chart_rs::ChartResult<chart_rs::render::RenderFrame> {
@@ -319,6 +342,7 @@ fn build_frame_from_fixture(
     engine.build_render_frame()
 }
 
+#[cfg(feature = "cairo-backend")]
 fn apply_display_base_override(
     config: &mut PriceAxisLabelConfig,
     override_base: FixtureDisplayBaseOverride,
@@ -333,6 +357,7 @@ fn apply_display_base_override(
     };
 }
 
+#[cfg(feature = "cairo-backend")]
 fn apply_style_overrides(style: &mut RenderStyle, overrides: &RenderStyleOverrides) {
     if let Some(value) = overrides.price_axis_width_px {
         style.price_axis_width_px = value;

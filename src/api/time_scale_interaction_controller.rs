@@ -1,8 +1,7 @@
-use crate::error::{ChartError, ChartResult};
+use crate::error::ChartResult;
 use crate::render::Renderer;
 
-use super::ChartEngine;
-use super::layout_helpers::resolve_axis_layout;
+use super::{ChartEngine, scale_coordinator::ScaleCoordinator};
 
 impl<R: Renderer> ChartEngine<R> {
     /// Applies time-axis drag scaling around a pixel anchor.
@@ -20,66 +19,13 @@ impl<R: Renderer> ChartEngine<R> {
         zoom_step_ratio: f64,
         min_span_absolute: f64,
     ) -> ChartResult<f64> {
-        if !self.interaction_input_behavior.allows_axis_drag_scale() {
-            return Ok(1.0);
-        }
-
-        if !drag_delta_x_px.is_finite() {
-            return Err(ChartError::InvalidData(
-                "axis drag delta must be finite".to_owned(),
-            ));
-        }
-        if !anchor_x_px.is_finite() {
-            return Err(ChartError::InvalidData(
-                "axis drag anchor x must be finite".to_owned(),
-            ));
-        }
-        if !zoom_step_ratio.is_finite() || zoom_step_ratio <= 0.0 {
-            return Err(ChartError::InvalidData(
-                "axis drag zoom step ratio must be finite and > 0".to_owned(),
-            ));
-        }
-        if !min_span_absolute.is_finite() || min_span_absolute <= 0.0 {
-            return Err(ChartError::InvalidData(
-                "axis drag minimum span must be finite and > 0".to_owned(),
-            ));
-        }
-        if drag_delta_x_px == 0.0 {
-            return Ok(1.0);
-        }
-
-        let normalized_steps = drag_delta_x_px / 120.0;
-        let base = 1.0 + zoom_step_ratio;
-        let factor = base.powf(normalized_steps);
-        if !factor.is_finite() || factor <= 0.0 {
-            return Err(ChartError::InvalidData(
-                "computed axis drag zoom factor must be finite and > 0".to_owned(),
-            ));
-        }
-
-        if self
-            .time_scale_scroll_zoom_behavior
-            .right_bar_stays_on_scroll
-        {
-            if let Some(anchor_px) = self.resolve_right_margin_zoom_anchor_px() {
-                self.zoom_time_visible_around_pixel(factor, anchor_px, min_span_absolute)?;
-            } else {
-                let (_, right_edge) = self.time_scale.visible_range();
-                self.zoom_time_visible_around_time(factor, right_edge, min_span_absolute)?;
-            }
-        } else {
-            let viewport_width = f64::from(self.viewport.width);
-            let viewport_height = f64::from(self.viewport.height);
-            let layout = resolve_axis_layout(
-                viewport_width,
-                viewport_height,
-                self.render_style.price_axis_width_px,
-                self.render_style.time_axis_height_px,
-            );
-            let anchor_x = anchor_x_px.clamp(0.0, layout.plot_right);
-            self.zoom_time_visible_around_pixel(factor, anchor_x, min_span_absolute)?;
-        }
-        Ok(factor)
+        ScaleCoordinator::axis_drag_scale_time(
+            self,
+            drag_delta_x_px,
+            anchor_x_px,
+            zoom_step_ratio,
+            min_span_absolute,
+        )
     }
 
     /// Resets time axis to full-range visible domain.
@@ -88,22 +34,6 @@ impl<R: Renderer> ChartEngine<R> {
     ///
     /// Returns `true` when visible range changed.
     pub fn axis_double_click_reset_time_scale(&mut self) -> ChartResult<bool> {
-        if !self
-            .interaction_input_behavior
-            .allows_axis_double_click_reset()
-        {
-            return Ok(false);
-        }
-
-        let before = self.time_scale.visible_range();
-        self.time_scale.reset_visible_range_to_full();
-        let mut changed = self.apply_time_scale_constraints()?;
-        let after = self.time_scale.visible_range();
-        changed |= (after.0 - before.0).abs() > 1e-12 || (after.1 - before.1).abs() > 1e-12;
-
-        if changed {
-            self.emit_visible_range_changed();
-        }
-        Ok(changed)
+        ScaleCoordinator::axis_double_click_reset_time_scale(self)
     }
 }

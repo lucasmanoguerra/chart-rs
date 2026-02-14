@@ -27,8 +27,13 @@ fn map_pixel_to_logical_index_allow_vs_ignore_whitespace() {
         .set_time_visible_range(0.0, 40.0)
         .expect("visible range");
 
-    // Logical index 2.0 sits between filled indices 1.0 and 3.0.
-    let logical_hole_px = 1000.0 - (4.0 - 2.0 + 0.5) * 250.0 - 1.0;
+    // LWC parity: `indexToCoordinate(2.5)` maps back to float logical index 2.0
+    // because `indexToCoordinate` uses +0.5 center-of-bar while
+    // `coordinateToFloatIndex` does not.
+    let logical_hole_px = engine
+        .map_logical_index_to_pixel(2.5)
+        .expect("logical to pixel")
+        .expect("space");
     let allow = engine
         .map_pixel_to_logical_index(logical_hole_px, TimeCoordinateIndexPolicy::AllowWhitespace)
         .expect("allow whitespace")
@@ -67,7 +72,11 @@ fn map_pixel_to_logical_index_ceil_exposes_discrete_conversion() {
         .set_time_visible_range(0.0, 40.0)
         .expect("visible range");
 
-    let logical_hole_px = 1000.0 - (4.0 - 2.2 + 0.5) * 250.0 - 1.0;
+    // Same LWC asymmetry as above: target float logical 2.2 by projecting 2.7.
+    let logical_hole_px = engine
+        .map_logical_index_to_pixel(2.7)
+        .expect("logical to pixel")
+        .expect("space");
     let allow = engine
         .map_pixel_to_logical_index_ceil(
             logical_hole_px,
@@ -88,7 +97,7 @@ fn map_pixel_to_logical_index_ceil_exposes_discrete_conversion() {
 }
 
 #[test]
-fn map_logical_index_to_pixel_matches_inverse_projection() {
+fn map_logical_index_to_pixel_reflects_lwc_half_bar_asymmetry() {
     let mut engine = build_engine();
     engine.set_data(vec![
         DataPoint::new(0.0, 10.0),
@@ -111,7 +120,17 @@ fn map_logical_index_to_pixel_matches_inverse_projection() {
         .map_pixel_to_logical_index(x, TimeCoordinateIndexPolicy::AllowWhitespace)
         .expect("pixel to logical")
         .expect("logical value");
-    assert!((logical - 2.0).abs() <= 1e-9);
+    assert!((logical - 1.5).abs() <= 1e-9);
+
+    let x_aligned = engine
+        .map_logical_index_to_pixel(2.5)
+        .expect("logical to pixel")
+        .expect("space");
+    let logical_aligned = engine
+        .map_pixel_to_logical_index(x_aligned, TimeCoordinateIndexPolicy::AllowWhitespace)
+        .expect("pixel to logical")
+        .expect("logical value");
+    assert!((logical_aligned - 2.0).abs() <= 1e-9);
 }
 
 #[test]

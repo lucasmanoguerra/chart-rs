@@ -199,11 +199,11 @@ proptest! {
                 .map_pixel_to_logical_index(probe_px, TimeCoordinateIndexPolicy::AllowWhitespace)
                 .expect("pixel to logical index")
                 .expect("logical index should resolve");
-            let logical_px = engine
-                .map_logical_index_to_pixel(logical)
+            let logical_px_aligned = engine
+                .map_logical_index_to_pixel(logical + 0.5)
                 .expect("logical index to pixel")
                 .expect("logical pixel should resolve");
-            prop_assert!((logical_px - probe_px).abs() <= width_tolerance);
+            prop_assert!((logical_px_aligned - probe_px).abs() <= width_tolerance);
         }
     }
 }

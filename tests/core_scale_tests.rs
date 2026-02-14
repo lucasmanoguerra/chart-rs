@@ -122,7 +122,7 @@ fn price_scale_uses_inverted_y_axis() {
     let bottom = scale.price_to_pixel(10.0, viewport).expect("bottom pixel");
 
     assert_eq!(top, 0.0);
-    assert_eq!(bottom, 600.0);
+    assert_eq!(bottom, 599.0);
 }
 
 #[test]

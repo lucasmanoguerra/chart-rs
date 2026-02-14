@@ -1,8 +1,12 @@
 mod frame;
+mod layer_stack;
+mod layered_frame;
 mod null_renderer;
 mod primitives;
 
 pub use frame::RenderFrame;
+pub use layer_stack::{CanvasLayerKind, PaneLayerStack};
+pub use layered_frame::{LayerPrimitives, LayeredRenderFrame, PaneLayerFrame};
 pub use null_renderer::NullRenderer;
 pub use primitives::{
     Color, LinePrimitive, LineStrokeStyle, RectPrimitive, TextHAlign, TextPrimitive,

@@ -32,31 +32,31 @@ fn baseline_projection_is_deterministic() {
     assert_eq!(geometry.line_points.len(), 3);
     assert_eq!(geometry.above_fill_polygon.len(), 6);
     assert_eq!(geometry.below_fill_polygon.len(), 6);
-    assert!((geometry.baseline_y - 250.0).abs() <= 1e-9);
+    assert!((geometry.baseline_y - 249.5).abs() <= 1e-9);
 
     // Line points.
     assert!((geometry.line_points[0].x - 0.0).abs() <= 1e-9);
-    assert!((geometry.line_points[0].y - 500.0).abs() <= 1e-9);
+    assert!((geometry.line_points[0].y - 499.0).abs() <= 1e-9);
     assert!((geometry.line_points[1].x - 500.0).abs() <= 1e-9);
-    assert!((geometry.line_points[1].y - 250.0).abs() <= 1e-9);
+    assert!((geometry.line_points[1].y - 249.5).abs() <= 1e-9);
     assert!((geometry.line_points[2].x - 1000.0).abs() <= 1e-9);
     assert!((geometry.line_points[2].y - 0.0).abs() <= 1e-9);
 
     // Above polygon clamps values above baseline (smaller y in inverted axis).
-    assert!((geometry.above_fill_polygon[0].y - 250.0).abs() <= 1e-9);
-    assert!((geometry.above_fill_polygon[1].y - 250.0).abs() <= 1e-9);
-    assert!((geometry.above_fill_polygon[2].y - 250.0).abs() <= 1e-9);
+    assert!((geometry.above_fill_polygon[0].y - 249.5).abs() <= 1e-9);
+    assert!((geometry.above_fill_polygon[1].y - 249.5).abs() <= 1e-9);
+    assert!((geometry.above_fill_polygon[2].y - 249.5).abs() <= 1e-9);
     assert!((geometry.above_fill_polygon[3].y - 0.0).abs() <= 1e-9);
-    assert!((geometry.above_fill_polygon[4].y - 250.0).abs() <= 1e-9);
-    assert!((geometry.above_fill_polygon[5].y - 250.0).abs() <= 1e-9);
+    assert!((geometry.above_fill_polygon[4].y - 249.5).abs() <= 1e-9);
+    assert!((geometry.above_fill_polygon[5].y - 249.5).abs() <= 1e-9);
 
     // Below polygon clamps values below baseline (larger y in inverted axis).
-    assert!((geometry.below_fill_polygon[0].y - 250.0).abs() <= 1e-9);
-    assert!((geometry.below_fill_polygon[1].y - 500.0).abs() <= 1e-9);
-    assert!((geometry.below_fill_polygon[2].y - 250.0).abs() <= 1e-9);
-    assert!((geometry.below_fill_polygon[3].y - 250.0).abs() <= 1e-9);
-    assert!((geometry.below_fill_polygon[4].y - 250.0).abs() <= 1e-9);
-    assert!((geometry.below_fill_polygon[5].y - 250.0).abs() <= 1e-9);
+    assert!((geometry.below_fill_polygon[0].y - 249.5).abs() <= 1e-9);
+    assert!((geometry.below_fill_polygon[1].y - 499.0).abs() <= 1e-9);
+    assert!((geometry.below_fill_polygon[2].y - 249.5).abs() <= 1e-9);
+    assert!((geometry.below_fill_polygon[3].y - 249.5).abs() <= 1e-9);
+    assert!((geometry.below_fill_polygon[4].y - 249.5).abs() <= 1e-9);
+    assert!((geometry.below_fill_polygon[5].y - 249.5).abs() <= 1e-9);
 }
 
 #[test]

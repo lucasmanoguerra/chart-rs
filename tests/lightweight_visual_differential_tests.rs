@@ -2,12 +2,13 @@
 
 use cairo::ImageSurface;
 use chart_rs::api::{
-    ChartEngine, ChartEngineConfig, PriceAxisLabelConfig, PriceScaleTransformedBaseBehavior,
-    PriceScaleTransformedBaseSource, TimeAxisLabelConfig,
+    CandlestickBodyMode, CandlestickStyleBehavior, ChartEngine, ChartEngineConfig,
+    PriceAxisLabelConfig, PriceScaleTransformedBaseBehavior, PriceScaleTransformedBaseSource,
+    RenderStyle, TimeAxisLabelConfig,
 };
 use chart_rs::core::{DataPoint, OhlcBar, PriceScaleMode, Viewport};
 use chart_rs::interaction::CrosshairMode;
-use chart_rs::render::{CairoRenderer, NullRenderer, Renderer};
+use chart_rs::render::{CairoRenderer, Color, NullRenderer, Renderer};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::fs::File;
@@ -45,7 +46,43 @@ struct VisualInput {
     time_axis_label_config: Option<TimeAxisLabelConfig>,
     #[serde(default)]
     price_axis_label_config: Option<PriceAxisLabelConfig>,
+    #[serde(default)]
+    candlestick_style_behavior: Option<CandlestickStyleBehavior>,
+    #[serde(default)]
+    render_style_overrides: VisualRenderStyleOverrides,
     actions: Vec<VisualAction>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(default)]
+struct VisualRenderStyleOverrides {
+    candlestick_up_color: Option<Color>,
+    candlestick_down_color: Option<Color>,
+    candlestick_wick_up_color: Option<Color>,
+    candlestick_wick_down_color: Option<Color>,
+    candlestick_border_up_color: Option<Color>,
+    candlestick_border_down_color: Option<Color>,
+    candlestick_body_mode: Option<VisualCandlestickBodyMode>,
+    candlestick_wick_width_px: Option<f64>,
+    candlestick_border_width_px: Option<f64>,
+    show_candlestick_wicks: Option<bool>,
+    show_candlestick_borders: Option<bool>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum VisualCandlestickBodyMode {
+    Solid,
+    HollowUp,
+}
+
+impl From<VisualCandlestickBodyMode> for CandlestickBodyMode {
+    fn from(value: VisualCandlestickBodyMode) -> Self {
+        match value {
+            VisualCandlestickBodyMode::Solid => Self::Solid,
+            VisualCandlestickBodyMode::HollowUp => Self::HollowUp,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -185,8 +222,12 @@ fn load_visual_corpus() -> VisualCorpus {
 
 fn render_fixture_png_bytes(fixture: &VisualFixture) -> Vec<u8> {
     let input = &fixture.input;
-    let config = ChartEngineConfig::new(input.viewport, input.time_range[0], input.time_range[1])
-        .with_price_domain(input.price_range[0], input.price_range[1]);
+    let mut config =
+        ChartEngineConfig::new(input.viewport, input.time_range[0], input.time_range[1])
+            .with_price_domain(input.price_range[0], input.price_range[1]);
+    if let Some(behavior) = input.candlestick_style_behavior {
+        config = config.with_candlestick_style_behavior(behavior);
+    }
 
     let mut engine =
         ChartEngine::new(NullRenderer::default(), config).expect("visual fixture engine init");
@@ -206,6 +247,9 @@ fn render_fixture_png_bytes(fixture: &VisualFixture) -> Vec<u8> {
             .set_price_axis_label_config(config)
             .expect("set price axis label config");
     }
+    let mut style = engine.render_style();
+    apply_style_overrides(&mut style, &input.render_style_overrides);
+    engine.set_render_style(style).expect("set render style");
 
     for action in &input.actions {
         match *action {
@@ -286,6 +330,42 @@ fn render_fixture_png_bytes(fixture: &VisualFixture) -> Vec<u8> {
         .write_to_png(&mut bytes)
         .expect("encode png bytes");
     bytes
+}
+
+fn apply_style_overrides(style: &mut RenderStyle, overrides: &VisualRenderStyleOverrides) {
+    if let Some(value) = overrides.candlestick_up_color {
+        style.candlestick_up_color = value;
+    }
+    if let Some(value) = overrides.candlestick_down_color {
+        style.candlestick_down_color = value;
+    }
+    if let Some(value) = overrides.candlestick_wick_up_color {
+        style.candlestick_wick_up_color = value;
+    }
+    if let Some(value) = overrides.candlestick_wick_down_color {
+        style.candlestick_wick_down_color = value;
+    }
+    if let Some(value) = overrides.candlestick_border_up_color {
+        style.candlestick_border_up_color = value;
+    }
+    if let Some(value) = overrides.candlestick_border_down_color {
+        style.candlestick_border_down_color = value;
+    }
+    if let Some(value) = overrides.candlestick_body_mode {
+        style.candlestick_body_mode = value.into();
+    }
+    if let Some(value) = overrides.candlestick_wick_width_px {
+        style.candlestick_wick_width_px = value;
+    }
+    if let Some(value) = overrides.candlestick_border_width_px {
+        style.candlestick_border_width_px = value;
+    }
+    if let Some(value) = overrides.show_candlestick_wicks {
+        style.show_candlestick_wicks = value;
+    }
+    if let Some(value) = overrides.show_candlestick_borders {
+        style.show_candlestick_borders = value;
+    }
 }
 
 fn decode_png_surface(bytes: &[u8]) -> ImageSurface {
