@@ -34,6 +34,7 @@ fn append_point_does_not_autoscale_when_disabled() {
     engine.set_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
         autoscale_on_data_set: false,
         autoscale_on_data_update: false,
+        autoscale_on_time_range_change: false,
     });
     engine.set_data(seed_points());
     engine
@@ -59,6 +60,7 @@ fn append_point_autoscales_when_enabled() {
     engine.set_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
         autoscale_on_data_set: false,
         autoscale_on_data_update: true,
+        autoscale_on_time_range_change: false,
     });
     engine.append_point(DataPoint::new(2.0, 300.0));
     let after = engine.price_domain();
@@ -77,6 +79,7 @@ fn update_point_replace_autoscales_when_enabled() {
     engine.set_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
         autoscale_on_data_set: false,
         autoscale_on_data_update: true,
+        autoscale_on_time_range_change: false,
     });
     engine
         .update_point(DataPoint::new(1.0, 250.0))
@@ -98,6 +101,7 @@ fn candles_take_priority_for_realtime_autoscale_source() {
     engine.set_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
         autoscale_on_data_set: false,
         autoscale_on_data_update: true,
+        autoscale_on_time_range_change: false,
     });
     engine.append_point(DataPoint::new(2.0, 1_000.0));
     let after = engine.price_domain();
@@ -118,6 +122,7 @@ fn append_candle_autoscales_when_enabled() {
     engine.set_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
         autoscale_on_data_set: false,
         autoscale_on_data_update: true,
+        autoscale_on_time_range_change: false,
     });
     engine.append_candle(OhlcBar::new(1.0, 60.0, 90.0, 58.0, 88.0).expect("candle"));
     let after = engine.price_domain();
@@ -131,6 +136,7 @@ fn set_data_autoscales_when_data_set_policy_enabled() {
     engine.set_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
         autoscale_on_data_set: true,
         autoscale_on_data_update: false,
+        autoscale_on_time_range_change: false,
     });
     engine.set_data(seed_points());
     let after = engine.price_domain();
@@ -144,6 +150,7 @@ fn set_candles_autoscales_when_data_set_policy_enabled() {
     engine.set_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
         autoscale_on_data_set: true,
         autoscale_on_data_update: false,
+        autoscale_on_time_range_change: false,
     });
     engine.set_candles(seed_candles());
     let after = engine.price_domain();

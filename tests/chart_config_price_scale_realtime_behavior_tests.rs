@@ -18,6 +18,7 @@ fn chart_engine_config_applies_price_scale_realtime_behavior() {
         .with_price_scale_realtime_behavior(PriceScaleRealtimeBehavior {
             autoscale_on_data_set: true,
             autoscale_on_data_update: true,
+            autoscale_on_time_range_change: true,
         });
     let renderer = NullRenderer::default();
     let mut engine = ChartEngine::new(renderer, config).expect("engine");

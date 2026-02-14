@@ -261,6 +261,7 @@ fn axis_drag_scale_and_double_click_reset_are_enabled_by_default() {
     engine.set_price_scale_realtime_behavior(chart_rs::api::PriceScaleRealtimeBehavior {
         autoscale_on_data_set: false,
         autoscale_on_data_update: false,
+        autoscale_on_time_range_change: false,
     });
     engine.set_data(vec![
         chart_rs::core::DataPoint::new(0.0, 10.0),
