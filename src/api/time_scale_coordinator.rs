@@ -5,7 +5,7 @@ use crate::render::Renderer;
 use super::{
     ChartEngine, TimeScaleResizeAnchor, time_scale_input_validation,
     time_scale_navigation_target_resolver, time_scale_pan_delta_resolver,
-    time_scale_zoom_factor_resolver,
+    time_scale_zoom_factor_resolver, time_scale_zoom_target_resolver,
 };
 
 pub(super) struct TimeScaleCoordinator;
@@ -262,40 +262,32 @@ impl TimeScaleCoordinator {
 
         if let Some((space, reference_step)) = engine.resolve_time_index_coordinate_space() {
             let (start, end) = engine.core.model.time_scale.visible_range();
-            let current_span = (end - start).max(1e-9);
-            let target_span = (current_span / factor).max(min_span_absolute);
-            let effective_factor = current_span / target_span;
-            let target_bar_spacing = (space.bar_spacing_px * effective_factor).max(f64::EPSILON);
-
-            let anchor_x = anchor_px.clamp(0.0, f64::from(engine.core.model.viewport.width));
-            let anchor_time_before = engine.map_pixel_to_x(anchor_x)?;
-            let anchor_logical_index = space.coordinate_to_logical_index(anchor_x)?;
-            let zoomed_space = TimeIndexCoordinateSpace {
-                bar_spacing_px: target_bar_spacing,
-                ..space
-            };
-            let target_right_offset = zoomed_space.solve_right_offset_for_anchor_preserving_zoom(
-                space.bar_spacing_px,
-                space.right_offset_bars,
-                anchor_logical_index,
-            )?;
-            let (_, full_end) = engine.core.model.time_scale.full_range();
-            let target_end = full_end + target_right_offset * reference_step;
-            let target_start = target_end - target_span;
             let viewport_width = f64::from(engine.core.model.viewport.width);
-            let anchor_time_after = if viewport_width > 0.0 {
-                target_start + (anchor_x / viewport_width) * target_span
-            } else {
-                anchor_time_before
-            };
-            if (anchor_time_after - anchor_time_before).abs() <= 1e-9 {
+            let anchor_x = anchor_px.clamp(0.0, viewport_width);
+            let anchor_time_before = engine.map_pixel_to_x(anchor_x)?;
+            let (_, full_end) = engine.core.model.time_scale.full_range();
+            let target = time_scale_zoom_target_resolver::resolve_anchor_preserving_zoom_target(
+                time_scale_zoom_target_resolver::AnchorPreservingZoomTargetInput {
+                    space,
+                    reference_step,
+                    full_end,
+                    visible_start: start,
+                    visible_end: end,
+                    anchor_px,
+                    viewport_width,
+                    factor,
+                    min_span_absolute,
+                    anchor_time_before,
+                },
+            )?;
+            if target.anchor_time_drift_abs() <= 1e-9 {
                 engine
                     .core
                     .model
                     .time_scale
                     .set_visible_range_from_bar_spacing_and_right_offset(
-                        target_bar_spacing,
-                        target_right_offset,
+                        target.target_bar_spacing,
+                        target.target_right_offset,
                         reference_step,
                         space.width_px,
                     )?;

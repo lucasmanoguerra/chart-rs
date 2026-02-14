@@ -181,6 +181,7 @@ mod time_scale_navigation_target_resolver;
 mod time_scale_pan_delta_resolver;
 mod time_scale_validation;
 mod time_scale_zoom_factor_resolver;
+mod time_scale_zoom_target_resolver;
 mod visible_window_access;
 
 mod engine;
