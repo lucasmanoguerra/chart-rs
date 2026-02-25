@@ -28,7 +28,7 @@ telemetry = ["dep:tracing-subscriber"]
 
 [dependencies]
 cairo = { package = "cairo-rs", version = "0.21", features = ["png"], optional = true }
-pango = { version = "0.21", optional = true }
+pango = { version = "0.22", optional = true }
 pangocairo = { version = "0.21", optional = true }
 gtk4 = { version = "0.10", optional = true }
 thiserror = "2.0"
